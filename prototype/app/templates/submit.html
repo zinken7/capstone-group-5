@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Submit data | Autonomous Mining Map{% endblock %}
+{% block content %}
+<section class="page-heading container">
+  <p class="eyebrow">CROWDSOURCED DATA</p>
+  <h1>Submit a deployment</h1>
+  <p>Provide equipment details and at least one public evidence URL. New records remain pending until reviewed.</p>
+</section>
+<section class="container form-layout">
+<form id="submission-form" class="panel form-panel">
+  <fieldset><legend>Equipment</legend><div class="form-grid">
+    <label>Asset or fleet name<input name="asset_name" required maxlength="200"></label>
+    <label>Equipment type<select name="equipment_type" required><option value="">Choose...</option><option>Truck</option><option>Dozer</option><option>Loader</option><option>Drill</option><option>Excavator</option><option>Other</option></select></label>
+    <label>Manufacturer<input name="manufacturer_name" required></label>
+    <label>Model<input name="model_name" required></label>
+    <label>Quantity<input name="quantity" type="number" min="1" value="1" required></label>
+    <label>Commissioning date<input name="commissioning_date" type="date"></label>
+    <label>Max payload (tonnes)<input name="max_payload_tonnes" type="number" min="0" step="0.1"></label>
+    <label>Operating weight (tonnes)<input name="operating_weight_tonnes" type="number" min="0" step="0.1"></label>
+    <label>Status<select name="asset_status"><option value="unknown">Unknown</option><option value="active">Active</option><option value="pilot">Pilot</option><option value="retired">Retired</option></select></label>
+    <label>Autonomy level<input name="autonomy_level" placeholder="e.g. Fully autonomous haulage"></label>
+  </div></fieldset>
+  <fieldset><legend>Organisations</legend><div class="form-grid"><label>Owner / operator<input name="owner_name"></label><label>Technology integrator<input name="integrator_name"></label></div></fieldset>
+  <fieldset><legend>Location hierarchy</legend><div class="form-grid">
+    <label>Region<input name="region_name" placeholder="e.g. Pilbara Region"></label>
+    <label>Operation group<input name="parent_operation_name" placeholder="e.g. Company operations"></label>
+    <label>Mine site<input name="mine_site_name" required></label>
+    <label>Country code<input name="country_code" required minlength="2" maxlength="2" placeholder="AU"></label>
+    <label>Latitude<input name="latitude" type="number" min="-90" max="90" step="any" required></label>
+    <label>Longitude<input name="longitude" type="number" min="-180" max="180" step="any" required></label>
+  </div></fieldset>
+  <fieldset><legend>Evidence</legend><div class="form-grid">
+    <label>Evidence title<input name="evidence_title" required></label>
+    <label>Public evidence URL<input name="evidence_url" type="url" required placeholder="https://..."></label>
+    <label>Evidence type<select name="evidence_type" required><option value="press_release">Press release</option><option value="news">News</option><option value="academic">Academic paper</option><option value="company_report">Company report</option><option value="government">Government</option><option value="other">Other</option></select></label>
+    <label>Publisher<input name="evidence_publisher"></label>
+    <label>Published date<input name="evidence_published_date" type="date"></label>
+  </div></fieldset>
+  <fieldset><legend>Optional case study or media</legend><div class="form-grid">
+    <label>Case study title<input name="case_study_title"></label>
+    <label>Case study URL<input name="case_study_url" type="url" placeholder="https://..."></label>
+    <label>Media type<select name="case_study_media_type"><option value="case_study">Case study</option><option value="video">Video</option><option value="report">Report</option><option value="article">Article</option></select></label>
+  </div><label>Summary<textarea name="case_study_summary" rows="3" maxlength="2000"></textarea></label></fieldset>
+  <fieldset><legend>Contributor</legend><div class="form-grid"><label>Your name<input name="submitted_by_name" required></label><label>Your email<input name="submitted_by_email" type="email" required></label></div><label>Notes<textarea name="notes" rows="4" maxlength="5000"></textarea></label></fieldset>
+  <div class="form-actions"><button class="button primary" type="submit">Submit for verification</button><span id="form-status"></span></div>
+</form>
+<aside class="panel guidance"><h2>Verification checklist</h2><ol><li>Use a source that clearly identifies the equipment or fleet.</li><li>Confirm the mine site and approximate coordinates.</li><li>Separate manufacturer, owner and integrator.</li><li>Do not enter confidential or personal information.</li></ol><p class="callout">For the MVP, one evidence source is required. The data model supports multiple sources and case studies.</p></aside>
+</section>
+{% endblock %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded', initSubmit);</script>{% endblock %}

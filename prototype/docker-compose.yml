@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    # The official tag is amd64-only; Docker Desktop emulates it on Apple Silicon.
+    platform: ${POSTGIS_PLATFORM:-linux/amd64}
+    environment:
+      POSTGRES_DB: mining
+      POSTGRES_USER: mining
+      POSTGRES_PASSWORD: mining
+    volumes:
+      - mining_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U mining -d mining"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  mining_postgres_data:

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Explore | Autonomous Mining Map{% endblock %}
+{% block content %}
+<section class="page-heading container">
+  <p class="eyebrow">QUERYABLE REGISTRY</p>
+  <h1>Explore autonomous mining equipment</h1>
+  <p>Filter verified deployments by keyword, equipment type, manufacturer and country.</p>
+</section>
+<section class="container explore-layout">
+  <aside class="panel filters">
+    <h2>Filters</h2>
+    <label>Search<input id="filter-q" type="search" placeholder="Asset, model, site..."></label>
+    <label>Equipment type<select id="filter-type"><option value="">All types</option><option>Truck</option><option>Dozer</option><option>Loader</option><option>Drill</option><option>Excavator</option><option>Other</option></select></label>
+    <label>Manufacturer<input id="filter-manufacturer" placeholder="e.g. CAT"></label>
+    <label>Country code<input id="filter-country" maxlength="2" placeholder="AU"></label>
+    <label>Status<select id="filter-verification"><option value="verified">Verified</option><option value="pending">Pending</option><option value="rejected">Rejected</option><option value="">All</option></select></label>
+    <button id="apply-filters" class="button primary" type="button">Apply filters</button>
+  </aside>
+  <div class="content-stack">
+    <article class="panel"><div id="explore-map" class="map"></div></article>
+    <article class="panel table-panel">
+      <div class="panel-header"><div><p class="eyebrow">RESULTS</p><h2 id="result-count">Loading...</h2></div></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Asset</th><th>Type</th><th>Manufacturer / model</th><th>Mine site</th><th>Quantity</th><th>Status</th><th>Evidence</th></tr></thead><tbody id="equipment-body"></tbody></table>
+      </div>
+      <div id="pagination" class="pagination"></div>
+    </article>
+  </div>
+</section>
+<dialog id="detail-dialog"><button class="dialog-close" aria-label="Close">×</button><div id="detail-content"></div></dialog>
+{% endblock %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded', initExplore);</script>{% endblock %}

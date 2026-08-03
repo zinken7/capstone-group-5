@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Autonomous Mining Equipment Market Map MVP">
+  <title>{% block title %}Mining Automation Map{% endblock %}</title>
+
+  <!-- Load the application's own CSS first so the page can render immediately. -->
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <!-- Leaflet CSS is useful for the map, but must not block the whole page. -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    media="print"
+    onload="this.media='all'"
+  >
+  <noscript>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </noscript>
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark">AM</span>
+      <span>Autonomous Mining Map</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="/" class="{% if page == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="/explore" class="{% if page == 'explore' %}active{% endif %}">Explore</a>
+      <a href="/submit" class="{% if page == 'submit' %}active{% endif %}">Submit data</a>
+      <a href="/admin" class="{% if page == 'admin' %}active{% endif %}">Moderate</a>
+      <a href="/docs" target="_blank" rel="noopener">API</a>
+    </nav>
+  </header>
+
+  <main>{% block content %}{% endblock %}</main>
+
+  <footer>
+    <span>MVP for UWA capstone evaluation.</span>
+    <span>Map data © OpenStreetMap contributors.</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Load the local app first so page initialisers such as initDashboard exist. -->
+  <script src="/static/app.js"></script>
+
+  <!-- Third-party libraries may load after parsing; they execute before DOMContentLoaded. -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

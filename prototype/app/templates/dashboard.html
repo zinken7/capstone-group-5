@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Autonomous Mining Map{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">GLOBAL EQUIPMENT INTELLIGENCE</p>
+    <h1>A verifiable map of autonomous mining assets.</h1>
+    <p class="hero-copy">Search deployments, inspect evidence, contribute new records and analyse adoption trends from one public registry.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="/explore">Explore records</a>
+      <a class="button secondary" href="/submit">Contribute evidence</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <strong>Verification-first</strong>
+    <p>Every verified asset is linked to at least one public evidence source and reviewed before publication.</p>
+  </div>
+</section>
+
+<section class="container dashboard-grid">
+  <div class="stat-card"><span>Equipment assets</span><strong id="total-assets">—</strong></div>
+  <div class="stat-card"><span>Verified records</span><strong id="total-records">—</strong></div>
+  <div class="stat-card"><span>Mine sites</span><strong id="total-sites">—</strong></div>
+  <div class="stat-card"><span>Countries</span><strong id="total-countries">—</strong></div>
+</section>
+
+<section class="container two-column">
+  <article class="panel map-panel">
+    <div class="panel-header">
+      <div><p class="eyebrow">GEOSPATIAL VIEW</p><h2>Verified deployments</h2></div>
+      <a href="/explore">View database →</a>
+    </div>
+    <div id="dashboard-map" class="map" aria-label="Map of verified autonomous mining deployments"></div>
+  </article>
+  <article class="panel">
+    <div class="panel-header"><div><p class="eyebrow">FLEET MIX</p><h2>Assets by equipment type</h2></div></div>
+    <canvas id="type-chart" aria-label="Assets by equipment type chart"></canvas>
+  </article>
+</section>
+
+<section class="container two-column">
+  <article class="panel"><div class="panel-header"><div><p class="eyebrow">MARKET VIEW</p><h2>Top manufacturers</h2></div></div><canvas id="manufacturer-chart"></canvas></article>
+  <article class="panel"><div class="panel-header"><div><p class="eyebrow">ADOPTION</p><h2>Commissioned assets by year</h2></div></div><canvas id="timeline-chart"></canvas></article>
+</section>
+{% endblock %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded', initDashboard);</script>{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Moderation | Autonomous Mining Map{% endblock %}
+{% block content %}
+<section class="page-heading container"><p class="eyebrow">VERIFICATION WORKFLOW</p><h1>Moderate submissions</h1><p>Review evidence before approving a record for public display.</p></section>
+<section class="container admin-layout">
+  <aside class="panel filters"><h2>Admin access</h2><label>Admin API key<input id="admin-key" type="password" autocomplete="off"></label><button id="load-submissions" class="button primary">Load pending</button><p class="muted">The demo key is configured in <code>.env</code>. Do not expose it in production.</p></aside>
+  <div id="admin-list" class="content-stack"><article class="panel empty-state"><h2>No submissions loaded</h2><p>Enter the admin key to view pending records.</p></article></div>
+</section>
+<dialog id="admin-dialog"><button class="dialog-close" aria-label="Close">×</button><div id="admin-detail"></div></dialog>
+{% endblock %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded', initAdmin);</script>{% endblock %}
