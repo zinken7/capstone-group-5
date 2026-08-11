@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="theme.css">
+<style>
+  .filters{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .fsel{padding:10px 14px;border:1px solid var(--hair);border-radius:9px;background:var(--surface);
+        font-size:13.5px;color:var(--ink-2);display:flex;align-items:center;gap:10px}
+  .fsel b{color:var(--ink);font-weight:600}
+  .search{flex:1;min-width:240px;padding:10px 14px;border:1px solid var(--hair);border-radius:9px;background:var(--surface);
+          font-size:13.5px;color:var(--muted)}
+  .showing{font-size:13px;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .sortb{font-size:13px;color:var(--ink-2);border:1px solid var(--hair);background:var(--surface);padding:8px 14px;border-radius:8px}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{text-align:left;font-size:11.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);
+           font-weight:650;padding:0 14px 12px;border-bottom:1px solid var(--grid)}
+  tbody td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--ink-2);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  .mach{color:var(--ink);font-weight:600}
+  .sm{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .tnum{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+  .st{display:flex;align-items:center;gap:8px;font-size:13px}
+  .supp{display:flex;align-items:center;gap:8px}
+  .pager{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--grid)}
+  .pg{display:flex;gap:6px}
+  .pgb{width:32px;height:32px;border-radius:8px;border:1px solid var(--hair);background:var(--surface-2);
+       display:grid;place-items:center;font-size:13px;color:var(--ink-2)}
+  .pgb.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:650}
+  .edit{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;
+        border:1px solid var(--hair);background:var(--surface-2);font-size:12.5px;color:var(--ink-2);font-weight:600}
+  .hintbar{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);
+           background:rgba(94,118,223,.07);border:1px solid rgba(94,118,223,.20);
+           border-radius:10px;padding:11px 14px;margin-bottom:14px}
+</style></head>
+<body>
+
+<div class="nav">
+  <div class="brand"><div class="logomark"><span>◆</span></div>Mining Market Map</div>
+  <div class="tabs">
+    <div class="tab"><span class="gl"></span>Map</div>
+    <div class="tab on"><span class="gl round"></span>Data</div>
+    <div class="tab"><span class="gl"></span>Contribute</div>
+  </div>
+  <div class="navright"><div class="icon">i</div><div class="icon">☾</div><div class="icon">≡</div></div>
+</div>
+
+<div class="body">
+  <div class="strip">
+    <div class="stats">
+      <div class="stat"><b>4,231</b> machines</div>
+      <div class="stat"><b>312</b> mine sites</div>
+      <div class="stat key"><b>38%</b> autonomous</div>
+      <div class="stat"><b>27</b> tech suppliers</div>
+      <div class="stat"><b>14</b> countries</div>
+    </div>
+    <div class="export">↓ Export CSV</div>
+  </div>
+
+  <div class="subtabs">
+    <div class="sub">Analytics</div>
+    <div class="sub on">Equipment</div>
+  </div>
+
+  <div class="panel">
+    <div class="filters">
+      <div class="search">⌕　Search site, manufacturer, model…</div>
+      <div class="fsel">Machine type <b>All</b> ▾</div>
+      <div class="fsel">Automation <b>All</b> ▾</div>
+      <div class="fsel">Supplier <b>All</b> ▾</div>
+      <div class="fsel">Country <b>Australia</b> ▾</div>
+      <div class="fsel">Status <b>All</b> ▾</div>
+      <div class="fsel">◧ <b>Verified only</b></div>
+    </div>
+
+    <div class="hintbar">◈ Spotted something wrong? Use <b style="color:var(--ink-2)">Edit</b> on any row — corrections go through the same review as new entries.</div>
+
+    <div class="showing">
+      <span>Showing 8 of 1,842 records · filtered to Australia</span>
+      <span class="sortb">↓ Commissioned — newest first</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Machine</th><th>Type</th><th>Mine site</th><th>Owner / operator</th>
+          <th>Technology supplier</th><th>Automation</th><th style="text-align:right">Qty</th>
+          <th>Commissioned</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="mach">Caterpillar 793F</div><div class="sm">Ultra class · 227 t</div></td>
+          <td>Haul truck</td>
+          <td>Roy Hill<div class="sm">Pilbara, WA</div></td>
+          <td>Roy Hill Holdings<div class="sm">Hancock Prospecting</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#5e76df"></span>Caterpillar</span><div class="sm">Command for Hauling</div></td>
+          <td>Autonomous</td>
+          <td class="tnum" style="text-align:right">96</td>
+          <td>2021</td>
+          <td><span class="pill v">✓ Verified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Komatsu 930E-4AT</div><div class="sm">Ultra class · 290 t</div></td>
+          <td>Haul truck</td>
+          <td>Solomon Hub<div class="sm">Pilbara, WA</div></td>
+          <td>Fortescue<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#d95926"></span>Komatsu</span><div class="sm">FrontRunner AHS</div></td>
+          <td>Autonomous</td>
+          <td class="tnum" style="text-align:right">108</td>
+          <td>2020</td>
+          <td><span class="pill v">✓ Verified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Sandvik LH621i</div><div class="sm">21 t payload</div></td>
+          <td>LHD / loader</td>
+          <td>Olympic Dam<div class="sm">SA · underground</div></td>
+          <td>BHP<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#199e70"></span>Sandvik</span><div class="sm">AutoMine</div></td>
+          <td>Autonomous</td>
+          <td class="tnum" style="text-align:right">14</td>
+          <td>2023</td>
+          <td><span class="pill v">✓ Verified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Epiroc Scooptram ST18</div><div class="sm">18 t payload</div></td>
+          <td>LHD / loader</td>
+          <td>Kanowna Belle<div class="sm">Goldfields, WA · underground</div></td>
+          <td>Northern Star<div class="sm">Contractor: Byrnecut</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#c98500"></span>Epiroc</span><div class="sm">Scooptram Automation</div></td>
+          <td>Teleremote</td>
+          <td class="tnum" style="text-align:right">6</td>
+          <td>2024</td>
+          <td><span class="pill v">✓ Verified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Caterpillar R2900</div><div class="sm">17 t payload</div></td>
+          <td>LHD / loader</td>
+          <td>Jundee<div class="sm">Goldfields, WA · underground</div></td>
+          <td>Northern Star<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#d55181"></span>RCT Global</span><div class="sm">ControlMaster Guidance</div></td>
+          <td>Teleremote</td>
+          <td class="tnum" style="text-align:right">9</td>
+          <td>2024</td>
+          <td><span class="pill u">Unverified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Komatsu WD600</div><div class="sm">Wheel dozer</div></td>
+          <td>Dozer</td>
+          <td>Mount Whaleback<div class="sm">Pilbara, WA</div></td>
+          <td>BHP<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#d95926"></span>Komatsu</span><div class="sm">—</div></td>
+          <td>Teleremote</td>
+          <td class="tnum" style="text-align:right">4</td>
+          <td>2025</td>
+          <td><span class="pill u">Unverified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Epiroc Pit Viper 271</div><div class="sm">Rotary blasthole</div></td>
+          <td>Drill</td>
+          <td>Boddington<div class="sm">South West, WA</div></td>
+          <td>Newmont<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#c98500"></span>Epiroc</span><div class="sm">BenchREMOTE</div></td>
+          <td>Semi-autonomous</td>
+          <td class="tnum" style="text-align:right">11</td>
+          <td>2025</td>
+          <td><span class="pill v">✓ Verified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+        <tr>
+          <td><div class="mach">Caterpillar 794 AC</div><div class="sm">Ultra class · 291 t</div></td>
+          <td>Haul truck</td>
+          <td>Olive Downs<div class="sm">Bowen Basin, QLD</div></td>
+          <td>Pembroke Resources<div class="sm">—</div></td>
+          <td><span class="supp"><span class="dotm" style="background:#5e76df"></span>Caterpillar</span><div class="sm">Command for Hauling</div></td>
+          <td>Autonomous</td>
+          <td class="tnum" style="text-align:right">29</td>
+          <td>2026</td>
+          <td><span class="pill u">Unverified</span></td><td><span class="edit">✎ Edit</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pager">
+      <span style="font-size:13px;color:var(--muted)">Page 1 of 231</span>
+      <div class="pg">
+        <span class="pgb">‹</span><span class="pgb on">1</span><span class="pgb">2</span>
+        <span class="pgb">3</span><span class="pgb">…</span><span class="pgb">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
