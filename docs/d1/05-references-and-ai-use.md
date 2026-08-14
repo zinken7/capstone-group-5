@@ -19,7 +19,7 @@ questions defined in [7].
 | [6] | M. Hoffmann, F. Nagle, and Y. Zhou, "The value of open source software," Harvard Business School, Boston, MA, USA, Working Paper 24-038, 2024. [Online]. Available: https://www.hbs.edu/ris/Publication%20Files/24-038_51f8444f-502c-4139-8bf2-56eb4b65c58a.pdf |
 | [7] | Group 5, "Software requirements specification, version 0.2," CITS5206 Capstone Project, Univ. of Western Australia, Aug. 11, 2026. |
 | [8] | Group 5, "Facilitator meeting 1," meeting minutes and transcript, Univ. of Western Australia, Perth, WA, Australia, Aug. 7, 2026. |
-
+| [9] | Project Management Institute, A Guide to the Project Management Body of Knowledge (PMBOK Guide), 5th ed. Newtown Square, PA, USA: Project Management Institute, 2013, p. 262. |
 # Acknowledgement of AI Use {-}
 
 <!-- Required by the brief: acknowledge AI use WITH a description of how it
