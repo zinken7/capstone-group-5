@@ -8,12 +8,12 @@ The assignment of a responsible member does not indicate a higher position withi
 
 | Member | Role                                               | Primary Area                                                                                                  |
 | ------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **M1** | **DevOps & AI Integration**                        | Repository management, deployment, system integration, LLM verification, RAG, and technical support           |
-| **M2** | **Project Coordinator and Business Analyst**       | Requirements, planning, client communication, accountability reporting, risks, and quality assurance          |
-| **M3** | **Backend Development and API Testing**            | Backend services, application logic, APIs, verification workflow, and automated API testing                   |
-| **M4** | **Database Development and Data Integration**      | Database design, PostGIS, migrations, data ingestion, data quality, evidence metadata, and imports            |
-| **M5** | **Frontend, GIS and Analytics Development**        | User interface, GIS map, dashboard, moderation interface, and report presentation                             |
-| **M6** | **Frontend, Quality Assurance and RAG Evaluation** | Frontend support, system testing, accessibility, RAG evaluation, documentation, and demonstration preparation |
+| **Tyrone Tran (24814799)** | **DevOps & AI Integration**                        | Repository management, deployment, system integration, LLM verification, RAG, and technical support           |
+| **Hans Lionar (24661999)** | **Project Coordinator and Business Analyst**       | Requirements, planning, client communication, accountability reporting, risks, and quality assurance          |
+| **Zerun Zhang (24389925)** | **Backend Development and API Testing**            | Backend services, application logic, APIs, verification workflow, and automated API testing                   |
+| **Zunhao Zhang (24758673)** | **Database Development and Data Integration**      | Database design, PostGIS, migrations, data ingestion, data quality, evidence metadata, and imports            |
+| **Shee Wang (24368932)** | **Frontend, GIS and Analytics Development**        | User interface, GIS map, dashboard, moderation interface, and report presentation                             |
+| **Hengan Weng (24201874)** | **Frontend, Quality Assurance and RAG Evaluation** | Frontend support, system testing, accessibility, RAG evaluation, documentation, and demonstration preparation |
 
 ---
 
