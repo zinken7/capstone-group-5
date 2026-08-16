@@ -26,6 +26,8 @@ erDiagram
     DEPLOYMENT ||--o{ EVIDENCE : "is supported by"
     DEPLOYMENT ||--o{ REVISION : "has history"
     CONTRIBUTOR o|--o{ REVISION : makes
+    DEPLOYMENT ||--o{ VERIFICATION_REVIEW : "is reviewed through"
+    ADMIN_USER ||--o{ VERIFICATION_REVIEW : performs
 
     COMPANY {
         bigint id PK
@@ -95,6 +97,21 @@ erDiagram
         text organisation "nullable"
         timestamptz created_at
     }
+    ADMIN_USER {
+        bigint id PK
+        text email UK
+        text password_hash
+        boolean active
+        timestamptz created_at
+    }
+    VERIFICATION_REVIEW {
+        bigint id PK
+        bigint deployment_id FK
+        bigint admin_user_id FK
+        verification_decision decision
+        text review_note
+        timestamptz reviewed_at
+    }
     REVISION {
         bigint id PK
         bigint deployment_id FK
@@ -117,6 +134,8 @@ erDiagram
 | Machine model–deployment | 1:N | A model may occur in many deployments.  The model name may be unknown initially. |
 | Technology product–deployment | 0..1:N | A submission may initially omit the product, but it is required before verification. |
 | Deployment–evidence | 1:N | Evidence is stored separately so several supporting sources can be retained. |
+| Deployment–verification review | 1:N | Every verification decision is retained as a separate, append-only review record. |
+| Admin user–verification review | 1:N | Each review is performed by one administrator; an administrator may perform many reviews. |
 | Deployment–revision | 1:N | Changes are append-only; the deployment row is the current state and revisions provide an audit trail. |
 
 ## Controlled values
@@ -132,6 +151,7 @@ free text:
 | `mining_environment` | `surface`, `underground`, `both` |
 | `deployment_status` | `announced`, `commissioning`, `operational`, `decommissioned` |
 | `verification_status` | `unverified`, `pending_review`, `verified`, `rejected` |
+| `verification_decision` | `approved`, `rejected`, `needs_changes` |
 | `evidence_type` | `company_release`, `news`, `academic`, `government`, `report`, `other` |
 
 The three user-facing automation bands are derived from `automation_level`:
@@ -146,12 +166,20 @@ semi-autonomous or autonomous.  They should not be stored redundantly.
   deployment and creates another.
 * A verified deployment requires a technology product and at least one evidence
   record.  Enforce this in the application transaction or a database trigger.
+* A verification review must reference an active administrator. Review records
+  are append-only; the deployment's `verification_status` is the current state
+  and is updated from the latest applicable review in the same transaction.
+* `admin_user.email` is unique. Store only a strong password hash (for example,
+  Argon2id or bcrypt), never a plaintext password.
 * `site_company_role` is unique on `(site_id, company_id, role)`.
 * `machine_model` is unique on `(manufacturer_id, model_name)` where
   `model_name` is not null.
 * Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`,
   `technology_product_id`, `verification_status`, `status`,
   `commissioning_date`, and the site `country_code`.
+* Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and
+  `verification_review(admin_user_id)` to support review history and audit
+  queries.
 * Add a GiST index on `site.point_4326` for viewport and radius queries.
 * Store source URLs as text and optionally add a unique index on
   `(deployment_id, url)` to prevent duplicate evidence.
