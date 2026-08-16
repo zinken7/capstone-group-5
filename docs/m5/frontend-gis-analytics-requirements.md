@@ -18,16 +18,17 @@ The dashboard should provide:
 - Widgets that update dynamically when filters change.
 - A time-range slicer based on the agreed deployment or commissioning date.
 - Deployment or adoption counts over time.
-- Manufacturer market-share visualisation.
+- Manufacturer and technology-supplier market-share visualisations.
 - Surface and underground equipment breakdown.
 - Clear handling of loading, empty-data and error states.
 - Responsive presentation on common desktop and mobile screen sizes.
+- Shared filters that apply consistently to all relevant measures, including country, machine type, manufacturer, technology supplier, automation band, commodity and surface/underground classification.
 
 ## GIS Requirements
 
 The GIS interface should provide:
 
-- A map displaying verified autonomous mining equipment deployments.
+- A map displaying equipment deployments permitted by the agreed publication and verification rules.
 - Mine-site markers generated from geographic data supplied by the backend.
 - Equipment details accessible from map markers.
 - Filtering by equipment type, manufacturer, country and other agreed fields.
@@ -45,7 +46,7 @@ The following definitions are proposed but require confirmation:
 | Equipment count | Sum of equipment quantities in verified deployment records |
 | Manufacturer market share | Manufacturer equipment count divided by total equipment count for the selected filters |
 | Adoption trend | Verified equipment or deployment count grouped by commissioning year |
-| Surface/underground split | Equipment count grouped by the operating-environment field |
+| Surface/underground split | Equipment count grouped by the deployment-level surface/underground classification | 
 
 ## Data Dependencies
 
@@ -74,16 +75,14 @@ The following points require team or client confirmation:
 2. Is manufacturer market share calculated by equipment quantity or deployment
    records?
 3. Which date field controls the time slicer?
-4. Is surface/underground classification stored per machine, deployment or mine
-   site?
-5. Does “dynamic widgets” mean filter-driven updates only, or user-configurable
+4. Does “dynamic widgets” mean filter-driven updates only, or user-configurable
    and rearrangeable widgets?
-6. Should unverified and rejected records ever appear in public analytics?
-7. Which filters must update the dashboard, map and equipment table together?
-8. What dataset will be used to validate the dashboard calculations?
-9. What performance target applies when the registry contains thousands of
+5. Should unverified and rejected records ever appear in public analytics?
+6. Which filters must update the dashboard, map and equipment table together?
+7. What dataset will be used to validate the dashboard calculations?
+8. What performance target applies when the registry contains thousands of
    records?
-10. Are financial projections excluded from the MVP?
+9. Are financial projections excluded from the MVP?
 
 ## Initial Acceptance Considerations
 
