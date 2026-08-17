@@ -48,26 +48,29 @@ The following definitions are proposed but require confirmation:
 | Deployment count | Number of verified deployment records in the selected period |
 | Equipment count | Sum of equipment quantities in verified deployment records |
 | Manufacturer market share | Manufacturer equipment count divided by total equipment count for the selected filters |
+| Technology supplier market share | Technology-supplier equipment count divided by total equipment count for the selected filters |
 | Adoption trend | Verified equipment or deployment count grouped by commissioning year |
 | Surface/underground split | Equipment count grouped by the deployment-level surface/underground classification | 
 
 ## Data Dependencies
 
-The frontend and analytics components depend on the backend providing:
+The frontend, GIS and analytics components depend on the backend providing:
 
-- Equipment type
-- Manufacturer
-- Model
-- Equipment quantity
-- Verification status
-- Country and mine-site location
-- Latitude and longitude
-- Commissioning or deployment date
+- Deployment identifier and equipment quantity
+- Equipment type, manufacturer and model
+- Technology supplier and technology product
+- Automation level or derived automation band
+- Deployment and verification status
+- Country, region, commodity and mine-site information
+- Mine-site geometry or coordinates derived from the PostGIS site location
+- Commissioning date and deployment validity period
 - Surface/underground classification
 - Evidence information
 
-Missing or unknown values should be represented explicitly rather than
-silently excluded from the visualisations.
+These dependencies align with the proposed database ERD, where deployments
+connect mine sites, machine models and technology products. The frontend API
+contract, GeoJSON response structure and dashboard-layout persistence mechanism
+still require coordination with the backend and database teams.
 
 ## Open Questions
 
@@ -109,3 +112,4 @@ under FR-36 and will be implemented only if confirmed by the client and supporte
 by the project schedule. Financial forecasting and advanced predictive analytics
 are not assumed to be part of the MVP without explicit approval and an agreed
 data and validation approach.
+
