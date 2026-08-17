@@ -15,7 +15,10 @@ The dashboard should provide:
 
 - Sorting and filtering of relevant equipment data.
 - Tooltips that explain chart values and metric definitions.
-- Widgets that update dynamically when filters change.
+- Existing dashboard widgets should update dynamically when shared filters change.
+- As a Could requirement, users may be able to customise the dashboard by
+  adding, configuring and removing available widgets, and retain their selected
+  arrangement between sessions, subject to client confirmation and team capacity.
 - A time-range slicer based on the agreed deployment or commissioning date.
 - Deployment or adoption counts over time.
 - Manufacturer and technology-supplier market-share visualisations.
@@ -75,8 +78,9 @@ The following points require team or client confirmation:
 2. Is manufacturer market share calculated by equipment quantity or deployment
    records?
 3. Which date field controls the time slicer?
-4. Does “dynamic widgets” mean filter-driven updates only, or user-configurable
-   and rearrangeable widgets?
+4. Should user-configurable widgets be included in the MVP or retained as a
+   Could feature under FR-36, and which widget operations and persistence
+   behaviour are required?
 5. Should unverified and rejected records ever appear in public analytics?
 6. Which filters must update the dashboard, map and equipment table together?
 7. What dataset will be used to validate the dashboard calculations?
@@ -100,6 +104,8 @@ The following points require team or client confirmation:
 
 ## Scope Note
 
-Financial forecasting, saved custom dashboard layouts and advanced predictive
-analytics are not assumed to be part of the MVP unless the client explicitly
-approves them together with the necessary data and validation approach.
+User-configurable and saved dashboard layouts are treated as a Could requirement
+under FR-36 and will be implemented only if confirmed by the client and supported
+by the project schedule. Financial forecasting and advanced predictive analytics
+are not assumed to be part of the MVP without explicit approval and an agreed
+data and validation approach.
