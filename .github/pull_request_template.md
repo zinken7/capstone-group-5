@@ -4,13 +4,14 @@
 
 Closes #
 
-## How it was tested
+## How it was checked
 
-<!-- Commands run, cases checked, or a screenshot for interface changes. -->
+<!-- Code: commands run, cases covered, screenshots for interface changes.
+     Documents: sources cross-checked, links followed, output rendered. -->
 
 ## Checklist
 
 - [ ] Acceptance criteria in the issue are met
-- [ ] CI passes
-- [ ] Documentation updated in this pull request, where affected
+- [ ] CI passes, where applicable
+- [ ] Related documentation updated in this pull request
 - [ ] Branch will be deleted after merge
