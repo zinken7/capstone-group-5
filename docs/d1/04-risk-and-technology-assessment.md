@@ -30,7 +30,7 @@ The repository also contains a `services` area. This is reserved for optional fu
 	\textbf{Decision} & \textbf{Alternatives considered} & \textbf{Chosen approach} & \textbf{Justification} \\
 \hline
 \endhead
-Frontend & No formal framework comparison was required & \textbf{React} & At least three team members already have React experience. It is well suited to the interactive map, dashboard, filters and forms required by the MVP, while existing team experience reduces implementation risk. \\
+Frontend & React selected directly based on existing team experience & \textbf{React} & At least three team members already have React experience. It is well suited to the interactive map, dashboard, filters and forms required by the MVP, while existing team experience reduces implementation risk. \\
 Backend & Python FastAPI, Node.js/Express & \textbf{Node.js + Express} & The members responsible for backend development already have Node.js/Express experience. It also allows JavaScript to be used across both the frontend and backend. \\
 Application architecture & Microservices, modular client-server architecture & \textbf{Modular client-server architecture} & Microservices were considered but would introduce unnecessary deployment and integration complexity for the current project size. The backend can still be separated internally into clear modules. \\
 API & REST, GraphQL & \textbf{REST with JSON} & The MVP mainly performs CRUD, search, filtering, analytics and moderation operations. REST is straightforward to implement, test and integrate with React. \\
@@ -47,7 +47,7 @@ Source control and planning & Separate development/project tools & \textbf{GitHu
 
 The frontend will initially be hosted on Vercel. The backend and PostgreSQL/PostGIS database will support both Docker-based local deployment and hosted deployment on AWS. Keeping the backend containerised reduces dependence on a particular hosting platform and makes later deployment or handover easier.
 
-## Team Skills and Resources Assessment
+## Team Skills Assessment
 
 The team has different strengths across frontend, backend, database, DevOps and business analysis. Existing experience covers most of the core web stack, but several areas require additional learning.
 
@@ -80,6 +80,32 @@ The main MVP skills gap is **PostGIS**, as it is required for the core GIS funct
 
 The same approach will be used for security and other unfamiliar areas rather than leaving skills gaps until the final integration stage.
 
+
+## Resources and Constraints
+
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{6.5cm} p{6.5cm}}
+\hline
+\textbf{Resource / constraint} & \textbf{Current position} & \textbf{Impact / response} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Resource / constraint} & \textbf{Current position} & \textbf{Impact / response} \\
+\hline
+\endhead
+Team capacity & Six team members with defined responsibilities across project coordination, frontend, backend, database, DevOps/AI and QA & Work is divided by primary ownership, with peer review and technical support where skill gaps exist \\
+Development tooling & GitHub, GitHub Projects, GitHub Actions and Docker Compose are available to the team & Supports source control, planning, automated checks and a reproducible development environment \\
+Hosting & React frontend is planned for Vercel; backend and PostgreSQL/PostGIS support local Docker deployment and later AWS deployment & Provides a workable MVP development/demo path; final UWA hosting requirements still need to be verified \\
+Budget & The project has budget available for hosting or external services where justified & Paid services can be considered if necessary, but cost and ongoing handover requirements must be assessed before adoption \\
+Development data & Fake data will be used during development & Allows frontend, backend, GIS and analytics work to progress without waiting for industry data \\
+Real/seed data & The client has approached organisations including Rio Tinto and BHP regarding data, but the final dataset has not yet been received & Real data is treated as a future project resource rather than a dependency for initial MVP development \\
+Team capacity & Six team members, with each member expected to contribute at least 8 hours per week to project work outside scheduled meetings/classes & Provides a minimum planned team capacity of approximately 48 person-hours per week. Work is allocated through GitHub Projects according to each member's primary responsibilities and adjusted when workload is uneven. \\
+\hline
+\end{longtable}
+
+
 ## Risk Register
 
 Likelihood (L) and Impact (I) are rated High, Medium or Low.
@@ -98,12 +124,13 @@ Likelihood (L) and Impact (I) are rated High, Medium or Low.
 \endhead
 1 & The final deployment environment differs from the local development environment or does not provide the expected capabilities. & Technical / Deployment & M & H & Keep the backend and database containerised with Docker and test both local and AWS-hosted deployment before final delivery. & M1 \\
 2 & Real seed data is delivered late, is incomplete, or does not provide enough coverage for meaningful analytics [4][5]. & Data & H & H & Develop using controlled fake data so implementation is not blocked. Replace or supplement it with verified real data when available. & M4 \\
-3 & Additional stakeholder requests increase project scope after development has started [1][2][3]. & Project & L & M & Use the agreed MVP and MoSCoW priorities as the scope baseline. New requests will be assessed before being added to committed work. & M2 \\
+3 & Additional stakeholder requests increase project scope after development has started [1][2][3]. & Project & M & M & Use the agreed MVP and MoSCoW priorities as the scope baseline. New requests will be assessed before being added to committed work. & M2 \\
 4 & Integration problems occur between React, Express, PostgreSQL/PostGIS and Leaflet. & Technical & H & H & Integrate vertically from an early stage using small end-to-end prototypes instead of developing each layer independently until the end. & M1 \\
 5 & Uneven technical experience across team members delays implementation or produces inconsistent work. & Team & H & M & Use clear ownership, peer review, stronger-member support and small prototypes for unfamiliar technologies. & M2 \\
 6 & Crowdsourced records contain incorrect, incomplete or duplicate information. & Data quality & H & H & New records remain unverified, evidence is collected, administrators review records, and validation/duplicate checks are applied where possible. & M4 \\
 7 & The public contribution interface is abused through spam or malicious input. & Cybersecurity & L & M & Use CAPTCHA, rate limiting, server-side validation and controlled file/URL handling. & M1 \\
 8 & Analytics are interpreted as complete market statistics even though the database has incomplete global coverage. & Data / Business & H & H & Clearly state that analytics are calculated from recorded deployments and disclose dataset coverage limitations where appropriate. & M2 \\
+9 & Client availability delays answers to open questions or the provision of seed data, blocking dependent design and implementation decisions. & Client / Project & H & H & Maintain regular client meetings, consolidate blocking questions before each contact, and track unresolved decisions with target dates. Where a decision cannot wait, use a documented and reversible working assumption and seek confirmation at the next available opportunity. & M2 \\
 \hline
 \end{longtable}
 
