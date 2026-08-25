@@ -179,6 +179,7 @@ roughly this order. Priorities are the SRS ratings.
 | Link from a machine model to the manufacturer's page (FR-39) | Could | Only where the page is known |
 | Sign-in with Microsoft or Google; affiliation flag (FR-52, FR-53) | Could | Depends on outbound access (Q-4a) and a budget owner (Q-4c) |
 | Market events feed (FR-54) | Could | Supplier changes, acquisitions, new products |
+| Compare a mine site against similar sites (new, CM2) | Could | Raised by Epiroc at CM2 to support advising an operator from a comparable site. Not yet in the SRS; needs a requirement written before it can be scheduled |
 | Automated evidence check (FR-55) | Could | Depends on outbound access and a budget owner; never decides a record's status |
 
 ---
