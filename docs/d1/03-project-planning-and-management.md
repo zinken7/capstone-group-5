@@ -26,7 +26,7 @@ this section summarises.
 ## Project Management Tools
 
 | Tool | Used for | Rationale |
-|---|---|---|
+|------|------------------|--------------------------|
 | [GitHub](https://github.com/zinken7/capstone-group-5) | Source control, task assignment and tracking on a project board, sprint milestones, peer review, continuous integration and deployment, and all project documentation | Issues and milestones were adopted in preference to a separate tracking tool so that the plan, the documentation and the source share a single history and review trail. The client and facilitator can be given read access to the repository itself, so no further tool is required of them. |
 | Mermaid | Diagrams that must remain consistent with the implementation: the entity-relationship diagram, and state or sequence diagrams where required | Maintained as code, these diagrams are versioned and reviewed within the same pull request as the change they document, so revisions are explicit to reviewers. An exported image cannot be compared between versions, and becomes outdated without detection. |
 | draw.io | Diagrams in which the arrangement itself conveys meaning: system architecture, deployment topology and interface wireframes | Composed layout is necessary where grouping and position are the substance of the diagram, which Mermaid's automatic layout cannot express. Diagrams are exported and committed to the repository, so that no artefact depends upon a hosted account. |
@@ -36,17 +36,17 @@ this section summarises.
 
 - **Task assignment.** Tasks are assigned and tracked on a GitHub Projects
   board, each issue carrying an assignee and the milestone for its sprint
-  [11]. A pull request stating `Closes #n` closes its issue on merge, which
+  [31]. A pull request stating `Closes #n` closes its issue on merge, which
   moves the card to Done, so board status reflects the repository rather than
   manual upkeep. The board is reviewed at the weekly team meeting.
-- **Branching.** The team follows trunk-based development [12]: `main` is
+- **Branching.** The team follows trunk-based development [32]: `main` is
   protected, always deployable and never committed to directly. Work is
   carried out on short-lived branches named
   `<type>/<issue-number>-<short-name>`, for example
   `feat/12-deployment-read-api`, so that a branch, an issue and a pull request
   denote the same unit of work. Branches are deleted once merged.
 - **Commits.** Commit messages follow the Conventional Commits specification
-  [13]: `<type>(<scope>): <description>`, for example `feat(api): add
+  [33]: `<type>(<scope>): <description>`, for example `feat(api): add
   deployment read endpoint`. Squash merges append the pull request number
   automatically, so history records the area, the change and its origin.
   Branch prefixes use the same type vocabulary.
@@ -55,7 +55,7 @@ this section summarises.
   relevant area and a passing CI run. A pull request template records what
   changed, the issue it closes and how it was tested.
 - **Definition of done.** The Scrum Guide requires each team to define its own
-  [10]. Ours: merged to `main`, CI passed, running on staging, the acceptance
+  [30]. Ours: merged to `main`, CI passed, running on staging, the acceptance
   criteria in the issue demonstrably met, and affected documentation updated
   in the same pull request.
 - **Meetings.** A standing weekly client meeting on Thursdays at 10:00 will be
@@ -82,12 +82,12 @@ vocabularies and the issue and pull request templates.
 
 All members hold equal standing, and decisions on scope, architecture,
 technology and design are agreed by the team. Following the responsibility
-assignment matrix convention [9], each area names one accountable member,
+assignment matrix convention [29], each area names one accountable member,
 answerable for the work being completed, tested, documented and ready for
 integration, while any member may contribute to any area.
 
 | Code | Member | Role | Primary area |
-|---|---|---|---|
+|---|----------|-----------|----------------|
 | M1 | Tyrone Tran (24814799) | DevOps and AI integration | Repository configuration, CI/CD, deployment environments, system integration, LLM verification and RAG pipeline |
 | M2 | Hans Lionar (24661999) | Project coordination and business analysis | Requirements, planning and task allocation, client communication, project documentation and risk register, quality assurance |
 | M3 | Zerun Zhang (24389925) | Backend development and API testing | Backend services, application logic, REST APIs, verification workflow, automated API tests |
@@ -110,9 +110,9 @@ The unit calendar places the final group report and showcase in week 12, on 13
 October, leaving four sprints from week 5.
 
 | Period | Dates | Milestone |
-|---|---|---|
+|-------|---------|------------------------|
 | Weeks 1–4 | 21 Jul – 17 Aug | Completed: project allocation; client and facilitator meetings; requirements elicitation with RCT Global and Epiroc; interactive prototype; draft MVP scope sent to the client; requirements analysis and specification [7] |
-| Sprint 1 | Weeks 5–6 · 18–31 Aug | Specification and plans submitted (25 Aug). Outstanding client questions resolved. **Foundation:** schema, migrations, seed data, CI/CD and staging working together, shown by one mine site from the database appearing on the map |
+| Sprint 1 | Weeks 5–6 · 18–31 Aug | Specification and plans submitted (25 Aug). Outstanding client questions resolved, or a dated assumption recorded for each and tracked for confirmation. **Foundation:** schema, migrations, seed data, CI/CD and staging working together, shown by one mine site from the database appearing on the map |
 | Study break | 1–7 Sep | No timetabled classes. A lighter load is assumed: documentation, testing and carry-over tasks only, with no critical-path work scheduled ahead of the in-class test on 8 September |
 | Sprint 2 | Weeks 7–8 · 8–21 Sep | **Map, register and analytics:** the map completed; a user searches, filters and sorts the register, exports the dataset, and reads the headline statistics |
 | Sprint 3 | Weeks 9–10 · 22 Sep – 5 Oct | **Contribution and verification:** a contributor submits a record with evidence, and an administrator verifies, rejects or requests further evidence; deployed to the UWA environment. Software Features due 29 September, demonstration video 6 October |
@@ -122,7 +122,7 @@ Delivery began a week later than planned and this deliverable was extended to
 25 August, so Sprint 1 runs in parallel with the report. After the foundation,
 each sprint delivers a vertical slice, a capability complete from database to
 interface, rather than a horizontal layer, so every increment is usable and
-therefore demonstrable [10]. The client is shown the increment at the end of
+therefore demonstrable [30]. The client is shown the increment at the end of
 Sprints 1, 2 and 3; the facilitator reviews progress fortnightly. Deployment
 to the UWA environment falls in Sprint 3 rather than last, so that the
 demonstration video on 6 October and the final report are both prepared
@@ -140,9 +140,9 @@ each sprint review, scoped so that every member owns work that is individually
 demonstrable by the Software Features deliverable on 29 September.
 
 | Member | Initial issue | Completion criterion |
-|---|---|---|
+|-----|--------------|---------------------|
 | M1 | CI/CD and staging pipeline | Pull requests execute linting, tests and build; `main` deploys to staging automatically |
-| M2 | Resolve outstanding client questions (automation bands, UWA environment) | Responses recorded in the requirements specification and any consequent scope change documented |
+| M2 | Resolve outstanding client questions (four-level automation scale, UWA environment) | Each question either answered and recorded in the requirements specification, or carried as a dated assumption with the work it affects |
 | M3 | Site and deployment read APIs | Endpoints return filterable records and the API contract is documented in the repository |
 | M4 | Schema, migrations and seed data | Migrations execute without error against staging; enumerations and constraints correspond to `ERD.md`; a documented dataset loads by a single command |
 | M5 | Map markers drawn from the live API | Markers render with status colour and the supplier filter operates against stored data |
@@ -154,9 +154,9 @@ The environments below are proposed and to be confirmed once the UWA
 environment is known.
 
 | Environment | Purpose | Platform | Deployed by |
-|---|---|---|---|
+|-------|-----------|----------------|----------|
 | Local | Development | Docker Compose, comprising the application, PostgreSQL with PostGIS and seed data | Any member |
-| Staging | Integration and client demonstration | Hosted platform as proposed in section 4, redeployed from `main` | Continuous integration pipeline |
+| Staging | Integration and client demonstration | Hosted platform as proposed in Section 4, redeployed from `main` | Continuous integration pipeline |
 | Production | Handover | UWA-provided environment | M1, subject to manual approval |
 
 The application is containerised so that an identical image runs in all three
@@ -182,7 +182,8 @@ outcome that would affect it materially.
   it is not ready by then, deployment moves to Sprint 4; if it is still
   unavailable, the system is handed over for UWA to deploy later.
 
-The remaining two unknowns are not material. Without PostGIS, coordinates are
+
+Neither PostGIS nor outbound access blocks delivery, since each has a documented fallback. Without PostGIS, coordinates are
 held as latitude and longitude columns, which serve the point rendering and
 bounding-box queries the map requires. Without outbound access from the
 server, the optional sign-in and the automated evidence check are withdrawn,
