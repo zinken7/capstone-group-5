@@ -26,6 +26,7 @@ erDiagram
     DEPLOYMENT ||--o{ EVIDENCE : "is supported by"
     DEPLOYMENT ||--o{ REVISION : "has history"
     CONTRIBUTOR o|--o{ REVISION : makes
+    ADMIN_USER o|--o{ REVISION : edits
     DEPLOYMENT ||--o{ VERIFICATION_REVIEW : "is reviewed through"
     ADMIN_USER ||--o{ VERIFICATION_REVIEW : performs
 
@@ -116,9 +117,10 @@ erDiagram
         bigint id PK
         bigint deployment_id FK
         bigint contributor_id FK "nullable"
+        bigint admin_user_id FK "nullable"
         revision_action action
         jsonb previous_values
-        text review_note
+        text change_note
         timestamptz changed_at
     }
 ```
@@ -133,10 +135,10 @@ erDiagram
 | Site–deployment | 1:N | Each deployment belongs to one mine site. |
 | Machine model–deployment | 1:N | A model may occur in many deployments.  The model name may be unknown initially. |
 | Technology product–deployment | 0..1:N | A submission may initially omit the product, but it is required before verification. |
-| Deployment–evidence | 1:N | Evidence is stored separately so several supporting sources can be retained. |
+| Deployment–evidence | 1:0..N | A deployment may initially have no evidence; verified deployments require at least one evidence record (see integrity constraints). |
 | Deployment–verification review | 1:N | Every verification decision is retained as a separate, append-only review record. |
 | Admin user–verification review | 1:N | Each review is performed by one administrator; an administrator may perform many reviews. |
-| Deployment–revision | 1:N | Changes are append-only; the deployment row is the current state and revisions provide an audit trail. |
+| Deployment–revision | 1:N | Changes are append-only; the deployment row is the current state and revisions provide an audit trail.  A revision may be made by a contributor or by an admin user. |
 
 ## Controlled values
 
@@ -154,10 +156,6 @@ free text:
 | `verification_decision` | `approved`, `rejected`, `needs_changes` |
 | `evidence_type` | `company_release`, `news`, `academic`, `government`, `report`, `other` |
 
-The three user-facing automation bands are derived from `automation_level`:
-baseline = line-of-sight remote; teleremote = teleremote; autonomy =
-semi-autonomous or autonomous.  They should not be stored redundantly.
-
 ## Integrity constraints and indexes
 
 * `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is
@@ -167,8 +165,8 @@ semi-autonomous or autonomous.  They should not be stored redundantly.
 * A verified deployment requires a technology product and at least one evidence
   record.  Enforce this in the application transaction or a database trigger.
 * A verification review must reference an active administrator. Review records
-  are append-only; the deployment's `verification_status` is the current state
-  and is updated from the latest applicable review in the same transaction.
+  are append-only; `verification_status` represents the current verification
+  state and is updated transactionally when a review decision changes it.
 * `admin_user.email` is unique. Store only a strong password hash (for example,
   Argon2id or bcrypt), never a plaintext password.
 * `site_company_role` is unique on `(site_id, company_id, role)`.
@@ -186,6 +184,6 @@ semi-autonomous or autonomous.  They should not be stored redundantly.
 
 ## Deliberate exclusions for the MVP
 
-Machine serial numbers, ownership percentages, sensor-level details, raw
-uploaded media and market-event feeds are not required by the MVP.  They can be
-added later without changing the central deployment relationship.
+Machine serial numbers, ownership percentages, sensor-level details and
+market-event feeds are not required by the MVP.  They can be added later
+without changing the central deployment relationship.
