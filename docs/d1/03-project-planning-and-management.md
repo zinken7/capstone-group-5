@@ -184,9 +184,8 @@ outcome that would affect it materially.
 
 The remaining two unknowns are not material. Without PostGIS, coordinates are
 held as latitude and longitude columns, which serve the point rendering and
-bounding-box queries the MVP map requires. Without outbound access from the
-server, optional sign-in and the automated evidence check are lost, both
-*Could* items; evidence URLs are then validated for format only and opened by
-the reviewing administrator rather than fetched by the server, and coordinates
-for new mine sites are recorded during administrative review rather than
-geocoded.
+bounding-box queries the map requires. Without outbound access from the
+server, the optional sign-in and the automated evidence check are withdrawn,
+both being *Could* items. No committed feature depends on outbound access:
+evidence links are opened by the reviewing administrator, and coordinates for
+new mine sites are entered during administrative review.
