@@ -1,0 +1,55 @@
+name: PR Conventions
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  validate:
+    name: Validate branch and PR title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate branch name
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          echo "Checking branch: $BRANCH_NAME"
+
+          REGEX='^(feature|fix|bugfix|docs|chore|refactor|test)/[0-9]+-[a-z0-9-]+$'
+
+          if [[ ! "$BRANCH_NAME" =~ $REGEX ]]; then
+            echo "Invalid branch name: $BRANCH_NAME"
+            echo ""
+            echo "Expected format:"
+            echo "  feature/123-add-search"
+            echo "  fix/45-login-error"
+            echo "  docs/18-update-readme"
+            exit 1
+          fi
+
+          echo "Branch name is valid."
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Checking PR title: $PR_TITLE"
+
+          REGEX='^(feat|fix|docs|chore|refactor|test|ci|build|perf): .+$'
+
+          if [[ ! "$PR_TITLE" =~ $REGEX ]]; then
+            echo "Invalid PR title: $PR_TITLE"
+            echo ""
+            echo "Expected Conventional Commit style:"
+            echo "  feat: add search functionality"
+            echo "  fix: resolve login issue"
+            echo "  docs: update README"
+            exit 1
+          fi
+
+          echo "PR title is valid."
