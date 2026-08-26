@@ -20,7 +20,7 @@ jobs:
         run: |
           echo "Checking branch: $BRANCH_NAME"
 
-          REGEX='^(feature|fix|bugfix|docs|chore|refactor|test)/[0-9]+-[a-z0-9-]+$'
+          REGEX='^(feature|fix|bugfix|docs|chore|refactor|test)/[a-z0-9-]+$'
 
           if [[ ! "$BRANCH_NAME" =~ $REGEX ]]; then
             echo "Invalid branch name: $BRANCH_NAME"
