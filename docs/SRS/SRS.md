@@ -107,6 +107,7 @@ These terms are the subject of open question Q-1a and are defined further in Sec
 
 | Term | Definition |
 |---|---|
+| **Site** | One mine, at one location.  The place a deployment sits.  Roy Hill, Mount Whaleback and Cape Lambert are three separate sites, all of them in the Pilbara region. |
 | **Region** | The mining region a site sits in, below national level — for example the Pilbara, the Bowen Basin, Atacama. Not a commercial sales territory such as Asia Pacific; grouping above national level is by country. |
 | **Machine type** | The category of machine — haul truck, dozer, excavator, loader, drill, LHD, scaler, shotcrete machine. |
 | **Machine model** | A specific model from a manufacturer, for example Caterpillar 793F. A model implies its machine type. |
