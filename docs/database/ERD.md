@@ -3,9 +3,10 @@
 ## Purpose and scope
 
 This is the proposed logical data model for the Autonomous Mining Equipment
-Market Map.  It implements the MVP data requirements in SRS v0.3 (FR-01 to
-FR-14), in particular the distinction between the manufacturer of a machine
-and the supplier of its automation technology.
+Market Map.  It implements the MVP data requirements in SRS v0.4: FR-01 to
+FR-11 as committed scope, with FR-12 to FR-14 intended.  In particular it holds
+the manufacturer of a machine and the supplier of its automation technology as
+separate values.
 
 A **deployment** is the central business record: a quantity of one machine
 model, at one mine site, using one automation technology product, for a stated
@@ -131,6 +132,13 @@ erDiagram
     }
 ```
 
+This diagram is the single maintained copy.  SRS Section 5.1 shows a rendered
+image of it rather than a second copy of the source.  Regenerate the image
+whenever the diagram changes:
+
+    awk '/^```mermaid/{f=1;next} f&&/^```/{exit} f' docs/database/ERD.md > /tmp/erd.mmd
+    mmdc -i /tmp/erd.mmd -o docs/images/erd.png -b white -w 2400 -s 2
+
 ## Relationship rules
 
 | Relationship | Cardinality | Rule |
@@ -166,7 +174,9 @@ free text:
 ## Integrity constraints and indexes
 
 * `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is
-  used.
+  used.  If PostGIS is unavailable, `point_4326` is replaced by latitude and
+  longitude columns, which serve the point rendering and bounding-box queries
+  the map requires.
 * `valid_to` must be on or after `valid_from`; a relocation closes one
   deployment and creates another.
 * A verified deployment requires a technology product and at least one evidence
@@ -176,6 +186,9 @@ free text:
   state and is updated transactionally when a review decision changes it.
 * `admin_user.email` is unique. Store only a strong password hash (for example,
   Argon2id or bcrypt), never a plaintext password.
+* `contributor` holds only an email address and, where offered, an organisation
+  (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if
+  FR-52 and FR-53 are taken up.
 * `region` is unique on `(name, country_code)`.
 * A site's country must match its region's country.  Enforce with a unique
   constraint on `region(id, country_code)` and a composite foreign key from
