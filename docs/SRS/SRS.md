@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Version** | 0.3 — draft for team review and client confirmation |
-| **Date** | 25 August 2026 |
+| **Version** | 0.4 — draft for team review and client confirmation |
+| **Date** | 26 August 2026 |
 | **Client** | Dr Adrian Boeing, UWA |
 | **Representative users** | RCT Global (Yash Singh, market data analytics) · Epiroc (Milan Ivovic, Regional Business Manager, Asia Pacific) |
 | **Unit** | CITS5206 Capstone Project, Semester 2 2026 |
@@ -14,10 +14,11 @@
 ### Revision history
 
 | Version | Date | Author | Change |
-|---|---|---|---|
+|-------|--------------|----------------|-----------------------------------------------------------------------------------|
 | 0.1 | 10 Aug 2026 | Group 5 | Initial draft, from the client meeting of 6 August, the facilitator meeting of 7 August, and the written project brief |
 | 0.2 | 11 Aug 2026 | Group 5 | Incorporates the client and representative user meeting of 11 August, and internal review. Issued to the client on 12 August 2026 |
-| 0.3 | 25 Aug 2026 | Group 5 | Automation banding withdrawn: four levels are now recorded **and** presented, so the former FR-10 rollup is removed and the map, analytics and data-model requirements are renumbered. Region promoted from a text field to reference data. Satellite and aerial imagery recorded as out of scope, with Q-12. Vendor sources REF-4 and REF-5 added in support of the four-level scale. Historical dates raised from *Could* to *Must*, and the map time control from *Could* to *Must*, both being required by the capability offered in place of market forecasting |
+| 0.3 | 25 Aug 2026 | Hans Lionar (M2) | Automation banding withdrawn: four levels are now recorded **and** presented, so the former FR-10 rollup is removed and the map, analytics and data-model requirements are renumbered. Region promoted from a text field to reference data. Satellite and aerial imagery recorded as out of scope, with Q-12. Vendor sources REF-4 and REF-5 added in support of the four-level scale. Historical dates raised from *Could* to *Must*, and the map time control from *Could* to *Must*, both being required by the capability offered in place of market forecasting |
+| 0.4 | 26 Aug 2026 | Hans Lionar (M2) | Section 5 aligned to the submitted Deliverable 1 report and to `docs/database/ERD.md`, which the project plan makes normative for enumerations and constraints. The duplicate diagram in 5.1 is replaced by the maintained one, so the technology product is correctly optional on a deployment before verification (FR-08), and the administrator and verification review entities required by FR-43 and FR-45 are present. No requirement renumbered or reprioritised |
 
 ### Requirement status convention
 
@@ -329,13 +330,15 @@ All traffic between browser and server uses HTTPS. Requests to external services
 | FR-05 | The system shall record the commissioning date of each deployment, and its status as one of announced, commissioning, operational or decommissioned. | M | ✅ | CM1, BRIEF |
 | FR-06 | The system shall support surface and underground machine types, including haul trucks, LHDs, dozers, drills, scalers and shotcrete machines. | M | ✅ | CM1 |
 | FR-07 | The system shall accept a record where the defined minimum field set is present, with all other fields optional. | M | ✅ | CM1, C-06 |
-| FR-08 | The system shall accept records only for equipment with an automation product fitted. The product need not be named at submission, but shall be named before the record is verified. | M | ❓ | Team proposal, Section 2.6 — see Q-1 |
+| FR-08 | The system shall accept records only for equipment with an automation product fitted. The product need not be named at submission, but shall be named before the record is verified. | M | ❓ | Team proposal, Section 2.6 — see Q-1a and Q-5 |
 | FR-09 | The system shall classify each technology product at one of four automation levels — line-of-sight remote, teleremote, semi-autonomous or autonomous — and shall hold the vendor term and the basis of classification alongside it. The level shall be editable only by an administrator, and may be left unassigned. | M | ❓ | CM2 confirms the attribute; four-level granularity is a team proposal, see Q-1a |
 | FR-10 | The system shall record whether a deployment operates on the surface, underground, or both. | M | ✅ | CM2 |
 | FR-11 | The system shall record valid-from and valid-to dates on each deployment, so that the state of the dataset at a past date can be reconstructed. | M | ❓ | Required by FR-19 |
 | FR-12 | The system shall support geographic grouping of deployments by mine site, region and country, region being selected from a maintained list rather than entered as text. Association of sites with companies is by role, per FR-03. | S | ✅ | CM1, BRIEF |
 | FR-13 | The system shall record machine size class, maximum payload and operating weight. | S | ✅ | CM1, BRIEF |
 | FR-14 | The system shall mark equipment as decommissioned rather than deleting it, and create a new record where equipment relocates. | S | ✅ | CM1 |
+
+\newpage
 
 ## 4.2 Map
 
@@ -408,103 +411,18 @@ Entities are grouped into reference data, described once and reused, and the fac
 
 ## 5.1 Entity relationship diagram
 
-```mermaid
-erDiagram
-    REGION ||--o{ SITE : contains
-    COMPANY ||--o{ SITE_COMPANY_ROLE : "holds a role at"
-    SITE ||--o{ SITE_COMPANY_ROLE : "has"
-    COMPANY ||--o{ MACHINE_MODEL : manufactures
-    COMPANY ||--o{ TECHNOLOGY_PRODUCT : supplies
-    SITE ||--o{ DEPLOYMENT : hosts
-    MACHINE_MODEL ||--o{ DEPLOYMENT : "used in"
-    TECHNOLOGY_PRODUCT ||--o{ DEPLOYMENT : "fitted in"
-    DEPLOYMENT ||--o{ EVIDENCE : "supported by"
-    DEPLOYMENT ||--o{ REVISION : "changed by"
-    CONTRIBUTOR ||--o{ REVISION : submits
+![Proposed logical data model](../images/erd.png)
 
-    COMPANY {
-        int id PK
-        string name
-        string country
-    }
-    SITE {
-        int id PK
-        int region_id FK "nullable"
-        string name
-        float latitude
-        float longitude
-        string country
-        string commodity
-        string mine_status
-    }
-    REGION {
-        int id PK
-        string name
-        string country
-    }
-    SITE_COMPANY_ROLE {
-        int id PK
-        int site_id FK
-        int company_id FK
-        string role "owner | operator | contractor"
-    }
-    MACHINE_MODEL {
-        int id PK
-        int manufacturer_id FK
-        string model "nullable"
-        string machine_type
-        string size_class
-        int payload_tonnes
-        int operating_weight_tonnes
-    }
-    TECHNOLOGY_PRODUCT {
-        int id PK
-        int supplier_id FK
-        string product_name
-        string vendor_term
-        string automation_level "line_of_sight | teleremote | semi_autonomous | autonomous, nullable"
-        string level_basis
-    }
-    DEPLOYMENT {
-        int id PK
-        int site_id FK
-        int machine_model_id FK
-        int technology_product_id FK
-        int quantity
-        string environment "surface | underground | both"
-        date commissioned
-        string status
-        string verification_status "unverified | pending_review | verified | rejected"
-        date valid_from
-        date valid_to
-    }
-    EVIDENCE {
-        int id PK
-        int deployment_id FK
-        string url
-        string source_type
-    }
-    CONTRIBUTOR {
-        int id PK
-        string display_name
-        string email_domain
-        bool affiliated
-    }
-    REVISION {
-        int id PK
-        int deployment_id FK
-        int contributor_id FK
-        datetime changed_at
-        json previous_values
-    }
-```
+The diagram is maintained as Mermaid source in `docs/database/ERD.md`, which the project plan makes normative for enumerations and constraints. The image above is generated from it. Types shown are those of the chosen PostgreSQL and PostGIS implementation; if PostGIS is unavailable, `point_4326` is held as latitude and longitude columns, which serve the point rendering and bounding-box queries the map requires.
+
+\newpage
 
 ## 5.2 Entities
 
 ### Reference data
 
 | Entity | Purpose |
-|---|---|
+|-----------------|-------------------------------------------------------------------------------------------------------|
 | **Company** | A single table for every organisation — machine manufacturers, technology suppliers, mine owners, operators and contractors. What differs between them is the *role* they hold in a given context, not what they are. |
 | **Region** | A named mining region below national level, described once and reused — the Pilbara, the Bowen Basin, Atacama. Held as reference data rather than as text on the site, so that filtering and grouping by region work at all: free text produces several spellings of one region and a filter list nobody can use. A site's country is recorded on the site, since a site may sit in no named region; where a region is given as well, its country and the site's must agree. |
 | **Machine model** | A model of machine, described once and reused. For example *Caterpillar 793F*: manufacturer, model, machine type, size class, payload. The model name is nullable, so a contributor who knows only the manufacturer and machine type — *a Caterpillar haul truck* — can still be recorded, with the model added later. |
@@ -513,19 +431,23 @@ erDiagram
 ### Facts
 
 | Entity | Purpose |
-|---|---|
+|---------------------------|---------------------------------------------------------------------------------------------|
 | **Deployment** | The central record. A quantity of one machine model, at one site, fitted with one technology product, from a given date. This is what a contributor submits, what a row of the equipment register displays, and what appears in the detail panel of its site marker. |
 | **Site–company role** | Associates a company with a site in a stated role. A site typically has several: an owner, an operating subsidiary, and often a mining contractor. |
 | **Evidence** | A source supporting a deployment record. |
-| **Revision** | The history of a record — who changed it, when, and its previous values. |
-| **Contributor** | An optional account. Where present, records the confirmed email domain used to weight a submission. |
+| **Revision** | The history of a record — who changed it, when, and its previous values. A revision may be made by a contributor or by an administrator, so every change is attributable to whoever made it. |
+| **Contributor** | An optional account, holding only an email address and, where offered, an organisation (NFR-09). Not required in order to submit. Domain affiliation is not recorded in the MVP; it arrives only if FR-52 and FR-53 are taken up. |
+| **Administrator** | An account authorised to review submissions, verify or reject them, correct records, and maintain reference data such as the automation level held against a technology product. Authenticated by session cookie; no external identity provider is required (FR-45). |
+| **Verification review** | One decision on one deployment: who decided, what was decided and why. Append-only, so a record's review history is retained rather than overwritten, and the deployment's current verification status is updated in the same transaction (FR-43, FR-45). |
+
+\newpage
 
 ## 5.3 Worked example
 
 One deployment record, in full:
 
 | Field | Value |
-|---|---|
+|----------------------------|--------------------------------------------------------------------------------------------|
 | Site | Roy Hill |
 | Machine model | Caterpillar 793F |
 | Technology product | Cat Command for Hauling |
@@ -535,10 +457,11 @@ One deployment record, in full:
 
 The site record carries three company roles — Hancock Prospecting as owner, Roy Hill Holdings as operator, and any contractor engaged. Caterpillar is referenced twice from the one company record, once as manufacturer of the 793F and once as supplier of Cat Command for Hauling.
 
+\newpage
 ## 5.4 Consequences of this structure
 
 | Requirement | How the structure satisfies it |
-|---|---|
+|---------------------------------|---------------------------------------------------------------------------------------|
 | Headline counts (FR-21) | `Σ deployment.quantity` over the filtered set, with distinct counts of site and country |
 | Market share by supplier and by manufacturer (FR-25, FR-26) | Aggregate deployment quantity through technology product and through machine model to the respective company, as a share of the filtered total |
 | Share by automation level (FR-29) | Aggregate through technology product to its level. Deployments whose product or level is unknown form a separate unclassified group and are never distributed across the known levels |
@@ -550,7 +473,10 @@ The site record carries three company roles — Hancock Prospecting as owner, Ro
 | Several companies per site (FR-03) | Site–company role permits any number, each typed. Ownership shares are not held; see Section 7 |
 | Equipment relocation (FR-14) | Close the existing deployment with a valid-to date; create a new one |
 | Historical view (FR-11, FR-19) | Filter deployments by valid-from and valid-to |
-| Varying data completeness (FR-07) | Technology product and evidence are both optional on a deployment |
+| Varying data completeness (FR-07, FR-08) | Technology product and evidence are both optional on a deployment until it is verified |
+| Verified records shown by default (FR-43) | Deployment carries the current verification status; public views filter on it |
+| Administrative review (FR-45) | Verification review records each decision against one deployment and one administrator, append-only, so the review history of a record is auditable |
+| Correction of records (FR-46) | Revision links to either a contributor or an administrator, so every change is attributable to whoever made it |
 | Automated evidence check (FR-55) | Not supported by this structure. Would require further entities for the verification report, its individual claim assessments and the reviewer's decision, added only if FR-55 is taken up |
 
 ---
@@ -581,6 +507,8 @@ The site record carries three company roles — Hancock Prospecting as owner, Ro
 | NFR-08 | The dataset published by the system shall be licensed under Creative Commons, the specific licence to be confirmed. Team proposal: CC BY 4.0. Third-party evidence and media linked from records retain their original copyright and licence. | M | ✅ | BRIEF, C-02 — see Q-10 |
 | NFR-09 | The system shall collect from a contributor only an email address and, where offered, an organisation. The submission form shall state what these are used for. | M | ❓ | Team standard |
 | NFR-10 | The application source code shall be published under an open-source licence, to be agreed with the client. Team proposal: MIT. | M | ❓ | BRIEF states "IP: Creative Commons (open source)" — see Q-10 |
+
+\newpage
 
 ## 6.4 Deployment
 
@@ -742,6 +670,8 @@ To be answered by the client or UWA IT. Each item constrains a specific design d
 | Should | Machine model detail — attributes and the deployments using it | FR-38 | ☐ yes ☐ amend |
 | Could | Link from a machine model to the manufacturer's product page | FR-39 | ☐ yes ☐ amend |
 
+
+\newpage
 ## B.5 Contribute
 
 | | Item | Requirements | Agreed? |
@@ -799,7 +729,18 @@ To be answered by the client or UWA IT. Each item constrains a specific design d
 | Queryable equipment register | |
 | Verified crowdsourcing | |
 
----
+\vspace{1em}
+
+**Our view:** all four will be built, and this order applies only if we have to cut something.
+
+1. **Equipment register** — the dataset and the means of querying it; the other three depend on it
+2. **Verified crowdsourcing** — the mechanism by which the dataset is built and corrected
+3. **Interactive map** — a geographic presentation of the records the register holds
+4. **Analytics dashboard** — aggregate measures derived from those same records; data export (FR-37) serves the same analytical need until it is delivered
+
+Your ranking above takes precedence.
+
+\vspace{4em}
 
 - **Agreed by:** ............................................
 - **Date:** ....................
