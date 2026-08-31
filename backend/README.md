@@ -30,3 +30,28 @@ variable to select another port.
 ```text
 GET /health
 ```
+
+
+## Testing
+
+Install dependencies and run the backend automated tests with:
+
+```sh
+npm ci
+npm test
+```
+
+Backend tests use Vitest and Supertest.
+
+Test files should be placed alongside the source code they test and use the naming convention `*.test.ts`.
+
+For example:
+
+```text
+src/app.ts
+src/app.test.ts
+```
+
+The current automated test verifies that `GET /health` returns HTTP 200 with `{ "status": "ok" }`.
+
+The test command exits with a non-zero status if any test fails, making it suitable for use in GitHub Actions.
