@@ -7,6 +7,17 @@ on:
       - main
 
 jobs:
+  compose-config:
+    name: Docker Compose Config
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
   backend-lint:
     name: Backend Lint
     runs-on: ubuntu-latest
