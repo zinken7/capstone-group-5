@@ -1,0 +1,39 @@
+.mining-map-region {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #d8dee4;
+  border-radius: 12px;
+  background: #eef2f5;
+}
+
+.mining-map {
+  width: 100%;
+  height: clamp(28rem, 68vh, 48rem);
+  min-height: 28rem;
+}
+
+.mining-map:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+
+@media (max-width: 768px) {
+  .mining-map {
+    height: 60vh;
+    min-height: 24rem;
+  }
+}
+.map-page {
+  display: grid;
+  width: min(100%, 90rem);
+  gap: 2rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid #dce1e8;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 1.5rem 4rem rgb(23 32 51 / 8%);
+}
+
+.map-page header {
+  max-width: 55rem;
+}
