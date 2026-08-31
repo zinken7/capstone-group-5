@@ -18,7 +18,7 @@ not available.
 ```mermaid
 erDiagram
     COMPANY ||--o{ SITE_COMPANY_ROLE : "holds a role at"
-    REGION ||--o{ SITE : contains
+    REGION o|--o{ SITE : contains
     SITE ||--o{ SITE_COMPANY_ROLE : "has"
     COMPANY ||--o{ MACHINE_MODEL : manufactures
     COMPANY ||--o{ TECHNOLOGY_PRODUCT : supplies
@@ -163,7 +163,8 @@ free text:
 | Field | Values |
 |---|---|
 | `company_role` | `owner`, `operator`, `contractor` |
-| `machine_type` | `haul_truck`, `lhd`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
+| `site_status` | `operating`, `commissioning`, `care_and_maintenance`, `closed` |
+| `machine_type` | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
 | `automation_level` | `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous` |
 | `mining_environment` | `surface`, `underground`, `both` |
 | `deployment_status` | `announced`, `commissioning`, `operational`, `decommissioned` |
