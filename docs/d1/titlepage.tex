@@ -3,27 +3,30 @@
 % The logo path is relative to the repo root, where you run build.sh.
 % This is LaTeX, not Markdown. Blank lines start a new paragraph; use \\ for a
 % line break and \\[1em] for a line break with extra space.
+% Vertical space is distributed by \vfill, so do not add large fixed gaps.
 
 \begin{titlepage}
 \centering
 
-{\large\bfseries THE UNIVERSITY OF WESTERN AUSTRALIA}\\[1.4em]
+{\large\bfseries THE UNIVERSITY OF WESTERN AUSTRALIA}\\[1.3em]
 
-\includegraphics[width=2.6cm]{docs/images/uwa-logo.png}\\[1.4em]
+\includegraphics[width=4.2cm]{docs/images/uwa-logo.png}\\[1.3em]
 
-CITS5206 Information Technology Capstone Project\\[5em]
+{\normalsize CITS5206 Information Technology Capstone Project}
 
-{\LARGE\bfseries Project Spec and Plans}\\[0.9em]
+\vfill
 
-{\large\bfseries Autonomous Mining Equipment Market Map}\\[1.2em]
+{\Huge\bfseries Project Spec and Plans}\\[0.9em]
 
-\rule{0.45\textwidth}{0.4pt}\\[1.2em]
+{\LARGE Autonomous Mining Equipment Market Map}\\[1.8em]
 
-{\small\itshape Version 1.0 \textemdash{} 18 August 2026}\\[5em]
+\rule{0.75\textwidth}{0.8pt}
 
-\begin{minipage}[t]{0.48\textwidth}
-  \raggedright\small
-  \textit{Prepared by \textemdash{} Group 5:}\\
+\vfill
+
+\begin{minipage}[t]{0.46\textwidth}
+  \raggedright\normalsize
+  {\bfseries Prepared by Group 5}\\[0.6em]
   Hengan Weng (24201874)\\
   Shee Wang (24368932)\\
   Zerun Zhang (24389925)\\
@@ -31,19 +34,25 @@ CITS5206 Information Technology Capstone Project\\[5em]
   Zunhao Zhang (24758673)\\
   Tyrone Tran (24814799)
 \end{minipage}\hfill
-\begin{minipage}[t]{0.48\textwidth}
-  \raggedleft\small
-  \textit{Client:}\\
+\begin{minipage}[t]{0.46\textwidth}
+  \raggedleft\normalsize
+  {\bfseries Client}\\[0.6em]
   Dr Adrian Boeing\\
-  UWA EECE\\[1.2em]
-  \textit{Facilitator:}\\
-  Fudong Qin\\[1.2em]
-  \textit{Representative users:}\\
+  UWA EECE\\[1.3em]
+  {\bfseries Facilitator}\\[0.6em]
+  Fudong Qin\\[1.3em]
+  {\bfseries Representative users}\\[0.6em]
   RCT Global \textperiodcentered{} Epiroc
 \end{minipage}
 
 \vfill
 
-{\small\itshape Semester 2, 2026}
+{\large 25 August 2026}\\[0.5em]
+
+{\normalsize Semester 2, 2026}
 
 \end{titlepage}
+
+% Front matter (contents, project and resources) numbered i, ii.
+% Section 1 resets to arabic 1 at the top of 01-problem-statement.md.
+\pagenumbering{roman}
