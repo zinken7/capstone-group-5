@@ -1,3 +1,6 @@
+\clearpage
+\pagenumbering{arabic}
+
 # Problem Statement and Key Deliverables
 
 ## Client and Context
@@ -28,7 +31,7 @@ For industry users, the value is practical. The system should make it easier to 
 
 For smaller organisations and researchers, the open dataset removes the need to rely entirely on expensive commercial reports. It also makes individual records more transparent. Evidence can be attached to contributed information and each record carries a visible verification state, allowing users to distinguish between submitted and reviewed data.
 
-Openness is therefore part of the solution rather than an additional feature. A closed implementation of the same data would not address the client's main concern that useful market information is currently difficult to access and independently verify.
+Openness is therefore part of the solution rather than an additional feature. Data anyone can obtain gets reused in ways its publisher did not plan for, and that is where its value comes from; McKinsey put the annual value of open data across seven sectors, one of them oil and gas, at more than $3 trillion [4]. The extractive industries already publish on this basis, so that reported figures can be checked rather than taken on trust [5]. Open-source software follows the same pattern, most of its value going to those who reuse the code rather than to those who wrote it [6]. A closed version of this system would leave the client's main concern untouched: that useful market information is hard to obtain and hard to verify.
 
 ## Proposed Solution
 
@@ -47,7 +50,7 @@ The system is intended as a market reference dataset and presentation layer. It 
 
 ## Minimum Viable Product
 
-The MVP is defined from the requirements currently prioritised **Must** in the Software Requirements Specification [7]. Evidence of client agreement to the MVP and subsequent changes is presented separately in Section 2.
+The MVP is defined from the requirements currently prioritised **Must** in the Software Requirements Specification [7]. The status of client agreement to this scope is set out in Section 2.
 
 \small
 \setlength{\tabcolsep}{5pt}
@@ -61,13 +64,14 @@ The MVP is defined from the requirements currently prioritised **Must** in the S
 \textbf{\#} & \textbf{Deliverable} & \textbf{MVP scope} & \textbf{Acceptance criteria} \\
 \hline
 \endhead
-1 & \textbf{Core data model} & Store companies, mine sites, machine models, technology products and equipment deployments. Manufacturers and technology suppliers are represented separately, with deployment and automation information stored in structured form. & FR-01 to FR-09, FR-11 \\
-2 & \textbf{Interactive GIS map} & Display one marker per mine site, distinguish deployment status, show deployment details and allow filtering by technology supplier. & FR-16 to FR-19 \\
-3 & \textbf{Analytics dashboard} & Provide headline totals, cumulative machines over time, counts by country and machine type, supplier/manufacturer share and filters that apply to the displayed measures. & FR-22 to FR-28 \\
-4 & \textbf{Equipment register} & Provide a searchable, filterable and sortable view of deployment records with tabular export. & FR-37, FR-38 \\
-5 & \textbf{Contribution and verification} & Allow users to submit new information and supporting evidence. New records carry a verification status, while authorised administrators can review, correct, approve or reject submissions. & FR-41 to FR-47 \\
+1 & \textbf{Core data model} & Store companies, mine sites, machine models, technology products and equipment deployments. Manufacturers and technology suppliers are represented separately, with deployment and automation information stored in structured form. & FR-01 to FR-11 \\
+2 & \textbf{Interactive GIS map} & Display one marker per mine site, distinguish deployment status, show deployment details and allow filtering by technology supplier. & FR-15 to FR-19 \\
+3 & \textbf{Analytics dashboard} & Provide headline totals, cumulative machines over time, counts by country and machine type, supplier/manufacturer share and filters that apply to the displayed measures. & FR-21 to FR-28 \\
+4 & \textbf{Equipment register} & Provide a searchable, filterable and sortable view of deployment records with tabular export. & FR-36, FR-37 \\
+5 & \textbf{Contribution and verification} & Allow users to submit new information and supporting evidence. New records carry a verification status, while authorised administrators can review, correct, approve or reject submissions. & FR-40 to FR-46 \\
 \hline
 \end{longtable}
+\normalsize
 
 Deliverables 2 to 5 correspond to the main user-facing functions requested by the client. Deliverable 1 provides the structured data foundation required by all four.
 
@@ -81,4 +85,4 @@ The MVP focuses on establishing a complete working flow:
 
 AI-assisted evidence checking and Retrieval-Augmented Generation (RAG) are possible extensions but are not dependencies of the MVP. The core system must remain usable without an LLM, automated web search or AI verification service.
 
-Other features outside the MVP include self-service bulk upload, institutional AAF authentication, automatic machine counting from photographs, fleet-management or dispatch functionality, market forecasting and a dedicated mobile application [7]. These exclusions keep the project focused on collecting, maintaining and presenting structured market data within the available project timeframe.
+Other features outside the MVP include self-service bulk upload, institutional AAF authentication, automatic machine counting from photographs, fleet-management or dispatch functionality, market forecasting and a dedicated mobile application [7]; Section 2.3 records the reason for each. These exclusions keep the project focused on collecting, maintaining and presenting structured market data within the available project timeframe.

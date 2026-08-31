@@ -1,0 +1,54 @@
+name: Task
+description: Create a development, documentation, testing, or project task
+title: "[Task]: "
+labels:
+  - task
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for implementation, documentation, testing, DevOps, research, or other project work.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Task description
+      description: Clearly describe what needs to be done.
+      placeholder: Describe the work required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose
+      description: Why is this task required?
+      placeholder: Explain the reason or expected outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Define when this task can be considered complete.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: List any issues, PRs, tasks, or external dependencies.
+      placeholder: "Example: Depends on #12"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Add implementation notes, references, or other useful context.

@@ -1,8 +1,18 @@
-# CITS5206 Capstone Project — Week 3 Meeting Minutes
+# Client Meeting 1
 
 - **Project:** Autonomous Mining Equipment Market Map
 - **Client:** Dr Adrian Boeing
-- **Prepared by:** Hans Lionar
+- **Minutes by:** Hans Lionar (24661999)
+
+| | |
+|---|---|
+| **Date** | Thursday 6 August 2026 |
+| **Location** | Room RM-226-250-EECE 250, UWA (in person) |
+| **Duration** | ~56 minutes |
+| **Client** | Dr Adrian Boeing (UWA) |
+| **Group attendees** | Hengan Weng (24201874), Shee Wang (24368932), Zerun Zhang (24389925), Hans Lionar (24661999), Zunhao Zhang (24758673), Tyrone Tran (24814799) |
+| **Purpose** | Establish shared understanding of the problem, users, data sources and verification model; demonstrate early prototype |
+| **Reference code** | CM1 |
 
 ---
 
@@ -33,18 +43,7 @@ Technology stack is entirely the team's choice, but should support deployment in
 
 ---
 
-## Meeting 1 — Client Meeting #1
-
-| | |
-|---|---|
-| **Date** | Thursday 6 August 2026 |
-| **Location** | Room RM-226-250-EECE 250, UWA (in person) |
-| **Duration** | ~56 minutes |
-| **Client** | Dr Adrian Boeing |
-| **Group attendees** | Hengan Weng (24201874), Shee Wang (24368932), Zerun Zhang (24389925), Hans Lionar (24661999), Zunhao Zhang (24758673), Tyrone Tran (24814799) |
-| **Purpose** | Establish shared understanding of the problem, users, data sources and verification model; demonstrate early prototype |
-
-### 1. Problem statement and motivation
+## 1. Problem statement and motivation
 
 - **The problem is that the data is closed and private.** Market reports covering this space do exist, but access typically costs **$50,000–$100,000**, and in Dr Boeing's assessment they are *"frankly not that good"*.
 - This locks out the people who most need the information: **startups** who cannot spend $100,000 to find out what is happening in the market, **smaller companies**, and **academics** researching the space.
@@ -57,7 +56,7 @@ Technology stack is entirely the team's choice, but should support deployment in
   - Where are the market opportunities?
 - Dr Boeing confirmed **no such open dataset currently exists** — he has not found any provider offering one. *Creating that dataset is the reason the project exists*, so linking to an external source is not an option.
 
-### 2. Target users and their needs
+## 2. Target users and their needs
 
 Dr Boeing identified **three distinct user groups**:
 
@@ -67,7 +66,7 @@ Dr Boeing identified **three distinct user groups**:
 | **Startups** | Validating whether a product idea fits the market. Example: someone plans an autonomous truck — the portal should show that Australia and China are already saturated, or that large trucks are done while another segment is still open. Largely general market data. |
 | **Established technology companies** (e.g. RCT) | Market opportunity and competitive landscape. Example given: **Brazil may have ~3,000 trucks but only ~40 autonomous**, and Brazil's conditions (large country, long distances) resemble Australia's — so the same technology could be deployed there. They also want the **competitor mix per market**: do buyers prefer a local supplier, Caterpillar (American), or Komatsu (Japanese)? |
 
-### 3. What the website must do — three parts
+## 3. What the website must do — three parts
 
 Dr Boeing summarised the system as **three parts**. This is the clearest scope statement given in the meeting and should anchor the MVP:
 
@@ -81,7 +80,7 @@ Dr Boeing summarised the system as **three parts**. This is the clearest scope s
 - Worked example of the intended user journey: browse the map → learn the space → export the dataset → conclude something like *"Kalgoorlie is the place to go — lots of trucks and no technology yet"*.
 - **The database is the real deliverable.** The map is the front door; the value is the data underneath it and the ability to get it out.
 
-### 4. Map / geospatial requirements
+## 4. Map / geospatial requirements
 
 - Dr Boeing wants **a section of the website that is essentially Google Maps with markers showing where the vehicles are**, plus information attached to each marker.
 - "Where" means **which mine site** — a specific geolocation, not a country-level figure.
@@ -93,7 +92,7 @@ Dr Boeing summarised the system as **three parts**. This is the clearest scope s
 - **Timeline feature:** one reference site lets you scroll through time and watch the market evolve. Dr Boeing explicitly liked this.
 - Specifics will **evolve over time**.
 
-#### Reference sites — confirmed links
+### Reference sites — confirmed links
 
 Both are maps of autonomous vehicles on public roads. These are the **agreed design inspiration** for the mining equivalent.
 
@@ -112,7 +111,7 @@ Both are maps of autonomous vehicles on public roads. These are the **agreed des
 
 - **Action:** ask Dr Boeing for the remaining links he showed (the market report and the autonomous haul truck distribution chart) — the two map links above are now confirmed.
 
-### 5. Dashboard — market statistics wanted
+## 5. Dashboard — market statistics wanted
 
 Statistics Dr Boeing pointed to as worth having on the dashboard:
 
@@ -127,7 +126,7 @@ Statistics Dr Boeing pointed to as worth having on the dashboard:
 | **By payload** | Machine size distribution. |
 | **Future / announced orders** | Who has announced orders and upcoming projects, so users can **project what future markets will look like**. |
 
-### 6. Data model — the key early deliverable
+## 6. Data model — the key early deliverable
 
 Dr Boeing was explicit that after understanding the data and use cases, **the key next step is producing a data structure / ER diagram**. The hierarchy he sketched:
 
@@ -153,7 +152,7 @@ Company (e.g. Rio Tinto)
 | **Technology kit** | Technology supplier / integrator; level of automation |
 | **Sensors** | Sensor supplier and type — the deepest level, and Dr Boeing's personal interest |
 
-### 7. Ownership, operators and contractors
+## 7. Ownership, operators and contractors
 
 Raised in response to a group question, and flagged by Dr Boeing as something he had not thought to mention — **treat this as a significant modelling requirement**:
 
@@ -164,7 +163,7 @@ Raised in response to a group question, and flagged by Dr Boeing as something he
 - **Mining contractors must be captured** — this is not a niche. The example given was an Australian mining contractor with a market cap around **$2 billion** whose entire business is mining contracting. ⚠️ *Company name unclear in the transcript — to be confirmed.*
 - Implication: **company → site is many-to-many**, and roles (owner / operator / contractor / technology supplier) need to be modelled as relationships with a type, not as single fields.
 
-### 8. Asset identity, movement and history
+## 8. Asset identity, movement and history
 
 The group asked how to handle a machine moving between sites. Dr Boeing's answer:
 
@@ -173,7 +172,7 @@ The group asked how to handle a machine moving between sites. Dr Boeing's answer
 - Machines **do not move between sites very often**, and technology kits are **not often transferred** from one vehicle to another — so this is not worth over-engineering.
 - **Recommended approach:** keep a **`decommissioned` / no-longer-in-use flag** on the record and **create a new entry** at the new site, rather than modelling a move. Optionally add **valid-from / valid-to dates** to support the historical time-scroll on the map.
 
-### 9. Machine types — surface and underground
+## 9. Machine types — surface and underground
 
 - **Surface mining** is the familiar picture: trucks, dozers, excavators.
 - **Underground mining is considerably more complex and varied.** Machine types mentioned:
@@ -187,7 +186,7 @@ The group asked how to handle a machine moving between sites. Dr Boeing's answer
 - Dr Boeing will try to provide a **list of machine types**; in the meantime he suggested Googling or asking an AI for a list of underground mining machines.
 - RCT's own website was described as one of the better references for machine types and the technology fitted to them.
 
-### 10. Depth of technology detail required
+## 10. Depth of technology detail required
 
 This is the point that distinguishes this portal from existing market maps. It is **not enough to record that a machine exists at a location** — the portal must capture the **technology stack behind each deployment**:
 
@@ -202,7 +201,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - Some companies **make** the technology; others **only buy and deploy** it. The portal should make clear which is which. In the automotive example Dr Boeing used, an operator (MOIA — transcript spelling uncertain) buys self-driving technology from **Mobileye** or **Aurora** rather than building it.
 - Sensor-level detail is what Dr Boeing personally wants as a robotics researcher; he acknowledged the team may not be able to go that deep.
 
-### 11. Market data — examples and coverage
+## 11. Market data — examples and coverage
 
 - **Autonomous haul trucks** are where the most information and best market data exist. Data on **other equipment types is significantly harder to find**.
 - Machine types in scope include **loaders, trucks, drills and dozers**, plus the underground machines above.
@@ -213,7 +212,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - The point of the example: **who leads the market and how that shifts over time is exactly the trend users care about.**
 - This is a **fast-moving industry**, and any dataset is only as good as the underlying data collection.
 
-### 12. Data sources and seeding the dataset
+## 12. Data sources and seeding the dataset
 
 - **Dr Boeing does not have data yet.** He had hoped to, and expects assembling it will take him a long time.
 - He will **extract generic data from a market report** he has access to — only generic, because the report is owned by its publisher.
@@ -221,7 +220,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - **Expect varying levels of detail.** BHP is likely to share only vague, high-level information — e.g. *mine name, operator, Caterpillar, thirty trucks*, and possibly not even the machine model. RCT may be reluctant to share highly detailed information because they build the entire technology package.
 - **Design implication:** the data model must tolerate **records at very different depths** — some entries fully specified down to sensors, others little more than a site and a count.
 
-### 13. Verification and the crowdsourcing model
+## 13. Verification and the crowdsourcing model
 
 - **Why verification is needed:** without it *"anyone could type in any data they want… I have a million trucks and I'm number one."* Dr Boeing used the **Twitter/X green tick** as the mental model — a visible verified mark.
 - A **small amount of verified data from day one** (the seeded data), with the **bulk arriving via crowdsourcing**.
@@ -236,7 +235,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - **Bulk upload / batch import** (raised by the group): liked in theory, but Dr Boeing expects only **5–10 contributors** will ever hand over a whole database. Recommended approach is a **"Contact us"** link and a **manual or semi-manual import**, not a full self-service batch upload.
 - The group also asked **who may submit data and how it can be guaranteed legally verified**. Dr Boeing's answer was candid: *"I don't know."* His suggestion was an **admin area** on the site, with anyone able to submit.
 
-### 14. Evidence, metadata and case studies
+## 14. Evidence, metadata and case studies
 
 - Following the Brad Templeton example, submissions should be able to link **many kinds of supporting material**: web pages, news items, **YouTube videos**, marketing brochures.
 - These should be **linked together as metadata tags** so users can find related information — and the same links serve as the **source for verifying** a record.
@@ -245,13 +244,13 @@ This is the point that distinguishes this portal from existing market maps. It i
   - **Safety improvements**
   - Features of the technology itself
 
-### 15. Data freshness and visibility
+## 15. Data freshness and visibility
 
 - Expectation is **instant update on submission** — the record appears on the site immediately.
 - The site should provide a **verified / unverified filter**, defaulting to verified. Analogy given: **Reddit's "best" (default) vs "new"**.
 - This lets new submissions be visible immediately while verification (by Dr Boeing or a bot) happens asynchronously.
 
-### 16. Client vs user distinction
+## 16. Client vs user distinction
 
 - **Dr Adrian Boeing is the client** — he is commissioning the portal.
 - **RCT Global is a representative end user** — they would use the portal to pull, understand and analyse the information.
@@ -259,7 +258,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - Purpose of that meeting is **requirements elicitation**. Dr Boeing intends to say very little and let the group demonstrate its prototype and ask questions directly. He asked the group to bring a **list of questions** — *"do you want this field? Do you want that field? Does it look good like that?"*
 - Useful framing he suggested for that conversation: distinguish what is of interest to **everybody** from what is a **very specific** question about one commodity, one mining method and one vehicle type — the latter is served by data export rather than a built-in view.
 
-### 17. Background — RCT Global
+## 17. Background — RCT Global
 
 - RCT Global makes **automation and control systems for mining vehicles**, across several levels of technology.
 - Their main product area is **teleremote**: the machine is not autonomous, but an operator sends commands remotely from a control station with cameras and fleet information. Higher automation levels exist (e.g. press a button and the machine drives A→B automatically).
@@ -267,7 +266,7 @@ This is the point that distinguishes this portal from existing market maps. It i
 - Technology fitted to machines includes **laser scanners, cameras (including rear-facing), antennas and electronics modules**.
 - **Action:** the team is asked to get familiar with mining equipment types and read up on the different machines and technology options.
 
-### 18. Prototype
+## 18. Prototype
 
 - The group demonstrated a **prototype dashboard built as a single HTML page**, covering a **map**, **equipment exploration**, **filters**, a **verification indicator** and a **submit-data page**.
 - Dr Boeing's reaction was positive — *"you guys have got going already, very nice"* and *"I'm very glad that you've done that dashboard."* He noted he had explained things the group already knew because the prototype existed.
@@ -275,12 +274,12 @@ This is the point that distinguishes this portal from existing market maps. It i
 - **Action (client):** Dr Boeing will attempt to **generate sample data**, though this may take longer.
 - The prototype will be **demonstrated to RCT on Tuesday 11 August** to gather user feedback.
 
-### 19. Upcoming deliverables
+## 19. Upcoming deliverables
 
 - Dr Boeing noted the group must submit a **Scope of Work document and a Gantt chart**.
 - **Action:** send both to him **early**, before submission, so he can provide feedback.
 
-### 20. Communication protocol (agreed)
+## 20. Communication protocol (agreed)
 
 | Channel | Use | Expected response |
 |---|---|---|
@@ -292,7 +291,9 @@ This is the point that distinguishes this portal from existing market maps. It i
 - On a single point of contact / project manager: he asked to **copy everyone** on correspondence, and noted other groups **rotate the role**.
 - **Action (client, completed in meeting):** Dr Boeing added the group to the RCT meeting calendar invite. Anyone who did not receive it should get it forwarded from a teammate.
 
-### 21. Client Meeting #1 — action items
+---
+
+## Action items
 
 | # | Action | Owner | Due |
 |---|---|---|---|
@@ -313,123 +314,31 @@ This is the point that distinguishes this portal from existing market maps. It i
 | C14 | Provide a list of mining machine types | Dr Boeing | When available |
 | C15 | Add group to RCT meeting invite | Dr Boeing | ✅ Done in meeting |
 
----
+## Open questions and risks arising
 
-## Meeting 2 — Facilitator Meeting #1
+| # | Open question / risk | Where it gets resolved |
+|---|---|---|
+| 1 | **No data exists yet.** Dr Boeing does not have the dataset; BHP / Rio Tinto / RCT approaches may take time, and he expects perhaps two of three to deliver. | Sample + generic data promised; chase at Tue 11 Aug meeting |
+| 2 | **Data will arrive at wildly varying depth** — BHP may give only "mine name, operator, Caterpillar, thirty trucks", while the model wants detail down to sensors. | Data model must tolerate sparse records — design decision, not a blocker |
+| 3 | **Verification process is undefined.** Dr Boeing: *"I haven't figured out the verification processes."* | Team to propose; AI bot is a stretch, not a commitment |
+| 4 | **Ownership is many-to-many and messy** — five-plus companies per site, JVs, subsidiaries, contractors. Naive hierarchical model will fail. | Reflect in ER diagram (C2) before building |
+| 5 | **Machine-type list is open-ended**, especially underground. No authoritative list yet. | Dr Boeing to supply a list; team to research in the meantime |
+| 6 | **Scope tension:** the written brief says *autonomous* equipment, but Dr Boeing repeatedly described **teleremote** machines (RCT's main product) as in scope. Teleremote is not autonomy. | Confirm with Dr Boeing / RCT — Tue 11 Aug |
+| 7 | **How deep does technology detail go?** Sensor-level data is wanted but conceded as possibly out of reach. Risks scope creep. | MVP boundary — must-have vs nice-to-have |
+| 8 | **Data coverage is uneven** — good market data for autonomous haul trucks, much less for other machine types. | May constrain what the dataset can realistically cover by November |
+| 9 | Scope of Work + Gantt chart not yet drafted. | Draft, send to Dr Boeing and Fudong early for feedback |
+| 10 | Client response latency (email checked every 1–2 days) may block progress. | Mitigated by agreed email → Teams follow-up protocol |
+| 11 | A second UWA group is working on the same topic — risk of confusion in client correspondence. | Always identify the group clearly in all correspondence |
+| 12 | **No inclusion threshold defined** — what qualifies a machine as autonomous/teleremote enough to appear in the dataset. Reference sites solve this with an explicit rule. | Agree with Dr Boeing / RCT — Tue 11 Aug |
+| 13 | Remaining reference links (market report, haul-truck chart) not yet sent through; the two map links are confirmed. | Reminder to Dr Boeing (C6) |
+| 14 | Several names and figures garbled by automatic transcription (contractor company, Olive Downs percentages). | Confirm with Dr Boeing before the minutes are relied on |
 
-| | |
-|---|---|
-| **Date** | Friday 7 August 2026 |
-| **Format** | Online (MS Teams) |
-| **Duration** | 12 minutes 24 seconds |
-| **Facilitator** | Fudong Qin |
-| **Group attendees** | Hengan Weng (24201874), Shee Wang (24368932), Zerun Zhang (24389925), Hans Lionar (24661999), Zunhao Zhang (24758673), Tyrone Tran (24814799) |
-| **Purpose** | First facilitator check-in — requirements clarity, MVP definition, team allocation, process expectations |
-
-### 1. Requirement clarity — data source
-
-- The group raised that **the data source remains the biggest open question**. Dr Boeing has indicated that for an initial phase, private data from a partner company may be usable, with the long-term intent being a **crowdsourced platform**.
-- **Fudong's guidance:** ask the client directly. Clients will often provide **dummy data**; using external data sources is possible but uncommon. **Do not rely on assumptions for unclear requirements.**
-- The group confirmed it will make this concrete at the Tuesday meeting with Dr Boeing and the industry partner, who are the real users.
-
-### 2. Meeting minutes
-
-- Fudong asked the group to **summarise key points after every meeting** and to **rotate the minute-taking role** among members.
-- **Hans takes the minutes for this meeting**; the role passes to the next member for the following meeting.
-
-### 3. MVP definition
-
-- **Define the MVP early** and **reach agreement with the client** — likely at the next client meeting.
-- The MVP should be **small but complete**, focused on the **core workflow first**.
-- Separate **must-have from nice-to-have** features, and **functional from non-functional** requirements.
-- **Warning from prior years:** do not treat the ideal final product as the minimum semester deliverable. Students who focused on non-functional concerns (e.g. performance) at the expense of functional requirements scored poorly.
-
-### 4. Requirement quality
-
-- Requirements must be **specific and actionable**.
-- Avoid vague statements such as *"the system should be user-friendly"* — these are unmeasurable.
-
-### 5. Team roles and shared understanding
-
-- The group reported that role allocation has started; some members have chosen roles, and **one more discussion is needed to finalise**.
-- Fudong: it is early, but settle this **as soon as possible**.
-- Not everyone is strong at both technical work and documentation — **that is fine**, but **every member must maintain an overall understanding of the project**, not only their own part.
-
-### 6. Timeline and visible progress
-
-- **Set the timeline early and keep it realistic.**
-- **Do not spend too long only discussing ideas** — produce something visible as early as possible. A runnable demo or a Figma prototype both count.
-- The group confirmed a **prototype already exists** and will be shown to the client. Fudong endorsed this and asked the group to **seek feedback on it**, as this surfaces misunderstandings early.
-
-### 7. Raising problems
-
-- **Raise problems early.** If something is unclear, difficult, or not working, say so immediately — do not leave it to the last minute of semester.
-- Prior-year example given: students who left issues (including team conflict) until the end of semester could not be helped at that point.
-
-### 8. Documentation and evidence
-
-- **CC Fudong on client communications** — this serves as evidence.
-- **Document any requirement changes.**
-- **Share documentation in the Teams channel** so the facilitator can review it.
-
-### 9. Contact and professionalism
-
-- Contact Fudong via the **Teams channel, email, or private message** for a one-to-one. *"My door is always open."*
-- **Maintain professionalism throughout**: reply to messages promptly, respect the client's and teammates' time, and follow through on agreed tasks.
-- Fudong expects a documented **agreement on task allocation**.
-
-### 10. Meeting cadence and in-person meetings
-
-- Facilitator meetings are **fortnightly, not weekly**.
-- **Next facilitator meeting: Tuesday 18 August.** Hans to set up a recurring placeholder in the calendar (can be adjusted later).
-- **In-person meetings:** Tyrone asked whether at least one meeting could be held in person. Fudong works full time as a software engineer and the round trip to campus costs him roughly two hours, so online is strongly preferred — but **one in-person meeting can be arranged if the group genuinely needs it**. To be discussed further at the 18 August meeting.
-
-### 11. Facilitator Meeting #1 — action items
-
-| # | Action | Owner | Due |
-|---|---|---|---|
-| F1 | Write and circulate minutes for this meeting; rotate note-taker for the next | Hans → next member | This week |
-| F2 | Ask client to provide dummy / sample data | Group | Tue 11 Aug meeting |
-| F3 | Agree the MVP with the client; document must-have vs nice-to-have and functional vs non-functional requirements | Group | Next client meeting |
-| F4 | Finalise team role and task allocation, and document the agreement | All | ASAP |
-| F5 | Produce project timeline / Gantt chart | Group | Before Scope of Work submission |
-| F6 | CC Fudong on all client correspondence; share documentation in the Teams channel | All | Ongoing |
-| F7 | Schedule fortnightly facilitator meeting placeholder | Hans | Before Tue 18 Aug |
-| F8 | Send draft documentation to Fudong for feedback before submission | Group | Ongoing |
-| F9 | Revisit whether an in-person facilitator meeting is needed | Group / Fudong | Tue 18 Aug |
-
----
-
-## Consolidated open questions and risks
-
-| # | Open question / risk | Raised by | Where it gets resolved |
-|---|---|---|---|
-| 1 | **No data exists yet.** Dr Boeing does not have the dataset; BHP / Rio Tinto / RCT approaches may take time, and he expects perhaps two of three to deliver. | Dr Boeing | Sample + generic data promised; chase at Tue 11 Aug meeting |
-| 2 | **Data will arrive at wildly varying depth** — BHP may give only "mine name, operator, Caterpillar, thirty trucks", while the model wants detail down to sensors. | Dr Boeing | Data model must tolerate sparse records — design decision, not a blocker |
-| 3 | **Verification process is undefined.** Dr Boeing: *"I haven't figured out the verification processes."* | Group / Dr Boeing | Team to propose; AI bot is a stretch, not a commitment |
-| 4 | **Ownership is many-to-many and messy** — five-plus companies per site, JVs, subsidiaries, contractors. Naive hierarchical model will fail. | Dr Boeing | Reflect in ER diagram (C2) before building |
-| 5 | **Machine-type list is open-ended**, especially underground. No authoritative list yet. | Dr Boeing | Dr Boeing to supply a list; team to research in the meantime |
-| 6 | **Scope tension:** the written brief says *autonomous* equipment, but Dr Boeing repeatedly described **teleremote** machines (RCT's main product) as in scope. Teleremote is not autonomy. | — | Confirm with Dr Boeing / RCT — Tue 11 Aug |
-| 7 | **How deep does technology detail go?** Sensor-level data is wanted but conceded as possibly out of reach. Risks scope creep. | Dr Boeing | MVP boundary — must-have vs nice-to-have |
-| 8 | **Data coverage is uneven** — good market data for autonomous haul trucks, much less for other machine types. | Dr Boeing | May constrain what the dataset can realistically cover by November |
-| 9 | **MVP boundary not yet agreed with client.** The "three parts" framing (map / dashboard / export) is the best anchor so far. | Fudong | Next client meeting; needed for the report |
-| 10 | Scope of Work + Gantt chart not yet drafted. | — | Draft, send to Dr Boeing and Fudong early for feedback |
-| 11 | Team role allocation not finalised. | Fudong | One further group discussion, ASAP |
-| 12 | Client response latency (email checked every 1–2 days) may block progress. | Dr Boeing | Mitigated by agreed email → Teams follow-up protocol |
-| 13 | A second UWA group is working on the same topic — risk of confusion in client correspondence. | Dr Boeing | Always identify the group clearly in all correspondence |
-| 14 | **No inclusion threshold defined** — what qualifies a machine as autonomous/teleremote enough to appear in the dataset. Reference sites solve this with an explicit rule. | — | Agree with Dr Boeing / RCT — Tue 11 Aug |
-| 15 | Remaining reference links (market report, haul-truck chart) not yet sent through; the two map links are confirmed. | — | Reminder to Dr Boeing (C6) |
-| 16 | Several names and figures garbled by automatic transcription (contractor company, Olive Downs percentages). | — | Confirm with Dr Boeing before the minutes are relied on |
-
----
-
-## Next meetings
+## Next meeting
 
 | Date | Meeting | Format |
 |---|---|---|
-| **Tue 11 August 2026, 10:00** | Requirements meeting with RCT Global (Yash) + Dr Boeing + second UWA group | Online |
-| **Tue 18 August 2026** | Facilitator Meeting #2 — Fudong Qin | Online (placeholder to be created) |
+| **Tue 11 August 2026, 10:00** | Requirements meeting with RCT Global (Yash Singh) + Dr Boeing + second UWA group | Online |
 
 ---
 
-*Minutes compiled from the recorded transcripts of both meetings. Drafted with assistance from Claude (Anthropic) — to be acknowledged in the report's AI use section.*
+*Minutes compiled from the recorded transcript. Drafted with assistance from Claude (Anthropic), and acknowledged in the report's AI use section.*
