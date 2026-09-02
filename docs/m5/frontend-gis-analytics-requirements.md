@@ -1,115 +1,139 @@
-# M5 — Frontend, GIS and Analytics Requirements
+# M5 — Frontend, GIS and Analytics Implementation Requirements
 
 **Owners:** Shee Wang (24368932), Hengan Weng (24201874)  
-**Status:** Draft for team and client confirmation
+**Status:** Working draft aligned with SRS v0.4
 
 ## Purpose
 
-This document translates the stakeholder feedback for the frontend, GIS and
-analytics workstream into initial functional requirements, data dependencies
-and open questions. It does not represent final client approval.
+This document translates the current SRS into implementation-facing guidance
+for the frontend, GIS and analytics workstream. The SRS remains the normative
+requirements source; if this document and the SRS disagree, the SRS takes
+precedence. This document records data dependencies, acceptance considerations
+and coordination points, and does not claim final client approval.
 
 ## Dashboard Requirements
 
-The dashboard should provide:
+The analytics dashboard should provide:
 
-- Sorting and filtering of relevant equipment data.
-- Tooltips that explain chart values and metric definitions.
-- Existing dashboard widgets should update dynamically when shared filters change.
-- As a Could requirement, users may be able to customise the dashboard by
-  adding, configuring and removing available widgets, and retain their selected
-  arrangement between sessions, subject to client confirmation and team capacity.
-- A time-range slicer based on the agreed deployment or commissioning date.
-- Deployment or adoption counts over time.
-- Manufacturer and technology-supplier market-share visualisations.
-- Surface and underground equipment breakdown.
-- Clear handling of loading, empty-data and error states.
-- Responsive presentation on common desktop and mobile screen sizes.
-- Shared filters that apply consistently to all relevant measures, including country, machine type, manufacturer, technology supplier, automation band, commodity and surface/underground classification.
+- Headline counts for recorded automated machines, mine sites and countries
+  (FR-21).
+- Cumulative machines in service over time (FR-22).
+- Machine counts by country and machine type (FR-23, FR-24).
+- Technology-supplier and machine-manufacturer market-share visualisations
+  (FR-25, FR-26).
+- Shared filters for country, region, machine type, manufacturer, technology
+  supplier, automation level, commodity and surface/underground operation,
+  applying consistently to every measure (FR-27).
+- Tooltips that explain chart values, units and metric definitions.
+- Existing widgets that update when shared filters change.
+- Clear loading, empty-data and error states.
+- Keyboard-accessible controls, visible focus and sufficient contrast (NFR-01).
+- A responsive layout that remains usable in the supported desktop browsers
+  (NFR-02).
+
+If scheduled, the Could requirement in FR-35 allows users to choose which
+measures are displayed and retain that arrangement between sessions. It is not
+part of the committed MVP unless the team explicitly takes it into a sprint.
 
 ## GIS Requirements
 
 The GIS interface should provide:
 
-- A map displaying equipment deployments permitted by the agreed publication and verification rules.
-- Mine-site markers generated from geographic data supplied by the backend.
-- Equipment details accessible from map markers.
-- Filtering by equipment type, manufacturer, country and other agreed fields.
-- Synchronisation between map results and active dashboard/data filters.
-- Support for GeoJSON or another agreed API response format.
-- Clear attribution for the selected base-map provider.
+- One marker per mine site at its geographic location (FR-15).
+- Marker styling based on the most advanced deployment status at the site
+  (FR-16).
+- Site and deployment information accessible by selecting a marker (FR-17).
+- Filtering by technology supplier (FR-18).
+- A time control showing deployments in service at the selected date and the
+  number excluded because their commissioning date is missing (FR-19).
+- Further filters for country, region, machine type, automation level,
+  commodity and surface/underground operation (FR-20).
+- Synchronisation between map results and the active shared filters.
+- A typed presentation boundary that does not hard-code API access into the
+  reusable map component.
+- Clear attribution and licensing for the selected base-map source.
 
-## Initial Analytics Definitions
+The project plan proposes a GeoJSON endpoint for map markers. The exact API
+response, bounding-box parameters and error format remain an interface contract
+to be agreed with the backend and database teams.
 
-The following definitions are proposed but require confirmation:
+## Analytics Definitions
 
-| Metric | Initial interpretation |
+| Metric | Implementation definition |
 |---|---|
-| Deployment count | Number of verified deployment records in the selected period |
-| Equipment count | Sum of equipment quantities in verified deployment records |
-| Manufacturer market share | Manufacturer equipment count divided by total equipment count for the selected filters |
-| Technology supplier market share | Technology-supplier equipment count divided by total equipment count for the selected filters |
-| Adoption trend | Verified equipment or deployment count grouped by commissioning year |
-| Surface/underground split | Equipment count grouped by the deployment-level surface/underground classification | 
+| Machine count | Sum of `deployment.quantity` over the filtered recorded deployments |
+| Site count | Number of distinct mine sites represented by the filtered deployments |
+| Country count | Number of distinct countries represented by the filtered deployments |
+| Manufacturer market share | Machine count linked through machine model to each manufacturer, divided by the filtered machine total |
+| Technology-supplier market share | Machine count linked through technology product to each supplier, divided by the filtered machine total |
+| Cumulative machines in service | Machine quantity whose deployment validity includes the selected date |
+| Automation-level share | Machine count grouped through technology product to its automation level, with unknown values shown separately |
+
+Public views default to verified records, as required by FR-43. Any view that
+allows another verification state must label that state clearly and must not
+present unverified data as verified.
 
 ## Data Dependencies
 
 The frontend, GIS and analytics components depend on the backend providing:
 
 - Deployment identifier and equipment quantity
-- Equipment type, manufacturer and model
-- Technology supplier and technology product
-- Automation level or derived automation band
-- Deployment and verification status
-- Country, region, commodity and mine-site information
-- Mine-site geometry or coordinates derived from the PostGIS site location
-- Commissioning date and deployment validity period
+- Machine type, manufacturer, model, size class and payload where recorded
+- Technology supplier, technology product and assigned automation level
+- Deployment status and verification status
+- Country, maintained region, commodity and mine-site information
+- Mine-site point geometry or latitude and longitude
+- Commissioning date and deployment valid-from and valid-to dates
 - Surface/underground classification
-- Evidence information
+- Evidence links where the interface displays verification context
 
-These dependencies align with the proposed database ERD, where deployments
-connect mine sites, machine models and technology products. The frontend API
-contract, GeoJSON response structure and dashboard-layout persistence mechanism
-still require coordination with the backend and database teams.
+These dependencies align with SRS v0.4 and `docs/database/ERD.md`, where a
+deployment connects a mine site, machine model and optional technology product.
+The frontend must treat optional fields as genuinely optional until a record is
+verified, rather than replacing missing values with invented data.
 
-## Open Questions
+## Backend and Database Coordination
 
-The following points require team or client confirmation:
+The following points still require agreement with the backend and database
+teams before live integration:
 
-1. Is deployment rate measured using equipment units, deployment records or
-   mine sites?
-2. Is manufacturer market share calculated by equipment quantity or deployment
-   records?
-3. Which date field controls the time slicer?
-4. Should user-configurable widgets be included in the MVP or retained as a
-   Could feature under FR-36, and which widget operations and persistence
-   behaviour are required?
-5. Should unverified and rejected records ever appear in public analytics?
-6. Which filters must update the dashboard, map and equipment table together?
-7. What dataset will be used to validate the dashboard calculations?
-8. What performance target applies when the registry contains thousands of
-   records?
-9. Are financial projections excluded from the MVP?
+1. The marker API response shape, including GeoJSON properties or an agreed
+   typed alternative.
+2. Bounding-box, filter and historical-date query parameters.
+3. Error, loading, empty-result and pagination behaviour.
+4. Whether filter options are returned by dedicated endpoints or derived from
+   result metadata.
+5. The dataset used to validate counts, shares and historical calculations.
+6. A measurable response-time target for larger datasets.
+7. The persistence mechanism if FR-35 is scheduled.
 
 ## Initial Acceptance Considerations
 
-- Changing the selected time range updates all applicable dashboard metrics
-  and charts.
-- Chart tooltips display the metric value and sufficient context to interpret
-  it.
-- Manufacturer shares use a clearly stated denominator and total correctly.
-- The map displays only records permitted by the agreed verification rules.
+- Changing a shared analytics filter updates every applicable measure and chart.
+- Chart tooltips identify the metric, value, unit and active context.
+- Market shares use machine quantity as the denominator and total correctly for
+  the selected filters.
+- Changing the map date updates the displayed markers and states how many
+  records were excluded because no commissioning date was recorded.
+- Public map and analytics views default to verified records.
 - Map and analytics results remain consistent when the same filters are used.
-- Empty datasets show an explanatory message rather than a broken or blank
-  component.
-- Unknown classifications are shown separately where appropriate.
-- The interface remains usable on desktop and mobile screen sizes.
+- Empty datasets show an explanatory message rather than a broken component.
+- Unknown classifications are shown separately rather than silently discarded.
+- Interactive controls support keyboard operation and visible focus.
+- The interface remains usable in current desktop Chrome and Edge.
+
+## Implementation Status
+
+- The reusable React/TypeScript and Leaflet map foundation was merged in PR
+  #30, using typed fixture data and no backend dependency.
+- Live marker data, marker status styling, site details, shared filters and the
+  historical time control remain integration work under the map issues.
+- Analytics implementation remains scheduled for Sprints 2–3 in
+  `docs/project_plan.md`.
 
 ## Scope Note
 
-User-configurable and saved dashboard layouts are treated as a Could requirement
-under FR-36 and will be implemented only if confirmed by the client and supported
-by the project schedule. Financial forecasting and advanced predictive analytics
-are not assumed to be part of the MVP without explicit approval and an agreed
-data and validation approach.
-
+User-selected and saved dashboard layouts are a Could requirement under FR-35
+and will be implemented only if scheduled by the team. Financial forecasting,
+advanced predictive analytics and satellite or aerial imagery are outside the
+current release unless the SRS is explicitly amended.
