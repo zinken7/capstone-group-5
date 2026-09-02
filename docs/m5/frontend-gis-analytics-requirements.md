@@ -126,6 +126,10 @@ teams before live integration:
 
 - The reusable React/TypeScript and Leaflet map foundation was merged in PR
   #30, using typed fixture data and no backend dependency.
+- The PR #30 foundation currently uses OpenStreetMap raster tiles for local
+  development. Before release, this must be replaced with the static
+  public-domain vector base map specified by SRS v0.4, or the alternative must
+  be explicitly agreed and recorded as an SRS change.
 - Live marker data, marker status styling, site details, shared filters and the
   historical time control remain integration work under the map issues.
 - Analytics implementation remains scheduled for Sprints 2–3 in
