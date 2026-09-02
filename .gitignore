@@ -7,3 +7,12 @@ htmlcov/
 .env
 .DS_Store
 *.sqlite3
+build/
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+
+# Backend
+/backend/node_modules/
+/backend/dist/
