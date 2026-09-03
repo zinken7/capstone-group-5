@@ -6,7 +6,8 @@ export type DeploymentStatus =
 
 export interface MapDeployment {
   id: string
-  machineModel: string
+  machineModel?: string
+  machineType: string
   supplier: string
   status: DeploymentStatus
   quantity: number

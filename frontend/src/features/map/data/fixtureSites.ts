@@ -12,6 +12,7 @@ export const fixtureSites: MapSite[] = [
       {
         id: 'deployment-alpha-1',
         machineModel: 'HX-900 Haul Truck',
+        machineType: 'Haul Truck',
         supplier: 'TerraNav Systems',
         status: 'operational',
         quantity: 12,
@@ -19,6 +20,7 @@ export const fixtureSites: MapSite[] = [
       {
         id: 'deployment-alpha-2',
         machineModel: 'DX-40 Drill',
+        machineType: 'Drill',
         supplier: 'Atlas Automation',
         status: 'commissioning',
         quantity: 4,
@@ -36,6 +38,7 @@ export const fixtureSites: MapSite[] = [
       {
         id: 'deployment-beta-1',
         machineModel: 'LD-600 Loader',
+        machineType: 'Loader',
         supplier: 'DeepCore Robotics',
         status: 'announced',
         quantity: 6,
@@ -52,7 +55,7 @@ export const fixtureSites: MapSite[] = [
     deployments: [
       {
         id: 'deployment-gamma-1',
-        machineModel: 'DZ-80 Dozer',
+        machineType: 'Dozer',
         supplier: 'TerraNav Systems',
         status: 'decommissioned',
         quantity: 3,

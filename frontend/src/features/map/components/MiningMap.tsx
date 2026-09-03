@@ -82,7 +82,9 @@ function MiningMap({ sites }: MiningMapProps) {
                       className="deployment-detail"
                       key={deployment.id}
                     >
-                      <h3>{deployment.machineModel}</h3>
+                      <h3>
+                        {deployment.machineModel ?? deployment.machineType}
+                      </h3>
                       <dl>
                         <div>
                           <dt>Supplier</dt>
