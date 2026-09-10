@@ -3,9 +3,10 @@
 ## Purpose and scope
 
 This is the proposed logical data model for the Autonomous Mining Equipment
-Market Map.  It implements the MVP data requirements in SRS v0.2 (FR-01 to
-FR-15), in particular the distinction between the manufacturer of a machine
-and the supplier of its automation technology.
+Market Map.  It implements the MVP data requirements in SRS v0.4: FR-01 to
+FR-11 as committed scope, with FR-12 to FR-14 intended.  In particular it holds
+the manufacturer of a machine and the supplier of its automation technology as
+separate values.
 
 A **deployment** is the central business record: a quantity of one machine
 model, at one mine site, using one automation technology product, for a stated
@@ -17,6 +18,7 @@ not available.
 ```mermaid
 erDiagram
     COMPANY ||--o{ SITE_COMPANY_ROLE : "holds a role at"
+    REGION o|--o{ SITE : contains
     SITE ||--o{ SITE_COMPANY_ROLE : "has"
     COMPANY ||--o{ MACHINE_MODEL : manufactures
     COMPANY ||--o{ TECHNOLOGY_PRODUCT : supplies
@@ -36,11 +38,16 @@ erDiagram
         text country_code
         timestamptz created_at
     }
+    REGION {
+        bigint id PK
+        text name
+        text country_code
+    }
     SITE {
         bigint id PK
         text name
         text country_code
-        text region
+        bigint region_id FK "nullable"
         text commodity
         site_status mine_status
         geometry point_4326
@@ -66,7 +73,7 @@ erDiagram
         text product_name
         text vendor_term
         automation_level automation_level "nullable"
-        text classification_basis
+        text level_basis
     }
     DEPLOYMENT {
         bigint id PK
@@ -125,10 +132,18 @@ erDiagram
     }
 ```
 
+This diagram is the single maintained copy.  SRS Section 5.1 shows a rendered
+image of it rather than a second copy of the source.  Regenerate the image
+whenever the diagram changes:
+
+    awk '/^```mermaid/{f=1;next} f&&/^```/{exit} f' docs/database/ERD.md > /tmp/erd.mmd
+    mmdc -i /tmp/erd.mmd -o docs/images/erd.png -b white -w 2400 -s 2
+
 ## Relationship rules
 
 | Relationship | Cardinality | Rule |
 |---|---:|---|
+| Region–site | 0..1:N | A site may sit in a named region, or in none.  Regions are reference data so that grouping and filtering resolve to one value (FR-12). |
 | Company–machine model | 1:N | A model has one manufacturer; a company may manufacture many models. |
 | Company–technology product | 1:N | A product has one supplier; the supplier may also be a machine manufacturer. |
 | Site–company role | M:N | A site can have owners, operators and contractors.  The association table records the role. |
@@ -148,7 +163,8 @@ free text:
 | Field | Values |
 |---|---|
 | `company_role` | `owner`, `operator`, `contractor` |
-| `machine_type` | `haul_truck`, `lhd`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
+| `site_status` | `operating`, `commissioning`|
+| `machine_type` | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
 | `automation_level` | `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous` |
 | `mining_environment` | `surface`, `underground`, `both` |
 | `deployment_status` | `announced`, `commissioning`, `operational`, `decommissioned` |
@@ -159,7 +175,9 @@ free text:
 ## Integrity constraints and indexes
 
 * `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is
-  used.
+  used.  If PostGIS is unavailable, `point_4326` is replaced by latitude and
+  longitude columns, which serve the point rendering and bounding-box queries
+  the map requires.
 * `valid_to` must be on or after `valid_from`; a relocation closes one
   deployment and creates another.
 * A verified deployment requires a technology product and at least one evidence
@@ -169,12 +187,19 @@ free text:
   state and is updated transactionally when a review decision changes it.
 * `admin_user.email` is unique. Store only a strong password hash (for example,
   Argon2id or bcrypt), never a plaintext password.
+* `contributor` holds only an email address and, where offered, an organisation
+  (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if
+  FR-52 and FR-53 are taken up.
+* `region` is unique on `(name, country_code)`.
+* A site's country must match its region's country.  Enforce with a unique
+  constraint on `region(id, country_code)` and a composite foreign key from
+  `site` on `(region_id, country_code)`, or with a trigger.
 * `site_company_role` is unique on `(site_id, company_id, role)`.
 * `machine_model` is unique on `(manufacturer_id, model_name)` where
   `model_name` is not null.
 * Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`,
   `technology_product_id`, `verification_status`, `status`,
-  `commissioning_date`, and the site `country_code`.
+  `commissioning_date`, and the site `country_code` and `region_id`.
 * Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and
   `verification_review(admin_user_id)` to support review history and audit
   queries.
@@ -184,6 +209,6 @@ free text:
 
 ## Deliberate exclusions for the MVP
 
-Machine serial numbers, ownership percentages, sensor-level details and
-market-event feeds are not required by the MVP.  They can be added later
-without changing the central deployment relationship.
+Machine serial numbers, ownership percentages, sensor-level details, raw
+uploaded media and market-event feeds are not required by the MVP.  They can be
+added later without changing the central deployment relationship.
