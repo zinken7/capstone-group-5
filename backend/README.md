@@ -27,6 +27,17 @@ runs in Docker Compose, its database host is the `db` service.
 - `npm start` runs the compiled server.
 - `npm run lint` runs ESLint with zero warnings allowed.
 - `npm run typecheck` checks TypeScript without producing build output.
+- `npm run db:migrate` applies any database migrations that have not already been run.
+## Database migrations
+
+Database migrations are stored in `migrations/` and are applied in filename order.
+
+Make sure PostgreSQL/PostGIS is running and `DATABASE_URL` is configured, then run:
+
+```sh
+npm run db:migrate
+```
+
 
 ## Health check
 
