@@ -37,3 +37,116 @@
 .map-page header {
   max-width: 55rem;
 }
+.map-toolbar {
+  display: grid;
+  grid-template-columns: minmax(14rem, 24rem) auto;
+  gap: 0.5rem 1rem;
+  align-items: end;
+}
+
+.map-toolbar label {
+  grid-column: 1;
+  color: #172033;
+  font-weight: 700;
+}
+
+.map-toolbar input {
+  grid-column: 1;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.5rem;
+  color: #172033;
+  background: #ffffff;
+}
+
+.map-toolbar input:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.filter-result {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0 0 0.7rem;
+  color: #566176;
+}
+
+.map-empty-state {
+  padding: 1.25rem;
+  border: 1px solid #f0c36d;
+  border-radius: 0.75rem;
+  background: #fff8e6;
+}
+
+.map-empty-state h2,
+.map-empty-state p {
+  margin: 0;
+}
+
+.map-empty-state p {
+  margin-top: 0.4rem;
+  color: #566176;
+}
+
+.site-popup {
+  min-width: 15rem;
+}
+
+.site-popup h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.site-location {
+  margin: 0.35rem 0 0.9rem;
+  color: #566176;
+}
+
+.deployment-detail {
+  padding-top: 0.75rem;
+  border-top: 1px solid #dce1e8;
+}
+
+.deployment-detail + .deployment-detail {
+  margin-top: 0.75rem;
+}
+
+.deployment-detail h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.deployment-detail dl {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.deployment-detail dl div {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.5rem;
+}
+
+.deployment-detail dt {
+  font-weight: 700;
+}
+
+.deployment-detail dd {
+  margin: 0;
+  text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-result {
+    grid-column: 1;
+    grid-row: auto;
+    margin: 0;
+  }
+}
