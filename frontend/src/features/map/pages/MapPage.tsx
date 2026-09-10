@@ -72,6 +72,16 @@ function MapPage({ sites }: MapPageProps) {
         </p>
       </div>
 
+      <section className="map-legend" aria-label="Deployment status legend">
+        <strong>Marker status</strong>
+        <ul>
+          <li><span className="legend-dot legend-dot--operational" />Operational</li>
+          <li><span className="legend-dot legend-dot--commissioning" />Commissioning</li>
+          <li><span className="legend-dot legend-dot--announced" />Announced</li>
+          <li><span className="legend-dot legend-dot--decommissioned" />Decommissioned</li>
+        </ul>
+      </section>
+
       {filteredSites.length === 0 && (
         <StateMessage
           title="No matching sites"

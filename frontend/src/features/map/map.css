@@ -8,8 +8,8 @@
 
 .mining-map {
   width: 100%;
-  height: clamp(28rem, 68vh, 48rem);
-  min-height: 28rem;
+  height: clamp(27rem, 64vh, 46rem);
+  min-height: 27rem;
 }
 
 .mining-map:focus-visible {
@@ -19,15 +19,15 @@
 
 @media (max-width: 768px) {
   .mining-map {
-    height: 60vh;
-    min-height: 24rem;
+    height: 58vh;
+    min-height: 22rem;
   }
 }
 .map-page {
   display: grid;
   width: min(100%, 90rem);
-  gap: 2rem;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  gap: 1.25rem;
+  padding: clamp(1.2rem, 2.5vw, 2rem);
   border: 1px solid #dce1e8;
   border-radius: 1rem;
   background: #ffffff;
@@ -37,6 +37,11 @@
 .map-page header {
   max-width: 55rem;
 }
+
+.map-page .intro {
+  margin-top: 1rem;
+}
+
 .map-toolbar {
   display: grid;
   grid-template-columns: minmax(14rem, 24rem) auto;
@@ -72,6 +77,47 @@
   margin: 0 0 0.7rem;
   color: #566176;
 }
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  color: #566176;
+  font-size: 0.82rem;
+}
+
+.map-legend strong {
+  color: #172033;
+}
+
+.map-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.legend-dot--operational { color: #15803d; }
+.legend-dot--commissioning { color: #d97706; }
+.legend-dot--announced { color: #2563eb; }
+.legend-dot--decommissioned { color: #64748b; }
 
 .site-popup {
   min-width: 15rem;
