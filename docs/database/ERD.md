@@ -163,7 +163,7 @@ free text:
 | Field | Values |
 |---|---|
 | `company_role` | `owner`, `operator`, `contractor` |
-| `site_status` | `operating`, `commissioning`, `care_and_maintenance`, `closed` |
+| `site_status` | `operating`, `commissioning`|
 | `machine_type` | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
 | `automation_level` | `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous` |
 | `mining_environment` | `surface`, `underground`, `both` |
