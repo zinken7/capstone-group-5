@@ -93,6 +93,9 @@ router.get('/map', (req, res) => {
       siteDeployments = siteDeployments.filter((deployment) => deployment.environment === environment)
     }
     if (dateParam !== undefined) {
+      // FR-19: a deployment with no commissioning date can't be placed on the
+      // timeline at all, so it's excluded from any date-restricted view and
+      // counted rather than silently dropped.
       const withCommissioningDate: Deployment[] = []
       for (const deployment of siteDeployments) {
         if (deployment.commissioningDate === null) {
@@ -101,11 +104,13 @@ router.get('/map', (req, res) => {
           withCommissioningDate.push(deployment)
         }
       }
+      // FR-11: "in service at `dateParam`" is answered from the record's own
+      // valid-from/valid-to period, not from its *current* status. A
+      // deployment that is decommissioned today can still have been in
+      // service on a past date within its validity window.
       siteDeployments = withCommissioningDate.filter(
         (deployment) =>
-          deployment.commissioningDate !== null &&
-          deployment.commissioningDate <= dateParam &&
-          deployment.status !== 'decommissioned',
+          deployment.validFrom <= dateParam && (deployment.validTo === null || dateParam <= deployment.validTo),
       )
     }
 

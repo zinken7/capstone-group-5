@@ -46,6 +46,8 @@ export const deployments: Deployment[] = [
     status: 'operational',
     verificationStatus: 'verified',
     commissioningDate: '2021-01-01',
+    validFrom: '2021-01-01',
+    validTo: null,
   },
   {
     id: 11,
@@ -59,6 +61,8 @@ export const deployments: Deployment[] = [
     status: 'commissioning',
     verificationStatus: 'verified',
     commissioningDate: null,
+    validFrom: '2023-06-01',
+    validTo: null,
   },
   {
     id: 12,
@@ -72,5 +76,25 @@ export const deployments: Deployment[] = [
     status: 'announced',
     verificationStatus: 'pending_review',
     commissioningDate: null,
+    validFrom: '2024-01-01',
+    validTo: null,
+  },
+  {
+    // Currently decommissioned, but was in service 2015-03-01..2020-12-31.
+    // Exercises the fix: a `date` within that window must still include it,
+    // even though its *current* status is 'decommissioned'.
+    id: 14,
+    siteId: 1,
+    machineModel: 'Caterpillar 777F',
+    machineType: 'haul_truck',
+    quantity: 20,
+    technologySupplier: 'Caterpillar',
+    environment: 'surface',
+    automationLevel: null,
+    status: 'decommissioned',
+    verificationStatus: 'verified',
+    commissioningDate: '2015-03-01',
+    validFrom: '2015-03-01',
+    validTo: '2020-12-31',
   },
 ]

@@ -39,4 +39,7 @@ export interface Deployment {
   status: DeploymentStatus
   verificationStatus: VerificationStatus
   commissioningDate: string | null
+  /** FR-11: the period during which this record is the current one, used to reconstruct past-date views. */
+  validFrom: string
+  validTo: string | null
 }
