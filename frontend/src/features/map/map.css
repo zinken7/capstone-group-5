@@ -73,23 +73,6 @@
   color: #566176;
 }
 
-.map-empty-state {
-  padding: 1.25rem;
-  border: 1px solid #f0c36d;
-  border-radius: 0.75rem;
-  background: #fff8e6;
-}
-
-.map-empty-state h2,
-.map-empty-state p {
-  margin: 0;
-}
-
-.map-empty-state p {
-  margin-top: 0.4rem;
-  color: #566176;
-}
-
 .site-popup {
   min-width: 15rem;
 }
