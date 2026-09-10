@@ -1,36 +1,29 @@
 # Contributing
 
-Working conventions for Group 5. Items marked ⟨confirm⟩ are proposals awaiting
-team agreement.
+Working conventions for Group 5.
 
 ## Getting started
 
-*Commands are filled in during Sprint 1, once the stack is running.*
-
-**Prerequisites:** ⟨Docker and Docker Compose; runtime and version⟩
+**Prerequisites:** Git and Docker Desktop, or Docker Engine with Docker Compose.
 
 ```bash
 # 1. Clone
 git clone https://github.com/zinken7/capstone-group-5.git
 cd capstone-group-5
 
-# 2. Configure: copy the example environment file and fill in the values
+# 2. Configure the local-only environment
 cp .env.example .env
 
 # 3. Start the database and application
-⟨docker compose up -d⟩
+docker compose up --build
 
-# 4. Apply database migrations
-⟨migration command⟩
-
-# 5. Load the seed dataset
-⟨seed command⟩
-
-# 6. Run the tests
-⟨test command⟩
+# 4. In another terminal, verify the backend-to-PostGIS connection
+curl --fail http://localhost:3000/health/database
 ```
 
-The application is then available at ⟨http://localhost:PORT⟩.
+The backend is then available at `http://localhost:3000`. Database migrations
+and seed data are added by their own issues; no placeholder command is required
+for the current foundation.
 
 ## The short version
 

@@ -6,6 +6,7 @@ Express and TypeScript backend for the Autonomous Mining Equipment Market Map.
 
 - Node.js 22
 - npm
+- PostgreSQL with PostGIS, started through the root Docker Compose stack
 
 ## Getting started
 
@@ -14,8 +15,10 @@ npm ci
 npm run dev
 ```
 
+Copy the repository root `.env.example` to `.env` before starting the backend.
 The API starts on `http://localhost:3000` by default. Use the `PORT` environment
-variable to select another port.
+variable to select another port. `DATABASE_URL` is required; when the backend
+runs in Docker Compose, its database host is the `db` service.
 
 ## Available scripts
 
@@ -30,3 +33,39 @@ variable to select another port.
 ```text
 GET /health
 ```
+
+This endpoint reports API process liveness and preserves the response
+`{"status":"ok"}`.
+
+```text
+GET /health/database
+```
+
+The database health endpoint runs a query against PostgreSQL and calls
+`postgis_version()`. It returns HTTP 200 only when both the API and PostGIS
+database are ready, and HTTP 503 when the database is unavailable.
+
+
+## Testing
+
+Install dependencies and run the backend automated tests with:
+
+```sh
+npm ci
+npm test
+```
+
+Backend tests use Vitest and Supertest.
+
+Test files should be placed alongside the source code they test and use the naming convention `*.test.ts`.
+
+For example:
+
+```text
+src/app.ts
+src/app.test.ts
+```
+
+The current automated test verifies that `GET /health` returns HTTP 200 with `{ "status": "ok" }`.
+
+The test command exits with a non-zero status if any test fails, making it suitable for use in GitHub Actions.

@@ -18,3 +18,55 @@ Western Australia is a global leader in the adoption of autonomous mining techno
 - **IP**: Creative Commons (open source)
 - **Client**: Adrian Boeing
 - **Location**: UWA EECE
+
+## Local development
+
+### Requirements
+
+- Docker Desktop, or Docker Engine with Docker Compose
+- On Apple Silicon, Docker must allow `linux/amd64` emulation for the official
+  PostGIS image
+
+### Start the backend and database
+
+```sh
+cp .env.example .env
+docker compose up --build
+```
+
+After the first image build, `docker compose up` is sufficient. The services
+are available at:
+
+- Backend API: `http://localhost:3000`
+- PostgreSQL/PostGIS: `localhost:5432`
+
+Confirm that the backend can reach PostgreSQL and that PostGIS is enabled:
+
+```sh
+curl --fail http://localhost:3000/health/database
+```
+
+The response includes both the PostgreSQL and PostGIS versions. Stop the stack
+with `docker compose down`. The named database volume is retained between
+starts; `docker compose down --volumes` also deletes all local database data.
+
+### Environment variables
+
+Copy [`.env.example`](.env.example) to `.env` before starting the stack. The
+example values are for local development only; `.env` is ignored by Git and
+must never be committed.
+
+| Variable | Purpose |
+|---|---|
+| `POSTGRES_DB` | Local database name |
+| `POSTGRES_USER` | Local database user |
+| `POSTGRES_PASSWORD` | Local-only database password |
+| `POSTGRES_PORT` | Database port exposed on the host |
+| `BACKEND_PORT` | Backend port exposed on the host |
+| `DATABASE_URL` | Backend connection string when running outside Compose |
+| `POSTGIS_PLATFORM` | Docker image platform; defaults to `linux/amd64` |
+
+Inside Docker Compose, the backend connection string is overridden to use
+`db`—the Compose database service name—as its host. This keeps the checked-in
+example useful for running the backend directly while preserving container
+networking.
