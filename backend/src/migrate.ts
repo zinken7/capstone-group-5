@@ -1,14 +1,19 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-
 import { Client } from 'pg'
-
 import { config } from './config.js'
 
 const migrationsDirectory = fileURLToPath(
   new URL('../migrations/', import.meta.url),
 )
+
+/**
+ * Session-level advisory lock, so that two backend containers starting at the
+ * same time cannot apply the same migration twice. The value is arbitrary but
+ * must not change. Released when the connection closes.
+ */
+const MIGRATION_LOCK_KEY = 520605
 
 async function migrate(): Promise<void> {
   const client = new Client({
@@ -18,6 +23,8 @@ async function migrate(): Promise<void> {
   await client.connect()
 
   try {
+    await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY])
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         filename TEXT PRIMARY KEY,
@@ -35,8 +42,10 @@ async function migrate(): Promise<void> {
         [filename],
       )
 
-      if (existing.rowCount !== 0) {
-        console.log(`Skipping ${filename}`)
+      // rowCount is number | null, so compare explicitly rather than against
+      // zero: a null would otherwise read as "already applied" and the
+      // migration would be skipped silently.
+      if ((existing.rowCount ?? 0) > 0) {
         continue
       }
 
@@ -46,7 +55,6 @@ async function migrate(): Promise<void> {
       console.log(`Applying ${filename}`)
 
       await client.query('BEGIN')
-
       try {
         await client.query(sql)
         await client.query(
