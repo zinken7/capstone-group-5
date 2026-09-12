@@ -6,11 +6,12 @@ function toBreakdown(values: Map<string, number>): AnalyticsBreakdown[] {
 }
 
 export function buildAnalyticsSummary(sites: MapSite[]): AnalyticsSummary {
+  const populatedSites = sites.filter((site) => site.deployments.length > 0)
   const machinesByType = new Map<string, number>()
   const machinesByCountry = new Map<string, number>()
   let machineCount = 0
 
-  for (const site of sites) {
+  for (const site of populatedSites) {
     let siteMachineCount = 0
     for (const deployment of site.deployments) {
       machineCount += deployment.quantity
@@ -22,8 +23,8 @@ export function buildAnalyticsSummary(sites: MapSite[]): AnalyticsSummary {
 
   return {
     machineCount,
-    siteCount: sites.length,
-    countryCount: new Set(sites.map((site) => site.country)).size,
+    siteCount: populatedSites.length,
+    countryCount: new Set(populatedSites.map((site) => site.country)).size,
     machinesByType: toBreakdown(machinesByType),
     machinesByCountry: toBreakdown(machinesByCountry),
   }

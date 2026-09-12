@@ -14,10 +14,10 @@ function AppLayout({ children }: PropsWithChildren) {
         </NavLink>
 
         <nav className="primary-nav" aria-label="Primary navigation">
-          <NavLink to="/map">Map</NavLink>
-          <NavLink to="/equipment">Equipment Register</NavLink>
-          <NavLink to="/analytics">Analytics</NavLink>
-          <NavLink to="/contribute">Contribute</NavLink>
+          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/map">Map</NavLink>
+          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment Register</NavLink>
+          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/analytics">Analytics</NavLink>
+          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
         </nav>
       </header>
       <main className="page-content" id="main-content">{children}</main>
