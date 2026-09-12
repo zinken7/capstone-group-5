@@ -3,6 +3,7 @@ import {
   MapContainer,
   Popup,
   TileLayer,
+  Tooltip,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../map.css'
@@ -70,6 +71,12 @@ function MiningMap({ sites }: MiningMapProps) {
                 fillOpacity: 0.75,
               }}
             >
+              <Tooltip direction="top" offset={[0, -8]} opacity={0.96}>
+                <span className="site-tooltip">
+                  <strong>{site.name}</strong>
+                  <small>{markerStatus}</small>
+                </span>
+              </Tooltip>
               <Popup>
                 <article className="site-popup">
                   <h2>{site.name}</h2>
