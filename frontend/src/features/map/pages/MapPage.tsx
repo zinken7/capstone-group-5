@@ -1,30 +1,35 @@
 import { useMemo, useState } from 'react'
 import MiningMap from '../components/MiningMap'
-import { fixtureSites } from '../data/fixtureSites'
+import StateMessage from '../../../shared/components/StateMessage'
+import type { MapSite } from '../types'
 
-function MapPage() {
+interface MapPageProps {
+  sites: MapSite[]
+}
+
+function MapPage({ sites }: MapPageProps) {
   const [supplierQuery, setSupplierQuery] = useState('')
 
   const supplierOptions = useMemo(
     () =>
       Array.from(
         new Set(
-          fixtureSites.flatMap((site) =>
+          sites.flatMap((site) =>
             site.deployments.map((deployment) => deployment.supplier),
           ),
         ),
       ).sort(),
-    [],
+    [sites],
   )
 
   const filteredSites = useMemo(() => {
     const query = supplierQuery.trim().toLowerCase()
 
     if (!query) {
-      return fixtureSites
+      return sites
     }
 
-    return fixtureSites
+    return sites
       .map((site) => ({
         ...site,
         deployments: site.deployments.filter((deployment) =>
@@ -32,7 +37,7 @@ function MapPage() {
         ),
       }))
       .filter((site) => site.deployments.length > 0)
-  }, [supplierQuery])
+  }, [sites, supplierQuery])
 
   return (
     <section className="map-page">
@@ -67,11 +72,21 @@ function MapPage() {
         </p>
       </div>
 
+      <section className="map-legend" aria-label="Deployment status legend">
+        <strong>Marker status</strong>
+        <ul>
+          <li><span className="legend-dot legend-dot--operational" />Operational</li>
+          <li><span className="legend-dot legend-dot--commissioning" />Commissioning</li>
+          <li><span className="legend-dot legend-dot--announced" />Announced</li>
+          <li><span className="legend-dot legend-dot--decommissioned" />Decommissioned</li>
+        </ul>
+      </section>
+
       {filteredSites.length === 0 && (
-        <div className="map-empty-state" role="status">
-          <h2>No matching sites</h2>
-          <p>Try a different supplier name or clear the filter.</p>
-        </div>
+        <StateMessage
+          title="No matching sites"
+          message="Try a different supplier name or clear the filter."
+        />
       )}
 
       <MiningMap sites={filteredSites} />
