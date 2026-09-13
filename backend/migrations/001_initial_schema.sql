@@ -172,6 +172,12 @@ CREATE TABLE deployment (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
+  -- A technology product may be missing during submission, but it must be
+  -- present before the deployment can be verified.
+  CONSTRAINT deployment_verified_requires_technology_product CHECK (
+    verification_status <> 'verified'
+    OR technology_product_id IS NOT NULL
+  ),
   -- A relocation closes one deployment and opens another, so the closing date
   -- must not precede the opening one.
   CONSTRAINT deployment_validity_ordered CHECK (
