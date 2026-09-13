@@ -12,7 +12,8 @@
     "start": "node dist/server.js",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
