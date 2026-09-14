@@ -120,15 +120,16 @@ Desktop and smaller viewport layouts were manually checked.
 The following frontend quality commands were run successfully:
 
 ```text
-npm.cmd test
+npm test
 7 test files passed
 36 tests passed
 
-npm.cmd run typecheck
+npm run typecheck
 Passed
 
-npm.cmd run lint
+npm run lint
 Passed with zero warnings
 
-npm.cmd run build
+npm run build
 Production build completed successfully
+```
