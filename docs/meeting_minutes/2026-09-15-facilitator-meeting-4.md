@@ -33,10 +33,11 @@
 
 ## 3. Project management feedback
 
-- Planning was strong, especially for Sprint 1, but the report showed plans more clearly than evidence of how the project was managed in practice.
-- To improve this section, the team should record planned versus actual progress, delays and blockers, workload changes, plan changes after reviews, and actions taken when problems occurred.
-- One delivery was approximately one week late and affected the Project Management mark.
-- The facilitator agreed that some written feedback was incomplete and should have explained deductions more clearly.
+- We asked why the Project Management section received **3/4**, because the written feedback was mostly positive and seemed incomplete. We wanted to understand what was missing for a higher mark.
+- The facilitator said our planning was strong, especially for Sprint 1, but the report mainly showed what we planned rather than enough evidence of how we actually managed the project.
+- The facilitator suggested showing planned versus actual progress, how delays and blockers were handled, how workload was adjusted, how plans changed after reviews, and what actions were taken when problems occurred.
+- The facilitator also mentioned that one delivery was approximately one week late, which affected this section.
+- We explained that some of the written feedback appeared unfinished and did not clearly explain the deductions. The facilitator agreed that the feedback could have been more specific.
 
 ## 4. Action items
 
