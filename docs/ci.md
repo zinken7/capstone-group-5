@@ -27,7 +27,9 @@ Detection uses the PR base/head commit SHAs and a three-dot Git diff against
 their merge base. Full checkout history avoids shallow-history errors. Renames
 are treated as deletion plus addition, so moves across areas test both sides.
 The local Git diff has no GitHub changed-file API pagination or 300-file filter
-limit. Missing commits or detection errors fail CI instead of skipping checks.
+limit. The buffered path list has an explicit 16 MiB capacity. Exceeding that
+capacity, missing commits or other detection errors fail CI instead of skipping
+checks or using a truncated list.
 
 ## Backend database coverage
 
@@ -71,8 +73,11 @@ first real Terraform configuration. See the
 
 Other infrastructure checks can be declared in `infra/ci.sh`, also invoked from
 the repository root. Non-Terraform implementation without that entry point
-fails CI. If Terraform and other tooling coexist, declare the extra checks in
-the entry point alongside the built-in Terraform validation.
+fails CI even when Terraform is also present. Terraform variable files
+(`.tfvars`/`.tfvars.json`) and `.terraform.lock.hcl` alongside Terraform
+configuration do not require a separate entry point. If Terraform and other
+tooling coexist, declare the extra checks in the entry point alongside the
+built-in Terraform validation.
 
 ## Required checks
 
@@ -101,7 +106,8 @@ From the repository root:
 
 ```sh
 node --test .github/scripts/ci/*.test.mjs
-bash -n .github/scripts/ci/services.sh .github/scripts/ci/infra.sh
+bash -n .github/scripts/ci/services.sh
+bash -n .github/scripts/ci/infra.sh
 docker compose --env-file .env.example config --quiet
 actionlint .github/workflows/lint.yml .github/workflows/pr-conventions.yml
 git diff --check

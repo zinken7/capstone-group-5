@@ -14,14 +14,14 @@ export function affectedAreas(paths, eventName) {
         /^(package(-lock)?\.json|\.nvmrc|\.node-version|\.npmrc)$/.test(path)) return all()
 
     // Root runtime configuration can affect every area as the stack grows.
-    if (/^(docker-compose|compose)(\.[^/]+)?\.ya?ml$/.test(path) ||
-        /^\.env(\.[^/]+)?$/.test(path) || /^(Dockerfile(\.[^/]+)?|\.dockerignore)$/.test(path)) return all()
+    if (/^(docker-compose|compose)[^/]*\.ya?ml$/.test(path) ||
+        /^\.env[^/]*$/.test(path) || /^(Dockerfile[^/]*|\.dockerignore)$/.test(path)) return all()
 
     // Documentation anywhere in an area must not start application jobs.
     if (/\.(md|mdx|rst)$/i.test(path)) continue
     const area = path.split('/')[0]
     if (Object.hasOwn(areas, area)) areas[area] = true
-    if (/^(frontend|backend|services)\/(.*\/)?(Dockerfile(\.[^/]+)?|\.dockerignore)$/.test(path)) {
+    if (/^(frontend|backend|services)\/(.*\/)?(Dockerfile[^/]*|\.dockerignore)$/.test(path)) {
       areas.compose = true
     }
   }
@@ -33,9 +33,10 @@ export function changedPaths(base, head) {
     throw new Error('Pull request base/head must be full commit SHAs')
   }
   // --no-renames includes both sides of a cross-area move. NUL delimiters
-  // preserve filenames containing whitespace. No API pagination/file limit.
+  // preserve filenames containing whitespace. Allow up to 16 MiB of path output;
+  // exceeding this explicit bound fails detection rather than truncating it.
   return execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`, '--'],
-    { encoding: 'utf8' }).split('\0').filter(Boolean)
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).split('\0').filter(Boolean)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

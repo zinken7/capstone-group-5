@@ -20,12 +20,18 @@ fi
 
 if [[ -f infra/ci.sh ]]; then
   bash infra/ci.sh
-elif [[ "$has_terraform" == false ]]; then
+else
   while IFS= read -r -d '' file; do
     case "$file" in
       *.md|*.mdx|*.rst|*/.gitkeep) continue ;;
-      *) echo 'Infrastructure has no validator. Add Terraform configuration or infra/ci.sh.' >&2; exit 1 ;;
+      *.tf|*.tf.json) continue ;;
+      *.tfvars|*.tfvars.json|*/.terraform.lock.hcl)
+        if [[ "$has_terraform" == true ]]; then continue; fi ;;
     esac
+    echo 'Infrastructure has no validator. Add Terraform configuration or infra/ci.sh.' >&2
+    exit 1
   done < <(git ls-files -z infra)
-  echo 'No infrastructure configuration exists yet; infra/ contains documentation only.'
+  if [[ "$has_terraform" == false ]]; then
+    echo 'No infrastructure configuration exists yet; infra/ contains documentation only.'
+  fi
 fi

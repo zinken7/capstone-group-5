@@ -54,7 +54,13 @@ for (const area of ['services', 'infra']) {
 }
 
 test('Terraform checks format once and init/validate each module without remote state', () => {
-  repository({ 'infra/main.tf': '', 'infra/modules/example/main.tf.json': '{}' }, (root) => {
+  repository({
+    'infra/main.tf': '',
+    'infra/modules/example/main.tf.json': '{}',
+    'infra/dev.tfvars': '',
+    'infra/prod.tfvars.json': '{}',
+    'infra/.terraform.lock.hcl': '',
+  }, (root) => {
     const bin = join(root, 'bin')
     mkdirSync(bin)
     writeFileSync(join(bin, 'terraform'), '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$TF_LOG_FILE"\n', { mode: 0o755 })
@@ -72,3 +78,23 @@ test('Terraform checks format once and init/validate each module without remote 
     assert.equal(check('infra', root, { PATH: `${bin}:${process.env.PATH}` }).status, 9)
   })
 })
+
+for (const [name, hook, expectedStatus] of [
+  ['requires checks for non-Terraform code', undefined, 1],
+  ['runs the additional checks', 'echo extra-infra-checks; exit 0', 0],
+  ['propagates failures from additional checks', 'echo extra-infra-checks; exit 7', 7],
+]) {
+  test(`mixed infrastructure: ${name}`, () => {
+    const files = { 'infra/main.tf': '', 'infra/scripts/check.py': 'print("example")' }
+    if (hook !== undefined) files['infra/ci.sh'] = hook
+    repository(files, (root) => {
+      const bin = join(root, 'bin')
+      mkdirSync(bin)
+      writeFileSync(join(bin, 'terraform'), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o755 })
+      const result = check('infra', root, { PATH: `${bin}:${process.env.PATH}` })
+      assert.equal(result.status, expectedStatus, result.stderr)
+      if (hook === undefined) assert.match(result.stderr, /infra\/ci\.sh/)
+      else assert.match(result.stdout, /extra-infra-checks/)
+    })
+  })
+}

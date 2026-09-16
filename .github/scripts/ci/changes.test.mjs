@@ -21,11 +21,19 @@ for (const [name, paths, expected] of [
   ['multiple areas', ['frontend/a.ts', 'backend/b.ts', 'infra/main.tf'], { ...none, frontend: true, backend: true, infra: true }],
   ['documentation only', ['docs/api/README.md', 'frontend/README.md', 'backend/seed/README.md', 'services/README.md', 'infra/README.md'], none],
   ['shared compose', ['docker-compose.yml'], all],
+  ['hyphenated shared compose', ['docker-compose-dev.yml'], all],
+  ['underscored shared compose', ['compose_prod.yaml'], all],
+  ['shared envrc', ['.envrc'], all],
+  ['hyphenated root Dockerfile', ['Dockerfile-prod'], all],
   ['shared environment', ['.env.example'], all],
   ['shared npm config', ['.npmrc'], all],
   ['workflow', ['.github/workflows/lint.yml'], all],
   ['CI helper', ['.github/scripts/ci/changes.mjs'], all],
   ['backend container', ['backend/Dockerfile'], { ...none, backend: true, compose: true }],
+  ['hyphenated backend Dockerfile', ['backend/Dockerfile-prod'], { ...none, backend: true, compose: true }],
+  ['underscored service Dockerfile', ['services/foo/Dockerfile_dev'], { ...none, services: true, compose: true }],
+  ['frontend Dockerfile suffix', ['frontend/DockerfileProd'], { ...none, frontend: true, compose: true }],
+  ['nested runtime names are not root configuration', ['docs/compose-dev.yml', 'docs/.envrc', 'docs/Dockerfile-prod'], none],
   ['frontend environment', ['frontend/.env.example'], { ...none, frontend: true }],
   ['no changes', [], none],
 ]) {
@@ -65,6 +73,35 @@ test('git diff includes deleted and added paths for a rename, including whitespa
 
 test('invalid commit references fail closed', () => {
   assert.throws(() => changedPaths('', 'HEAD'))
+})
+
+test('git diff reads a complete path list larger than the default 1 MiB buffer', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ci-large-diff-'))
+  const original = process.cwd()
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' }).trim()
+  try {
+    git('init', '-q')
+    git('config', 'user.email', 'ci@example.invalid')
+    git('config', 'user.name', 'CI test')
+    git('commit', '--allow-empty', '-qm', 'base')
+    const base = git('rev-parse', 'HEAD')
+    const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+      cwd: dir, input: '', encoding: 'utf8',
+    }).trim()
+    const paths = Array.from({ length: 12000 }, (_, i) => `backend/${String(i).padStart(5, '0')}-${'x'.repeat(90)}.ts`)
+    assert.ok(Buffer.byteLength(paths.join('\0')) > 1024 * 1024)
+    // Populate the Git index directly to avoid creating thousands of files.
+    execFileSync('git', ['update-index', '--index-info'], {
+      cwd: dir, input: paths.map((path) => `100644 ${blob}\t${path}\n`).join(''),
+    })
+    git('commit', '-qm', 'large diff')
+    const head = git('rev-parse', 'HEAD')
+    process.chdir(dir)
+    assert.deepEqual(changedPaths(base, head), paths)
+  } finally {
+    process.chdir(original)
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 function results(areas) {
