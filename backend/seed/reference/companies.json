@@ -1,0 +1,59 @@
+[
+  {
+    "key": "caterpillar",
+    "name": "Caterpillar",
+    "country_code": "US",
+    "aliases": [
+      { "alias": "Cat", "language": "en" },
+      { "alias": "Caterpillar Inc.", "language": "en" }
+    ],
+    "source": "https://www.caterpillar.com/"
+  },
+  {
+    "key": "komatsu",
+    "name": "Komatsu",
+    "country_code": "JP",
+    "aliases": [
+      { "alias": "Komatsu Ltd.", "language": "en" },
+      { "alias": "コマツ", "language": "ja" }
+    ],
+    "source": "https://www.komatsu.com/"
+  },
+  {
+    "key": "sandvik",
+    "name": "Sandvik",
+    "country_code": "SE",
+    "aliases": [
+      { "alias": "Sandvik Mining and Rock Solutions", "language": "en" }
+    ],
+    "source": "https://www.home.sandvik/"
+  },
+  {
+    "key": "epiroc",
+    "name": "Epiroc",
+    "country_code": "SE",
+    "aliases": [
+      { "alias": "Epiroc AB", "language": "en" }
+    ],
+    "source": "https://www.epiroc.com/"
+  },
+  {
+    "key": "rct-global",
+    "name": "RCT Global",
+    "country_code": "AU",
+    "aliases": [
+      { "alias": "RCT", "language": "en" },
+      { "alias": "Remote Control Technologies", "language": "en" }
+    ],
+    "source": "https://rct-global.com/"
+  },
+  {
+    "key": "rio-tinto",
+    "name": "Rio Tinto",
+    "country_code": "GB",
+    "aliases": [
+      { "alias": "Rio", "language": "en" }
+    ],
+    "source": "https://www.riotinto.com/"
+  }
+]

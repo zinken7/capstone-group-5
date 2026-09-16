@@ -1,0 +1,31 @@
+[
+  {
+    "key": "cat-793f",
+    "manufacturer": "caterpillar",
+    "model_name": "793F",
+    "machine_type": "haul_truck",
+    "size_class": "ultra_class",
+    "max_payload_tonnes": 227,
+    "operating_weight_tonnes": 386,
+    "source": "https://www.cat.com/en_ZA/products/new/equipment/off-highway-trucks/mining-trucks/18092621.html"
+  },
+  {
+    "key": "komatsu-930e",
+    "manufacturer": "komatsu",
+    "model_name": "930E",
+    "machine_type": "haul_truck",
+    "size_class": "ultra_class",
+    "max_payload_tonnes": 290,
+    "operating_weight_tonnes": 522,
+    "source": "https://www.komatsu.com/en-us/products/equipment/trucks/electric-drive-mining-trucks/930e-5"
+  },
+  {
+    "key": "cat-haul-truck",
+    "manufacturer": "caterpillar",
+    "model_name": null,
+    "machine_type": "haul_truck",
+    "size_class": null,
+    "max_payload_tonnes": null,
+    "operating_weight_tonnes": null
+  }
+]

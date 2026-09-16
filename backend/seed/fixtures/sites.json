@@ -1,0 +1,19 @@
+[
+  {
+    "key": "wandarra-iron",
+    "name": "Wandarra Iron",
+    "country_code": "AU",
+    "region": "pilbara",
+    "commodity": "iron_ore",
+    "mine_status": "operating",
+    "lat": -22.61,
+    "lng": 119.32,
+    "aliases": [
+      { "alias": "Wandarra", "language": "en" }
+    ],
+    "roles": [
+      { "company": "rio-tinto", "role": "owner" },
+      { "company": "rio-tinto", "role": "operator" }
+    ]
+  }
+]

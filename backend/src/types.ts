@@ -1,20 +1,37 @@
-export type DeploymentStatus = 'announced' | 'commissioning' | 'operational' | 'decommissioned'
+// Enum labels mirror migrations/001_initial_schema.sql exactly. They are
+// defined once here, as runtime arrays with derived types, so that the API
+// and the seed loader's zod schemas (src/seed/schemas.ts) cannot disagree.
 
-export type VerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
+export const DEPLOYMENT_STATUSES = ['announced', 'commissioning', 'operational', 'decommissioned'] as const
+export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number]
 
-export type MiningEnvironment = 'surface' | 'underground' | 'both'
+export const VERIFICATION_STATUSES = ['unverified', 'pending_review', 'verified', 'rejected'] as const
+export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number]
 
-export type MineStatus = 'operating' | 'commissioning'
+export const MINING_ENVIRONMENTS = ['surface', 'underground', 'both'] as const
+export type MiningEnvironment = (typeof MINING_ENVIRONMENTS)[number]
 
-export type MachineType =
-  | 'haul_truck'
-  | 'lhd'
-  | 'dozer'
-  | 'excavator'
-  | 'drill'
-  | 'scaler'
-  | 'shotcrete_machine'
-  | 'other'
+export const MINE_STATUSES = ['operating', 'commissioning'] as const
+export type MineStatus = (typeof MINE_STATUSES)[number]
+
+export const MACHINE_TYPES = [
+  'haul_truck',
+  'lhd',
+  'loader',
+  'dozer',
+  'excavator',
+  'drill',
+  'scaler',
+  'shotcrete_machine',
+  'other',
+] as const
+export type MachineType = (typeof MACHINE_TYPES)[number]
+
+export const AUTOMATION_LEVELS = ['line_of_sight_remote', 'teleremote', 'semi_autonomous', 'autonomous'] as const
+export type AutomationLevel = (typeof AUTOMATION_LEVELS)[number]
+
+export const COMPANY_ROLES = ['owner', 'operator', 'contractor'] as const
+export type CompanyRole = (typeof COMPANY_ROLES)[number]
 
 export interface Site {
   id: number
@@ -35,7 +52,7 @@ export interface Deployment {
   quantity: number
   technologySupplier: string
   environment: MiningEnvironment
-  automationLevel: string | null
+  automationLevel: AutomationLevel | null
   status: DeploymentStatus
   verificationStatus: VerificationStatus
   commissioningDate: string | null

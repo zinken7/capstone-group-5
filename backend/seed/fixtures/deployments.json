@@ -1,0 +1,28 @@
+[
+  {
+    "key": "wandarra-793f-command-2019",
+    "site": "wandarra-iron",
+    "machine_model": "cat-793f",
+    "technology_product": "cat-command-hauling",
+    "quantity": 36,
+    "environment": "surface",
+    "commissioning_date": "2019-06-01",
+    "status": "operational",
+    "verification_status": "verified",
+    "valid_from": "2019-06-01",
+    "valid_to": null
+  },
+  {
+    "key": "wandarra-cat-haul-truck-2025",
+    "site": "wandarra-iron",
+    "machine_model": "cat-haul-truck",
+    "technology_product": null,
+    "quantity": 4,
+    "environment": "surface",
+    "commissioning_date": null,
+    "status": "announced",
+    "verification_status": "unverified",
+    "valid_from": "2025-11-01",
+    "valid_to": null
+  }
+]

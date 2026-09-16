@@ -1,0 +1,14 @@
+[
+  {
+    "key": "pilbara",
+    "name": "Pilbara",
+    "country_code": "AU",
+    "source": "https://en.wikipedia.org/wiki/Pilbara"
+  },
+  {
+    "key": "bowen-basin",
+    "name": "Bowen Basin",
+    "country_code": "AU",
+    "source": "https://en.wikipedia.org/wiki/Bowen_Basin"
+  }
+]

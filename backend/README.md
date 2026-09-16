@@ -28,6 +28,10 @@ runs in Docker Compose, its database host is the `db` service.
 - `npm run lint` runs ESLint with zero warnings allowed.
 - `npm run typecheck` checks TypeScript without producing build output.
 - `npm run db:migrate` applies any database migrations that have not already been run.
+- `npm run db:seed:reference` upserts the reference catalogue (regions, companies, machine models, technology products).
+- `npm run db:seed:fixtures` reloads the synthetic development data (sites, roles, deployments). Refuses when `NODE_ENV=production`.
+- `npm run db:seed` runs both.
+
 ## Database migrations
 
 Database migrations are stored in `migrations/` and are applied in filename order.
@@ -38,6 +42,27 @@ Make sure PostgreSQL/PostGIS is running and `DATABASE_URL` is configured, then r
 npm run db:migrate
 ```
 
+## Seed data
+
+Seed data lives in `seed/` as JSON, in two kinds. `seed/reference/` is the
+real, sourced catalogue and loads in every environment by upsert on natural
+key. `seed/fixtures/` is synthetic and loads in development and test only, by
+truncating the fixture tables and inserting in file order, so a re-run gives
+an identical database. See [`seed/README.md`](seed/README.md) for the file
+shapes and how to add rows.
+
+```sh
+npm run db:migrate
+npm run db:seed              # reference catalogue, then fixtures
+npm run db:seed:reference    # catalogue only; safe in production
+npm run db:seed:fixtures     # fixtures only; refuses under NODE_ENV=production
+```
+
+Every file is validated before the first database call; problems are reported
+together as `file / key / field / message`.
+
+The Docker backend container runs `db:migrate` and then `db:seed:reference` on
+every start, through `docker-entrypoint.sh`. It never loads fixtures.
 
 ## Health check
 
@@ -77,6 +102,9 @@ src/app.ts
 src/app.test.ts
 ```
 
-The current automated test verifies that `GET /health` returns HTTP 200 with `{ "status": "ok" }`.
+The seed tests in `src/seed/seed.test.ts` run against a migrated database at
+`DATABASE_URL` (default `postgres://test:test@localhost:5432/test`), which
+they truncate and reload; point them at a throwaway database, never a shared
+one. Run `npm run db:migrate` against it first.
 
 The test command exits with a non-zero status if any test fails, making it suitable for use in GitHub Actions.

@@ -1,0 +1,38 @@
+[
+  {
+    "key": "cat-command-hauling",
+    "supplier": "caterpillar",
+    "product_name": "Cat Command for Hauling",
+    "vendor_term": "Autonomous haulage",
+    "automation_level": "autonomous",
+    "level_basis": "Unattended operation of the full haul cycle under fleet supervision; ISO 17757 autonomous machine.",
+    "source": "https://www.cat.com/en_US/products/new/technology/command/command/1000029430.html"
+  },
+  {
+    "key": "komatsu-frontrunner",
+    "supplier": "komatsu",
+    "product_name": "FrontRunner",
+    "vendor_term": "Autonomous Haulage System (AHS)",
+    "automation_level": "autonomous",
+    "level_basis": "Driverless haul trucks run the full load-haul-dump cycle under central fleet supervision; ISO 17757 autonomous machine.",
+    "source": "https://www.komatsu.com/en-us/technology/smart-mining/loading-and-haulage/autonomous-haulage-system"
+  },
+  {
+    "key": "sandvik-automine",
+    "supplier": "sandvik",
+    "product_name": "AutoMine",
+    "vendor_term": "Automation and teleoperation system",
+    "automation_level": null,
+    "level_basis": "Awaiting administrator classification: the AutoMine family spans Tele-Remote, Lite, Multi-Lite and Core, from teleremote to full autonomy, so no single level applies to the family as a whole.",
+    "source": "https://www.rocktechnology.sandvik/en/products/automation/automine-equipment-and-teleoperation-systems/"
+  },
+  {
+    "key": "rct-controlmaster",
+    "supplier": "rct-global",
+    "product_name": "ControlMaster",
+    "vendor_term": "Teleremote and automation",
+    "automation_level": "teleremote",
+    "level_basis": "Operator drives from a control room on camera and telemetry without line of sight; ControlMaster is RCT's teleremote platform. Its Guidance Automation and AutoNav upgrades are catalogued as their own products when added.",
+    "source": "https://rct-global.com/technology/automation-control/"
+  }
+]
