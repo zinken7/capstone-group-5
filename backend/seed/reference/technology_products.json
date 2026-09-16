@@ -18,15 +18,6 @@
     "source": "https://www.komatsu.com/en-us/technology/smart-mining/loading-and-haulage/autonomous-haulage-system"
   },
   {
-    "key": "sandvik-automine",
-    "supplier": "sandvik",
-    "product_name": "AutoMine",
-    "vendor_term": "Automation and teleoperation system",
-    "automation_level": null,
-    "level_basis": "Awaiting administrator classification: the AutoMine family spans Tele-Remote, Lite, Multi-Lite and Core, from teleremote to full autonomy, so no single level applies to the family as a whole.",
-    "source": "https://www.rocktechnology.sandvik/en/products/automation/automine-equipment-and-teleoperation-systems/"
-  },
-  {
     "key": "rct-controlmaster",
     "supplier": "rct-global",
     "product_name": "ControlMaster",
@@ -34,5 +25,68 @@
     "automation_level": "teleremote",
     "level_basis": "Operator drives from a control room on camera and telemetry without line of sight; ControlMaster is RCT's teleremote platform. Its Guidance Automation and AutoNav upgrades are catalogued as their own products when added.",
     "source": "https://rct-global.com/technology/automation-control/"
+  },
+  {
+    "key": "sandvik-automine-tele-remote",
+    "supplier": "sandvik",
+    "product_name": "AutoMine Tele-Remote",
+    "vendor_term": "AutoMine® Tele-Remote for Loading and Hauling",
+    "automation_level": "teleremote",
+    "level_basis": "The operator controls the loader's maximum speed and provides direction from a remote control station, so a person still drives each machine, out of line of sight.",
+    "source": "https://www.mining.sandvik/en/digital-solutions/automation/automine-tele-remote/"
+  },
+  {
+    "key": "sandvik-automine-lite",
+    "supplier": "sandvik",
+    "product_name": "AutoMine Lite",
+    "vendor_term": "AutoMine® Lite for Loading and Hauling",
+    "automation_level": "semi_autonomous",
+    "level_basis": "A single automated loader or truck runs its cycle continuously while the operator remotely controls and supervises it from a safe environment, so the operator still completes part of the task.",
+    "source": "https://www.mining.sandvik/en/digital-solutions/automation/automine-lite/"
+  },
+  {
+    "key": "sandvik-automine-core",
+    "supplier": "sandvik",
+    "product_name": "AutoMine Core",
+    "vendor_term": "AutoMine® Core for Loading and Hauling",
+    "automation_level": "autonomous",
+    "level_basis": "Fully automated production cycles run with minimal human interaction while one operator supervises multiple machines simultaneously.",
+    "source": "https://www.mining.sandvik/en/digital-solutions/automation/automine-core-for-loading-and-hauling/"
+  },
+  {
+    "key": "rct-controlmaster-line-of-sight",
+    "supplier": "rct-global",
+    "product_name": "ControlMaster Line of Sight",
+    "vendor_term": "Line of Sight Radio Remote Control",
+    "automation_level": "line_of_sight_remote",
+    "level_basis": "The operator drives the machine with a shoulder-harness radio remote while watching it directly; the datasheet describes Line-of-Sight operation with proportional joysticks and machine feedback on the handset.",
+    "source": "https://rct-global.com/datasheet/atx2200-line-of-sight-radio-remote-control/"
+  },
+  {
+    "key": "hitachi-ahs",
+    "supplier": "hitachi-construction-machinery",
+    "product_name": "AHS",
+    "vendor_term": "Autonomous Haulage System (AHS)",
+    "automation_level": "autonomous",
+    "level_basis": "Autonomous Haul Trucks run the haul cycle with no driver on board, integrated on the same circuits as manned instrumented trucks and supervised through the Wenco fleet management system.",
+    "source": "https://www.hitachicm.com/global/en/solutions/solution-linkage/ahs/"
+  },
+  {
+    "key": "epiroc-linkoa-haulage",
+    "supplier": "epiroc",
+    "product_name": "LinkOA for Haulage",
+    "vendor_term": "LinkOA for Haulage (formerly ASI Mining Mobius)",
+    "automation_level": "autonomous",
+    "level_basis": "Described as an Autonomous Haulage System that coordinates and controls mixed fleets of autonomous haul trucks of various makes and models, with no driver in the truck; ISO 17757 autonomous machine.",
+    "source": "https://www.epiroc.com/en-us/newsroom/2024/epiroc-announces-new-product-line-name-for-surface-mining-autonomy"
+  },
+  {
+    "key": "epiroc-scooptram-automation",
+    "supplier": "epiroc",
+    "product_name": "Scooptram Automation",
+    "vendor_term": "Scooptram Automation Single machine / Multi machine",
+    "automation_level": null,
+    "level_basis": "Awaiting administrator classification: the source describes a Single machine package where the operator runs the loader from a fixed or mobile station with tele-remote and autonomous assist functions, and a Multi machine package where one operator monitors an autonomous fleet, so the tier depends on which package is fitted.",
+    "source": "https://www.epiroc.com/en-us/innovation-and-technology/automation-and-information-management/automation-and-information-management-underground/scooptram-automation-regular"
   }
 ]

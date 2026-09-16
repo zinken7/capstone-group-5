@@ -143,4 +143,43 @@ describe('fixture coverage (seed-spec §8)', () => {
 
     expect(result.rows[0]?.count).toBeGreaterThanOrEqual(1)
   })
+
+  it('has every automation level in use by at least one deployment', async () => {
+    const result = await client.query<{ count: number }>(`
+      SELECT count(DISTINCT tp.automation_level)::int AS count
+      FROM deployment d
+      JOIN technology_product tp ON tp.id = d.technology_product_id
+      WHERE tp.automation_level IS NOT NULL
+    `)
+
+    expect(result.rows[0]?.count).toBe(4)
+  })
+
+  it('has sites in at least six countries', async () => {
+    const result = await client.query<{ count: number }>('SELECT count(DISTINCT country_code)::int AS count FROM site')
+
+    expect(result.rows[0]?.count).toBeGreaterThanOrEqual(6)
+  })
+
+  it('has at least one underground site', async () => {
+    const result = await client.query<{ count: number }>(`
+      SELECT count(DISTINCT site_id)::int AS count
+      FROM deployment
+      WHERE environment = 'underground'
+    `)
+
+    expect(result.rows[0]?.count).toBeGreaterThanOrEqual(1)
+  })
+
+  it('has at least one retrofit: an OEM machine running a third-party product', async () => {
+    const result = await client.query<{ count: number }>(`
+      SELECT count(*)::int AS count
+      FROM deployment d
+      JOIN machine_model mm ON mm.id = d.machine_model_id
+      JOIN technology_product tp ON tp.id = d.technology_product_id
+      WHERE mm.manufacturer_id <> tp.supplier_id
+    `)
+
+    expect(result.rows[0]?.count).toBeGreaterThanOrEqual(1)
+  })
 })

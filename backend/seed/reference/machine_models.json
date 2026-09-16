@@ -27,5 +27,73 @@
     "size_class": null,
     "max_payload_tonnes": null,
     "operating_weight_tonnes": null
+  },
+  {
+    "key": "cat-797f",
+    "manufacturer": "caterpillar",
+    "model_name": "797F",
+    "machine_type": "haul_truck",
+    "size_class": "ultra_class",
+    "max_payload_tonnes": 363,
+    "operating_weight_tonnes": 624,
+    "source": "https://s7d2.scene7.com/is/content/Caterpillar/CM20170519-34867-54735"
+  },
+  {
+    "key": "komatsu-980e",
+    "manufacturer": "komatsu",
+    "model_name": "980E",
+    "machine_type": "haul_truck",
+    "size_class": "ultra_class",
+    "max_payload_tonnes": 363,
+    "operating_weight_tonnes": 628,
+    "source": "https://www.komatsu.com/en-us/products/equipment/trucks/electric-drive-mining-trucks/980e-5"
+  },
+  {
+    "key": "hitachi-eh4000ac-3",
+    "manufacturer": "hitachi-construction-machinery",
+    "model_name": "EH4000AC-3",
+    "machine_type": "haul_truck",
+    "size_class": "ultra_class",
+    "max_payload_tonnes": 221,
+    "operating_weight_tonnes": 384,
+    "source": "https://www.hitachicm.com/global/en/solutions/mining-business/products/rigid-dump-trucks/product.eh4000ac-3/"
+  },
+  {
+    "key": "sandvik-lh517i",
+    "manufacturer": "sandvik",
+    "model_name": "LH517i",
+    "machine_type": "lhd",
+    "size_class": null,
+    "max_payload_tonnes": 17,
+    "operating_weight_tonnes": 65.4,
+    "source": "https://www.mining.sandvik/en/products/equipment/loaders/lh517i-underground-lhd/"
+  },
+  {
+    "key": "epiroc-scooptram-st18",
+    "manufacturer": "epiroc",
+    "model_name": "Scooptram ST18",
+    "machine_type": "lhd",
+    "size_class": null,
+    "max_payload_tonnes": 17.5,
+    "operating_weight_tonnes": 69,
+    "source": "https://www.epiroc.com/content/dam/epiroc/underground-mining-and-tunneling/lhd/diesel-scooptram/st18/9869%200065%2001_scooptram%20st18_technical%20specification_english_High%20Res.pdf"
+  },
+  {
+    "key": "sandvik-lhd",
+    "manufacturer": "sandvik",
+    "model_name": null,
+    "machine_type": "lhd",
+    "size_class": null,
+    "max_payload_tonnes": null,
+    "operating_weight_tonnes": null
+  },
+  {
+    "key": "epiroc-lhd",
+    "manufacturer": "epiroc",
+    "model_name": null,
+    "machine_type": "lhd",
+    "size_class": null,
+    "max_payload_tonnes": null,
+    "operating_weight_tonnes": null
   }
 ]

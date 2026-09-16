@@ -11,7 +11,17 @@ import {
 } from '../types.js'
 
 /** Fixed vocabulary for `site.commodity`, which is free text in migration 001 (seed-spec §4). */
-export const COMMODITIES = ['iron_ore', 'coal', 'copper', 'gold', 'lithium', 'nickel', 'bauxite', 'oil_sands'] as const
+export const COMMODITIES = [
+  'iron_ore',
+  'coal',
+  'copper',
+  'gold',
+  'lithium',
+  'nickel',
+  'bauxite',
+  'oil_sands',
+  'platinum_group_metals',
+] as const
 
 /** Seed key: lowercase ASCII words joined by single hyphens. Cross-references only; never stored (seed-spec §3). */
 const key = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must be lowercase ASCII words joined by single hyphens')

@@ -10,5 +10,35 @@
     "name": "Bowen Basin",
     "country_code": "AU",
     "source": "https://en.wikipedia.org/wiki/Bowen_Basin"
+  },
+  {
+    "key": "atacama",
+    "name": "Atacama",
+    "country_code": "CL",
+    "source": "https://en.wikipedia.org/wiki/Atacama_Desert"
+  },
+  {
+    "key": "oil-sands",
+    "name": "Oil Sands",
+    "country_code": "CA",
+    "source": "https://en.wikipedia.org/wiki/Athabasca_oil_sands"
+  },
+  {
+    "key": "norrbotten",
+    "name": "Norrbotten",
+    "country_code": "SE",
+    "source": "https://en.wikipedia.org/wiki/Norrbotten_County"
+  },
+  {
+    "key": "bushveld",
+    "name": "Bushveld",
+    "country_code": "ZA",
+    "source": "https://en.wikipedia.org/wiki/Bushveld_Igneous_Complex"
+  },
+  {
+    "key": "papua",
+    "name": "Papua",
+    "country_code": "ID",
+    "source": "https://en.wikipedia.org/wiki/Western_New_Guinea"
   }
 ]

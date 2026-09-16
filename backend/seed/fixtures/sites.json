@@ -15,5 +15,75 @@
       { "company": "rio-tinto", "role": "owner" },
       { "company": "rio-tinto", "role": "operator" }
     ]
+  },
+  {
+    "key": "cerro-escarcha",
+    "name": "Cerro Escarcha",
+    "country_code": "CL",
+    "region": "atacama",
+    "commodity": "copper",
+    "mine_status": "operating",
+    "lat": -23.85,
+    "lng": -69.35,
+    "roles": [
+      { "company": "codelco", "role": "owner" },
+      { "company": "codelco", "role": "operator" }
+    ]
+  },
+  {
+    "key": "snowshoe-creek",
+    "name": "Snowshoe Creek",
+    "country_code": "CA",
+    "region": "oil-sands",
+    "commodity": "oil_sands",
+    "mine_status": "operating",
+    "lat": 57.25,
+    "lng": -111.45,
+    "roles": [
+      { "company": "canadian-natural-resources", "role": "owner" },
+      { "company": "canadian-natural-resources", "role": "operator" }
+    ]
+  },
+  {
+    "key": "jarnvik",
+    "name": "Järnvik",
+    "country_code": "SE",
+    "region": "norrbotten",
+    "commodity": "iron_ore",
+    "mine_status": "operating",
+    "lat": 67.45,
+    "lng": 21.05,
+    "roles": [
+      { "company": "lkab", "role": "owner" },
+      { "company": "lkab", "role": "operator" }
+    ]
+  },
+  {
+    "key": "witvlakte",
+    "name": "Witvlakte",
+    "country_code": "ZA",
+    "region": "bushveld",
+    "commodity": "platinum_group_metals",
+    "mine_status": "operating",
+    "lat": -24.7,
+    "lng": 29.95,
+    "roles": [
+      { "company": "impala-platinum", "role": "owner" },
+      { "company": "impala-platinum", "role": "operator" }
+    ]
+  },
+  {
+    "key": "gunung-kabut",
+    "name": "Gunung Kabut",
+    "country_code": "ID",
+    "region": "papua",
+    "commodity": "copper",
+    "mine_status": "operating",
+    "lat": -4.25,
+    "lng": 137.55,
+    "roles": [
+      { "company": "pt-freeport-indonesia", "role": "owner" },
+      { "company": "pt-freeport-indonesia", "role": "operator" }
+    ]
   }
 ]

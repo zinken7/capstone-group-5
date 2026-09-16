@@ -70,7 +70,7 @@ because each load truncates and inserts in a fixed order.
   They are defined once in [`src/types.ts`](../src/types.ts) and imported by
   the schemas in [`src/seed/schemas.ts`](../src/seed/schemas.ts).
 - `commodity`: `iron_ore`, `coal`, `copper`, `gold`, `lithium`, `nickel`,
-  `bauxite`, `oil_sands`.
+  `bauxite`, `oil_sands`, `platinum_group_metals`.
 - Coordinates: `lat` and `lng` on the site, both set or both `null`.
 - `operating_weight_tonnes` is gross machine operating weight, loaded.
 - `source` on a reference row is the URL that supports it: a product page,
@@ -78,8 +78,11 @@ because each load truncates and inserts in a fixed order.
   each `level_basis`, so a named machine model and every company and product
   must have one. Fixture rows never have a `source`.
 - Canonical spellings are agreed once, in `reference/companies.json`:
-  `Caterpillar`, `Komatsu`, `Sandvik`, `Epiroc`, `RCT Global`, `Rio Tinto`.
-  No legal suffixes.
+  `Caterpillar`, `Komatsu`, `Sandvik`, `Epiroc`, `RCT Global`, `Rio Tinto`,
+  `Hitachi Construction Machinery`, `Autonomous Solutions Inc.`, `Codelco`,
+  `LKAB`, `PT Freeport Indonesia`, `Canadian Natural Resources`,
+  `Impala Platinum`. No legal suffixes, except where the company trades
+  under one (`Autonomous Solutions Inc.`, `PT Freeport Indonesia`).
 - Chinese entities: `key` in pinyin, `name` the canonical romanised form,
   and the Hanzi name as an alias with `language: "zh"`.
 - Site names must be unmistakably invented. Do not combine a real region

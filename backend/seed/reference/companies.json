@@ -55,5 +55,73 @@
       { "alias": "Rio", "language": "en" }
     ],
     "source": "https://www.riotinto.com/"
+  },
+  {
+    "key": "hitachi-construction-machinery",
+    "name": "Hitachi Construction Machinery",
+    "country_code": "JP",
+    "aliases": [
+      { "alias": "Hitachi", "language": "en" },
+      { "alias": "HCM", "language": "en" },
+      { "alias": "日立建機", "language": "ja" }
+    ],
+    "source": "https://www.hitachicm.com/global/en/"
+  },
+  {
+    "key": "asi",
+    "name": "Autonomous Solutions Inc.",
+    "country_code": "US",
+    "aliases": [
+      { "alias": "ASI", "language": "en" },
+      { "alias": "ASI Mining", "language": "en" }
+    ],
+    "source": "https://asirobots.com/"
+  },
+  {
+    "key": "codelco",
+    "name": "Codelco",
+    "country_code": "CL",
+    "aliases": [
+      { "alias": "Corporación Nacional del Cobre de Chile", "language": "es" }
+    ],
+    "source": "https://www.codelco.com/"
+  },
+  {
+    "key": "lkab",
+    "name": "LKAB",
+    "country_code": "SE",
+    "aliases": [
+      { "alias": "Luossavaara-Kiirunavaara AB", "language": "sv" }
+    ],
+    "source": "https://lkab.com/en/"
+  },
+  {
+    "key": "pt-freeport-indonesia",
+    "name": "PT Freeport Indonesia",
+    "country_code": "ID",
+    "aliases": [
+      { "alias": "PTFI", "language": "en" },
+      { "alias": "Freeport Indonesia", "language": "en" }
+    ],
+    "source": "https://ptfi.co.id/"
+  },
+  {
+    "key": "canadian-natural-resources",
+    "name": "Canadian Natural Resources",
+    "country_code": "CA",
+    "aliases": [
+      { "alias": "Canadian Natural", "language": "en" },
+      { "alias": "CNRL", "language": "en" }
+    ],
+    "source": "https://www.cnrl.com/"
+  },
+  {
+    "key": "impala-platinum",
+    "name": "Impala Platinum",
+    "country_code": "ZA",
+    "aliases": [
+      { "alias": "Implats", "language": "en" }
+    ],
+    "source": "https://www.implats.co.za/"
   }
 ]
