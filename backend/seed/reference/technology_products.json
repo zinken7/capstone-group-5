@@ -88,5 +88,23 @@
     "automation_level": null,
     "level_basis": "Awaiting administrator classification: the source describes a Single machine package where the operator runs the loader from a fixed or mobile station with tele-remote and autonomous assist functions, and a Multi machine package where one operator monitors an autonomous fleet, so the tier depends on which package is fitted.",
     "source": "https://www.epiroc.com/en-us/innovation-and-technology/automation-and-information-management/automation-and-information-management-underground/scooptram-automation-regular"
+  },
+  {
+    "key": "hexagon-hxgn-autonomous-mining",
+    "supplier": "hexagon",
+    "product_name": "HxGN Autonomous Mining",
+    "vendor_term": "HxGN Autonomous Mining",
+    "automation_level": "autonomous",
+    "level_basis": "The portfolio's Mission Manager is described as a full-autonomy command-and-control system in which dispatchers coordinate autonomous and non-autonomous vehicles from one interface, alongside fully autonomous road trains; ISO 17757 autonomous machine.",
+    "source": "https://hexagon.com/products/product-groups/hxgn-autonomous-mining"
+  },
+  {
+    "key": "pronto-ahs",
+    "supplier": "pronto",
+    "product_name": "Pronto AHS",
+    "vendor_term": "Off-road autonomous haulage system (AHS)",
+    "automation_level": "autonomous",
+    "level_basis": "An operator drives the haul route manually once to teach it, then dispatches trucks to the saved routes and supervises them from a smartphone app instead of a control room, with a retrofit drive-by-wire kit actuating the vehicle; ISO 17757 autonomous machine.",
+    "source": "https://pronto.ai/solution/"
   }
 ]

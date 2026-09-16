@@ -206,5 +206,31 @@
     "verification_status": "verified",
     "valid_from": "2025-08-01",
     "valid_to": null
+  },
+  {
+    "key": "witvlakte-793f-hxgn-2025",
+    "site": "witvlakte",
+    "machine_model": "cat-793f",
+    "technology_product": "hexagon-hxgn-autonomous-mining",
+    "quantity": 8,
+    "environment": "surface",
+    "commissioning_date": "2025-03-01",
+    "status": "commissioning",
+    "verification_status": "verified",
+    "valid_from": "2025-03-01",
+    "valid_to": null
+  },
+  {
+    "key": "wandarra-cat-haul-truck-pronto-2023",
+    "site": "wandarra-iron",
+    "machine_model": "cat-haul-truck",
+    "technology_product": "pronto-ahs",
+    "quantity": 5,
+    "environment": "surface",
+    "commissioning_date": "2023-08-01",
+    "status": "operational",
+    "verification_status": "verified",
+    "valid_from": "2023-08-01",
+    "valid_to": null
   }
 ]

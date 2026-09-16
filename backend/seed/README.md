@@ -81,7 +81,7 @@ because each load truncates and inserts in a fixed order.
   `Caterpillar`, `Komatsu`, `Sandvik`, `Epiroc`, `RCT Global`, `Rio Tinto`,
   `Hitachi Construction Machinery`, `Autonomous Solutions Inc.`, `Codelco`,
   `LKAB`, `PT Freeport Indonesia`, `Canadian Natural Resources`,
-  `Impala Platinum`. No legal suffixes, except where the company trades
+  `Impala Platinum`, `Hexagon`, `Pronto`. No legal suffixes, except where the company trades
   under one (`Autonomous Solutions Inc.`, `PT Freeport Indonesia`).
 - Chinese entities: `key` in pinyin, `name` the canonical romanised form,
   and the Hanzi name as an alias with `language: "zh"`.

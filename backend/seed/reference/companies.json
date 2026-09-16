@@ -123,5 +123,24 @@
       { "alias": "Implats", "language": "en" }
     ],
     "source": "https://www.implats.co.za/"
+  },
+  {
+    "key": "hexagon",
+    "name": "Hexagon",
+    "country_code": "SE",
+    "aliases": [
+      { "alias": "Hexagon Mining", "language": "en" },
+      { "alias": "Hexagon AB", "language": "en" }
+    ],
+    "source": "https://hexagon.com/"
+  },
+  {
+    "key": "pronto",
+    "name": "Pronto",
+    "country_code": "US",
+    "aliases": [
+      { "alias": "Pronto.ai", "language": "en" }
+    ],
+    "source": "https://pronto.ai/"
   }
 ]
