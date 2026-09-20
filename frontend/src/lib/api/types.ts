@@ -40,12 +40,17 @@ export interface MapResponseDto {
 
 export interface SiteDeploymentDto {
   id: number
+  machine_manufacturer: string | null
   machine_model: string | null
   machine_type: string
   quantity: number
   technology_supplier: string
+  automation_level: string | null
+  environment: MiningEnvironment
   status: DeploymentStatus
   commissioning_date: string | null
+  valid_from: string
+  valid_to: string | null
 }
 
 export interface SiteDetailDto {
@@ -77,12 +82,17 @@ export interface MapResult {
 
 export interface SiteDeployment {
   id: number
+  machineManufacturer: string | null
   machineModel: string | null
   machineType: string
   quantity: number
   technologySupplier: string
+  automationLevel: string | null
+  environment: MiningEnvironment
   status: DeploymentStatus
   commissioningDate: string | null
+  validFrom: string
+  validTo: string | null
 }
 
 export interface SiteDetail {

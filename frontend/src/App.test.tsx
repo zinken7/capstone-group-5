@@ -63,7 +63,7 @@ describe('Application shell and navigation', () => {
     )
 
     expect(
-      screen.getByRole('heading', { name: /analytics/i }),
+      screen.getByRole('heading', { name: 'Analytics', level: 1 }),
     ).toBeInTheDocument()
   })
 

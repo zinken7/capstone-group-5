@@ -1,6 +1,6 @@
 .filter-panel {
   display: grid;
-  grid-template-columns: minmax(15rem, 2fr) repeat(3, minmax(10rem, 1fr));
+  grid-template-columns: minmax(15rem, 2fr) repeat(4, minmax(9rem, 1fr));
   gap: 1rem;
   padding: 1rem;
   border: 1px solid var(--border);
@@ -16,6 +16,10 @@
 table { width: 100%; min-width: 62rem; border-collapse: collapse; }
 th, td { padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 th { color: #405068; background: #f3f6f8; font-size: 0.78rem; letter-spacing: 0.035em; text-transform: uppercase; }
+.table-sort-button { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2rem; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
+.table-sort-button:hover { color: var(--text-strong); }
+.table-sort-button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 0.25rem; }
+.table-sort-button span { color: var(--text-strong); font-size: 1rem; line-height: 1; }
 td small { display: block; margin-top: 0.25rem; color: var(--text-muted); }
 tbody tr:last-child td { border-bottom: 0; }
 .numeric { text-align: right; }

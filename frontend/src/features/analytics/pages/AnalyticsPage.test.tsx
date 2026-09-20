@@ -34,6 +34,14 @@ describe('AnalyticsPage', () => {
     expect(
       screen.getByRole('heading', { name: /machines by country/i }),
     ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('heading', { name: /machines by automation level/i }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('heading', { name: /machines by technology supplier/i }),
+    ).toBeInTheDocument()
   })
 
   test('shows an empty state when there are no analytics records', () => {
@@ -43,6 +51,8 @@ describe('AnalyticsPage', () => {
       countryCount: 0,
       machinesByType: [],
       machinesByCountry: [],
+      machinesByAutomationLevel: [],
+      machinesBySupplier: [],
     }
 
     render(<AnalyticsPage summary={emptySummary} />)

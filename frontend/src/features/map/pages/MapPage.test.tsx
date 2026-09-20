@@ -14,11 +14,15 @@ describe('MapPage supplier filtering', () => {
       }),
     ).toBeInTheDocument()
 
-    expect(screen.getByText('3 sites shown')).toBeInTheDocument()
+    expect(screen.getByText('1 site shown')).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('checkbox', { name: /show decommissioned records/i }),
+    ).toBeInTheDocument()
 
     expect(
       screen.getByRole('combobox', {
-        name: /filter by technology supplier/i,
+        name: /technology supplier/i,
       }),
     ).toBeInTheDocument()
   })
@@ -28,29 +32,41 @@ describe('MapPage supplier filtering', () => {
 
     render(<MapPage sites={fixtureSites} />)
 
+    await user.click(screen.getByRole('checkbox', { name: /show decommissioned records/i }))
+
     const supplierFilter = screen.getByRole('combobox', {
-      name: /filter by technology supplier/i,
+      name: /technology supplier/i,
     })
 
-    await user.type(supplierFilter, 'Atlas Automation')
+    await user.selectOptions(supplierFilter, 'TerraNav Systems')
 
-    expect(screen.getByText('1 site shown')).toBeInTheDocument()
+    expect(screen.getByText('2 sites shown')).toBeInTheDocument()
 
     expect(
       screen.queryByText(/no matching sites/i),
     ).not.toBeInTheDocument()
   })
 
-  test('shows an empty state when no supplier matches', async () => {
+  test('can reveal decommissioned sites', async () => {
     const user = userEvent.setup()
 
     render(<MapPage sites={fixtureSites} />)
 
-    const supplierFilter = screen.getByRole('combobox', {
-      name: /filter by technology supplier/i,
+    await user.click(screen.getByRole('checkbox', { name: /show decommissioned records/i }))
+
+    expect(screen.getByText('2 sites shown')).toBeInTheDocument()
+  })
+
+  test('shows an empty state when no machine type matches', async () => {
+    const user = userEvent.setup()
+
+    render(<MapPage sites={fixtureSites} />)
+
+    const machineTypeFilter = screen.getByRole('combobox', {
+      name: /machine type/i,
     })
 
-    await user.type(supplierFilter, 'Supplier That Does Not Exist')
+    await user.selectOptions(machineTypeFilter, 'lhd')
 
     expect(screen.getByText('0 sites shown')).toBeInTheDocument()
 
