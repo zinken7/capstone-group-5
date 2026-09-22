@@ -12,7 +12,7 @@ afterAll(async () => {
 })
 
 async function count(table: string): Promise<number> {
-  // 表名来自本文件的固定列表，不是用户输入 / Table names come from this file's fixed list, not user input
+  // Table names come from this file's fixed list, not user input
   const rows = await query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`)
   return Number(rows[0]?.count)
 }

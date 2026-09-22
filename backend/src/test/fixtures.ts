@@ -1,7 +1,6 @@
 import { query } from '../database.js'
 
 /**
- * 清空业务表并重置自增 id，供每个用例前调用。
  * Truncate business tables and reset identities; call before each test case.
  */
 export async function resetDatabase(): Promise<void> {
@@ -12,10 +11,8 @@ export async function resetDatabase(): Promise<void> {
 }
 
 /**
- * 地图夹具：3 个站点、4 条部署，id 与原内存数据一致，方便断言。
  * Map fixtures: 3 sites, 4 deployments, ids match the former in-memory data for easy assertions.
  *
- * 部署 12 是 pending_review（FR-43 过滤用）；部署 14 已退役但 2015-03-01..2020-12-31 在役（FR-11 日期筛选用）。
  * Deployment 12 is pending_review (for FR-43 filtering); deployment 14 is decommissioned but was in service 2015-03-01..2020-12-31 (for FR-11 date filtering).
  */
 export async function seedMapFixtures(): Promise<void> {

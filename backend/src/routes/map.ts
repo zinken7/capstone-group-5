@@ -44,7 +44,7 @@ router.get('/map', async (req, res, next) => {
   }
 
   try {
-    // 筛选全部在 SQL 里执行，这里只做 GeoJSON 组装 / All filtering runs in SQL; this only assembles the GeoJSON
+    // All filtering runs in SQL; this only assembles the GeoJSON
     const { sites, excludedCount } = await findMapSites({
       bbox,
       date,

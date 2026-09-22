@@ -33,7 +33,7 @@ export interface MapSite {
 
 export interface MapResult {
   sites: MapSite[]
-  /** FR-19：有日期参数时，因无投运日期而被排除的部署数 / Deployments excluded for lacking a commissioning date when a date is given */
+  /** Deployments excluded for lacking a commissioning date when a date is given */
   excludedCount: number
 }
 
@@ -49,10 +49,8 @@ interface MapRow {
 }
 
 /**
- * 地图查询：站点级和部署级筛选都在 SQL 里完成，只返回 verified 部署（FR-43）。
  * Map query: site-level and deployment-level filters run in SQL; only verified deployments are returned (FR-43).
  *
- * 日期语义（FR-11 / FR-19）：无投运日期的部署计入 excluded；在役判断用 valid_from / valid_to，valid_from 为空视为不限起点。
  * Date semantics (FR-11 / FR-19): deployments without a commissioning date count as excluded; "in service" uses valid_from / valid_to, with a null valid_from meaning no lower bound.
  */
 export async function findMapSites(filters: MapFilters): Promise<MapResult> {
@@ -189,7 +187,7 @@ interface SiteDeploymentRow {
   valid_to: string | null
 }
 
-/** 站点基本信息，不存在返回 null / Site base attributes, or null when not found */
+/** Site base attributes, or null when not found */
 export async function findSiteById(id: number): Promise<SiteDetail | null> {
   const rows = await query<SiteRow>(
     `
@@ -224,7 +222,6 @@ export async function findSiteById(id: number): Promise<SiteDetail | null> {
 }
 
 /**
- * 站点的 verified 部署列表（FR-17 / FR-43），供应商经 technology_product → company 得出。
  * Verified deployments for a site (FR-17 / FR-43); supplier resolved via technology_product → company.
  */
 export async function findVerifiedDeploymentsBySite(siteId: number): Promise<SiteDeployment[]> {

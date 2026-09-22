@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest'
 
-// 连接串来自环境变量或仓库根目录的 .env（config.ts 负责加载）
 // Connection string comes from the environment or the root .env (loaded by config.ts)
 const { closeDatabase, query } = await import('./database.js')
 

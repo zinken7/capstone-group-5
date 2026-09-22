@@ -19,7 +19,7 @@ describe('findMapSites', () => {
   it('returns only sites with verified deployments', async () => {
     const result = await findMapSites(noFilters)
 
-    // 站点 3 只有 pending_review 部署（FR-43） / Site 3 has only a pending_review deployment (FR-43)
+    // Site 3 has only a pending_review deployment (FR-43)
     expect(result.sites.map((site) => site.id)).toEqual([1, 2])
     expect(result.excludedCount).toBe(0)
   })
@@ -38,7 +38,7 @@ describe('findMapSites', () => {
   })
 
   it('filters by bounding box using the site geometry', async () => {
-    // 只框住 Kalgoorlie 附近，站点 3 未验证所以结果为空 / Box around Kalgoorlie only; site 3 is unverified so nothing returns
+    // Box around Kalgoorlie only; site 3 is unverified so nothing returns
     const kalgoorlie = await findMapSites({ bbox: { minLon: 121, minLat: -31, maxLon: 122, maxLat: -30 } })
     expect(kalgoorlie.sites).toEqual([])
 
@@ -58,17 +58,17 @@ describe('findMapSites', () => {
     expect((await findMapSites({ ...noFilters, machineType: 'drill' })).sites.map((site) => site.id)).toEqual([2])
     expect((await findMapSites({ ...noFilters, automationLevel: 'autonomous' })).sites.map((site) => site.id)).toEqual([1])
     expect((await findMapSites({ ...noFilters, environment: 'underground' })).sites).toHaveLength(0)
-    // 枚举外的值匹配不到，不报错 / A value outside the enum matches nothing rather than erroring
+    // A value outside the enum matches nothing rather than erroring
     expect((await findMapSites({ ...noFilters, machineType: 'spaceship' })).sites).toHaveLength(0)
   })
 
   it('answers a historical date from the validity period and counts undated deployments', async () => {
     const result = await findMapSites({ ...noFilters, date: '2018-01-01' })
 
-    // 部署 14 当前已退役，但 2018 年在役 / Deployment 14 is decommissioned now but was in service in 2018
+    // Deployment 14 is decommissioned now but was in service in 2018
     expect(result.sites.map((site) => site.id)).toEqual([1])
     expect(result.sites[0]?.status).toBe('decommissioned')
-    // 部署 11 无投运日期 / Deployment 11 has no commissioning date
+    // Deployment 11 has no commissioning date
     expect(result.excludedCount).toBe(1)
   })
 

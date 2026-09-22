@@ -4,7 +4,7 @@ import { findSiteById, findVerifiedDeploymentsBySite } from '../repositories/sit
 
 const router = Router()
 
-/** 只接受正整数 id，其余一律 404，与原行为一致 / Only positive integer ids; anything else is 404 as before */
+/** Only positive integer ids; anything else is 404 as before */
 function parseSiteId(raw: string | undefined): number | null {
   const id = Number(raw)
   return Number.isSafeInteger(id) && id > 0 ? id : null
