@@ -1,20 +1,12 @@
 import { Router } from 'express'
 
-import { deployments, sites } from '../data/sites.js'
-import { deriveSiteStatus } from '../lib/site-status.js'
-import type { Deployment } from '../types.js'
+import { findMapSites } from '../repositories/sites.js'
+import type { BoundingBox } from '../repositories/sites.js'
 
 const router = Router()
 
 function stringParam(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
-}
-
-interface BoundingBox {
-  minLon: number
-  minLat: number
-  maxLon: number
-  maxLat: number
 }
 
 /** Returns null when no bbox was given, undefined when the given bbox is malformed. */
@@ -38,107 +30,53 @@ function parseBbox(raw: string | undefined): BoundingBox | null | undefined {
   return { minLon, minLat, maxLon, maxLat }
 }
 
-router.get('/map', (req, res) => {
+router.get('/map', async (req, res, next) => {
   const bbox = parseBbox(stringParam(req.query.bbox))
   if (bbox === undefined) {
     res.status(400).json({ error: 'invalid bbox parameter' })
     return
   }
 
-  const dateParam = stringParam(req.query.date)
-  if (dateParam !== undefined && Number.isNaN(Date.parse(dateParam))) {
+  const date = stringParam(req.query.date)
+  if (date !== undefined && Number.isNaN(Date.parse(date))) {
     res.status(400).json({ error: 'invalid date parameter' })
     return
   }
 
-  const supplier = stringParam(req.query.supplier)
-  const country = stringParam(req.query.country)
-  const region = stringParam(req.query.region)
-  const machineType = stringParam(req.query.machine_type)
-  const automationLevel = stringParam(req.query.automation_level)
-  const commodity = stringParam(req.query.commodity)
-  const environment = stringParam(req.query.environment)
-
-  let excludedCount = 0
-  const features = []
-
-  for (const site of sites) {
-    if (bbox) {
-      const inBoundingBox =
-        site.longitude >= bbox.minLon &&
-        site.longitude <= bbox.maxLon &&
-        site.latitude >= bbox.minLat &&
-        site.latitude <= bbox.maxLat
-      if (!inBoundingBox) continue
-    }
-    if (country !== undefined && site.countryCode !== country) continue
-    if (region !== undefined && site.region !== region) continue
-    if (commodity !== undefined && site.commodity !== commodity) continue
-
-    // FR-43: public views default to verified records only.
-    let siteDeployments = deployments.filter(
-      (deployment) => deployment.siteId === site.id && deployment.verificationStatus === 'verified',
-    )
-
-    if (supplier !== undefined) {
-      siteDeployments = siteDeployments.filter((deployment) => deployment.technologySupplier === supplier)
-    }
-    if (machineType !== undefined) {
-      siteDeployments = siteDeployments.filter((deployment) => deployment.machineType === machineType)
-    }
-    if (automationLevel !== undefined) {
-      siteDeployments = siteDeployments.filter((deployment) => deployment.automationLevel === automationLevel)
-    }
-    if (environment !== undefined) {
-      siteDeployments = siteDeployments.filter((deployment) => deployment.environment === environment)
-    }
-    if (dateParam !== undefined) {
-      // FR-19: a deployment with no commissioning date can't be placed on the
-      // timeline at all, so it's excluded from any date-restricted view and
-      // counted rather than silently dropped.
-      const withCommissioningDate: Deployment[] = []
-      for (const deployment of siteDeployments) {
-        if (deployment.commissioningDate === null) {
-          excludedCount += 1
-        } else {
-          withCommissioningDate.push(deployment)
-        }
-      }
-      // FR-11: "in service at `dateParam`" is answered from the record's own
-      // valid-from/valid-to period, not from its *current* status. A
-      // deployment that is decommissioned today can still have been in
-      // service on a past date within its validity window.
-      siteDeployments = withCommissioningDate.filter(
-        (deployment) =>
-          deployment.validFrom <= dateParam && (deployment.validTo === null || dateParam <= deployment.validTo),
-      )
-    }
-
-    if (siteDeployments.length === 0) continue
-
-    const status = deriveSiteStatus(siteDeployments)
-    const technologySuppliers = [...new Set(siteDeployments.map((deployment) => deployment.technologySupplier))]
-
-    features.push({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [site.longitude, site.latitude],
-      },
-      properties: {
-        id: site.id,
-        name: site.name,
-        status,
-        technology_suppliers: technologySuppliers,
-      },
+  try {
+    // 筛选全部在 SQL 里执行，这里只做 GeoJSON 组装 / All filtering runs in SQL; this only assembles the GeoJSON
+    const { sites, excludedCount } = await findMapSites({
+      bbox,
+      date,
+      supplier: stringParam(req.query.supplier),
+      country: stringParam(req.query.country),
+      region: stringParam(req.query.region),
+      machineType: stringParam(req.query.machine_type),
+      automationLevel: stringParam(req.query.automation_level),
+      commodity: stringParam(req.query.commodity),
+      environment: stringParam(req.query.environment),
     })
-  }
 
-  res.status(200).json({
-    type: 'FeatureCollection',
-    excluded_count: excludedCount,
-    features,
-  })
+    res.status(200).json({
+      type: 'FeatureCollection',
+      excluded_count: excludedCount,
+      features: sites.map((site) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [site.longitude, site.latitude],
+        },
+        properties: {
+          id: site.id,
+          name: site.name,
+          status: site.status,
+          technology_suppliers: site.technologySuppliers,
+        },
+      })),
+    })
+  } catch (error) {
+    next(error)
+  }
 })
 
 export default router
