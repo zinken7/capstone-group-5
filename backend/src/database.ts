@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import type { QueryResultRow } from 'pg'
 
 import { config } from './config.js'
 
@@ -12,6 +13,26 @@ const pool = new Pool({ connectionString: config.databaseUrl })
 pool.on('error', (error) => {
   console.error('Unexpected PostgreSQL pool error:', error)
 })
+
+/**
+ * 共享的参数化查询入口，路由和仓储层都通过它访问数据库（NFR-05）。
+ * Shared parameterised query entry point used by routes and repositories (NFR-05).
+ */
+export async function query<Row extends QueryResultRow>(
+  text: string,
+  params: readonly unknown[] = [],
+): Promise<Row[]> {
+  const result = await pool.query<Row>(text, [...params])
+  return result.rows
+}
+
+/**
+ * 关闭连接池，供测试结束和进程退出时调用。
+ * Close the pool; called when tests finish or the process shuts down.
+ */
+export async function closeDatabase(): Promise<void> {
+  await pool.end()
+}
 
 export async function checkDatabaseHealth(): Promise<DatabaseVersionRow> {
   const result = await pool.query<DatabaseVersionRow>(`
