@@ -30,6 +30,7 @@ export interface Site {
 export interface Deployment {
   id: number
   siteId: number
+  machineManufacturer: string | null
   machineModel: string | null
   machineType: MachineType
   quantity: number

@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import StateMessage from '../../../shared/components/StateMessage'
-import type { EquipmentRecord, EquipmentSort } from '../types'
+import { useLiveSites } from '../../../hooks/useLiveSites'
+import type { EquipmentRecord, EquipmentSort, SortDirection } from '../types'
+import { buildEquipmentRecords } from '../presentation'
 import '../equipment.css'
 
 interface EquipmentPageProps {
-  records: EquipmentRecord[]
+  /** Test/demo override; normal application runtime always uses the live API. */
+  records?: EquipmentRecord[]
 }
 
 const CSV_HEADERS = ['Site', 'Country', 'Machine', 'Type', 'Manufacturer', 'Supplier', 'Status', 'Quantity']
@@ -14,14 +17,38 @@ function escapeCsv(value: string | number): string {
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-function EquipmentPage({ records }: EquipmentPageProps) {
+function formatCommissioningDate(date: string | undefined): string {
+  if (date === undefined) return 'Not recorded'
+  const [year, month, day] = date.split('-')
+  return `${day}/${month}/${year}`
+}
+
+function sortDirectionFor(key: EquipmentSort): SortDirection {
+  return key === 'quantity' || key === 'commissioning' ? 'desc' : 'asc'
+}
+
+function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
+  const { sites, loading: liveLoading, error: liveError } = useLiveSites()
+  const records: EquipmentRecord[] = suppliedRecords ?? buildEquipmentRecords(sites)
+  const loading = suppliedRecords === undefined && liveLoading
+  const error = suppliedRecords === undefined ? liveError : null
   const [query, setQuery] = useState('')
   const [supplier, setSupplier] = useState('all')
   const [status, setStatus] = useState('all')
+  const [year, setYear] = useState('all')
   const [sort, setSort] = useState<EquipmentSort>('site')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   const suppliers = useMemo(
     () => Array.from(new Set(records.map((record) => record.supplier))).sort(),
+    [records],
+  )
+
+  const commissioningYears = useMemo(
+    () => Array.from(new Set(records
+      .map((record) => record.commissioningDate?.slice(0, 4))
+      .filter((value): value is string => value !== undefined)))
+      .sort((left, right) => right.localeCompare(left)),
     [records],
   )
 
@@ -36,17 +63,52 @@ function EquipmentPage({ records }: EquipmentPageProps) {
       return (
         (!normalisedQuery || searchable.includes(normalisedQuery)) &&
         (supplier === 'all' || record.supplier === supplier) &&
-        (status === 'all' || record.status === status)
+        (status === 'all' || record.status === status) &&
+        (year === 'all' ||
+          (year === 'unknown' && record.commissioningDate === undefined) ||
+          record.commissioningDate?.startsWith(year))
       )
     })
 
     return [...filtered].sort((left, right) => {
-      if (sort === 'quantity-desc') return right.quantity - left.quantity
-      if (sort === 'supplier') return left.supplier.localeCompare(right.supplier)
-      if (sort === 'status') return left.status.localeCompare(right.status)
-      return left.siteName.localeCompare(right.siteName)
+      let comparison = 0
+      if (sort === 'quantity') comparison = left.quantity - right.quantity
+      if (sort === 'supplier') comparison = left.supplier.localeCompare(right.supplier)
+      if (sort === 'status') comparison = left.status.localeCompare(right.status)
+      if (sort === 'commissioning') {
+        if (left.commissioningDate === undefined && right.commissioningDate !== undefined) return 1
+        if (left.commissioningDate !== undefined && right.commissioningDate === undefined) return -1
+        comparison = (left.commissioningDate ?? '').localeCompare(right.commissioningDate ?? '')
+      }
+      if (sort === 'site') comparison = left.siteName.localeCompare(right.siteName)
+      return sortDirection === 'asc' ? comparison : -comparison
     })
-  }, [query, records, sort, status, supplier])
+  }, [query, records, sort, sortDirection, status, supplier, year])
+
+  function handleSort(nextSort: EquipmentSort) {
+    if (nextSort === sort) {
+      setSortDirection((current) => current === 'asc' ? 'desc' : 'asc')
+      return
+    }
+
+    setSort(nextSort)
+    setSortDirection(sortDirectionFor(nextSort))
+  }
+
+  function sortButtonLabel(label: string, key: EquipmentSort): string {
+    if (sort !== key) return `Sort by ${label}`
+    return `Sort by ${label}, ${sortDirection === 'asc' ? 'ascending' : 'descending'}`
+  }
+
+  function sortIndicator(key: EquipmentSort): string {
+    if (sort !== key) return '↕'
+    return sortDirection === 'asc' ? '↑' : '↓'
+  }
+
+  function sortState(key: EquipmentSort): 'ascending' | 'descending' | 'none' {
+    if (sort !== key) return 'none'
+    return sortDirection === 'asc' ? 'ascending' : 'descending'
+  }
 
   function exportCsv() {
     const rows = visibleRecords.map((record) => [
@@ -74,14 +136,17 @@ function EquipmentPage({ records }: EquipmentPageProps) {
         <div>
           <p className="eyebrow">Recorded deployments</p>
           <h1>Equipment Register</h1>
-          <p className="intro">Search, filter and export autonomous equipment records.</p>
+          <p className="intro">Search, filter and export verified equipment records from the project API.</p>
         </div>
         <button className="button button--primary" type="button" onClick={exportCsv} disabled={visibleRecords.length === 0}>
           Export CSV
         </button>
       </header>
 
-      <div className="filter-panel" aria-label="Equipment filters">
+      {loading && <StateMessage variant="loading" title="Loading live records" message="Connecting to the backend API…" />}
+      {error && <StateMessage variant="error" title="Unable to load the register" message={`${error}. Check that the backend is running and try again.`} />}
+
+      {!loading && !error && <div className="filter-panel" aria-label="Equipment filters">
         <label>
           Search
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Site, model or company" />
@@ -104,25 +169,53 @@ function EquipmentPage({ records }: EquipmentPageProps) {
           </select>
         </label>
         <label>
-          Sort by
-          <select value={sort} onChange={(event) => setSort(event.target.value as EquipmentSort)}>
-            <option value="site">Site name</option>
-            <option value="quantity-desc">Quantity: high to low</option>
-            <option value="supplier">Supplier</option>
-            <option value="status">Status</option>
+          Commissioning year
+          <select value={year} onChange={(event) => setYear(event.target.value)}>
+            <option value="all">All years</option>
+            {commissioningYears.map((option) => <option key={option} value={option}>{option}</option>)}
+            <option value="unknown">Not recorded</option>
           </select>
         </label>
-      </div>
+      </div>}
 
-      <p className="result-summary" aria-live="polite">{visibleRecords.length} records shown</p>
+      {!loading && !error && <p className="result-summary" aria-live="polite">{visibleRecords.length} records shown</p>}
 
-      {visibleRecords.length === 0 ? (
+      {!loading && !error && visibleRecords.length === 0 ? (
         <StateMessage title="No matching equipment" message="Change or clear one of the filters to see more records." />
-      ) : (
+      ) : !loading && !error ? (
         <div className="table-scroll" tabIndex={0} role="region" aria-label="Equipment records table">
           <table>
             <thead>
-              <tr><th>Site</th><th>Machine</th><th>Manufacturer</th><th>Technology supplier</th><th>Status</th><th>Environment</th><th className="numeric">Quantity</th></tr>
+              <tr>
+                <th aria-sort={sortState('site')}>
+                  <button className="table-sort-button" type="button" onClick={() => handleSort('site')} aria-label={sortButtonLabel('site name', 'site')}>
+                    Site <span aria-hidden="true">{sortIndicator('site')}</span>
+                  </button>
+                </th>
+                <th>Machine</th>
+                <th>Manufacturer</th>
+                <th aria-sort={sortState('supplier')}>
+                  <button className="table-sort-button" type="button" onClick={() => handleSort('supplier')} aria-label={sortButtonLabel('supplier', 'supplier')}>
+                    Technology supplier <span aria-hidden="true">{sortIndicator('supplier')}</span>
+                  </button>
+                </th>
+                <th aria-sort={sortState('status')}>
+                  <button className="table-sort-button" type="button" onClick={() => handleSort('status')} aria-label={sortButtonLabel('status', 'status')}>
+                    Status <span aria-hidden="true">{sortIndicator('status')}</span>
+                  </button>
+                </th>
+                <th>Environment</th>
+                <th aria-sort={sortState('commissioning')}>
+                  <button className="table-sort-button" type="button" onClick={() => handleSort('commissioning')} aria-label={sortButtonLabel('commissioning date', 'commissioning')}>
+                    Commissioning <span aria-hidden="true">{sortIndicator('commissioning')}</span>
+                  </button>
+                </th>
+                <th aria-sort={sortState('quantity')} className="numeric">
+                  <button className="table-sort-button" type="button" onClick={() => handleSort('quantity')} aria-label={sortButtonLabel('quantity', 'quantity')}>
+                    Quantity <span aria-hidden="true">{sortIndicator('quantity')}</span>
+                  </button>
+                </th>
+              </tr>
             </thead>
             <tbody>
               {visibleRecords.map((record) => (
@@ -133,13 +226,14 @@ function EquipmentPage({ records }: EquipmentPageProps) {
                   <td>{record.supplier}</td>
                   <td><span className={`status-badge status-badge--${record.status}`}>{record.status}</span></td>
                   <td>{record.environment}</td>
+                  <td>{formatCommissioningDate(record.commissioningDate)}</td>
                   <td className="numeric">{record.quantity}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
+      ) : null}
     </section>
   )
 }

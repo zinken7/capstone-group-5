@@ -9,4 +9,6 @@ export interface AnalyticsSummary {
   countryCount: number
   machinesByType: AnalyticsBreakdown[]
   machinesByCountry: AnalyticsBreakdown[]
+  machinesByAutomationLevel: AnalyticsBreakdown[]
+  machinesBySupplier: AnalyticsBreakdown[]
 }

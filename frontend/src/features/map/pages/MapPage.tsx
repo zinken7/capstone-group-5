@@ -1,43 +1,73 @@
 import { useMemo, useState } from 'react'
 import MiningMap from '../components/MiningMap'
 import StateMessage from '../../../shared/components/StateMessage'
+import { useLiveSites } from '../../../hooks/useLiveSites'
 import type { MapSite } from '../types'
+import { formatAustralianDateInput, parseAustralianDate } from '../date'
+
+const MACHINE_TYPES = [
+  ['haul_truck', 'Haul truck'],
+  ['lhd', 'LHD'],
+  ['loader', 'Loader'],
+  ['dozer', 'Dozer'],
+  ['excavator', 'Excavator'],
+  ['drill', 'Drill'],
+]
 
 interface MapPageProps {
-  sites: MapSite[]
+  /** Test/demo override; normal application runtime always uses the live API. */
+  sites?: MapSite[]
 }
 
-function MapPage({ sites }: MapPageProps) {
-  const [supplierQuery, setSupplierQuery] = useState('')
+function MapPage({ sites: suppliedSites }: MapPageProps = {}) {
+  const [supplier, setSupplier] = useState('')
+  const [machineType, setMachineType] = useState('')
+  const [dateInput, setDateInput] = useState('')
+  const [showDecommissioned, setShowDecommissioned] = useState(false)
+  const [showDensity, setShowDensity] = useState(true)
+  const date = parseAustralianDate(dateInput)
+  const { sites: liveSites, excludedCount: liveExcludedCount, loading: liveLoading, error: liveError } = useLiveSites({
+    supplier: supplier || undefined,
+    machineType: machineType || undefined,
+    date,
+  })
 
+  const sites = suppliedSites ?? liveSites
+  const loading = suppliedSites === undefined && liveLoading
+  const error = suppliedSites === undefined ? liveError : null
+  const excludedCount = suppliedSites === undefined ? liveExcludedCount : 0
   const supplierOptions = useMemo(
     () =>
       Array.from(
         new Set(
           sites.flatMap((site) =>
-            site.deployments.map((deployment) => deployment.supplier),
+            site.deployments
+              .filter((deployment) =>
+                date !== undefined ||
+                deployment.status === 'operational' ||
+                (showDecommissioned && deployment.status === 'decommissioned'),
+              )
+              .map((deployment) => deployment.supplier),
           ),
         ),
       ).sort(),
-    [sites],
+    [date, showDecommissioned, sites],
   )
 
-  const filteredSites = useMemo(() => {
-    const query = supplierQuery.trim().toLowerCase()
-
-    if (!query) {
-      return sites
-    }
-
-    return sites
-      .map((site) => ({
-        ...site,
-        deployments: site.deployments.filter((deployment) =>
-          deployment.supplier.toLowerCase().includes(query),
-        ),
-      }))
-      .filter((site) => site.deployments.length > 0)
-  }, [sites, supplierQuery])
+  const visibleSites = sites
+    .map((site) => ({
+      ...site,
+      deployments: site.deployments.filter((deployment) =>
+        (
+          date !== undefined ||
+          deployment.status === 'operational' ||
+          (showDecommissioned && deployment.status === 'decommissioned')
+        ) &&
+        (!supplier || deployment.supplier === supplier) &&
+        (!machineType || deployment.machineType.toLowerCase().replaceAll(' ', '_') === machineType),
+      ),
+    }))
+    .filter((site) => site.deployments.length > 0)
 
   return (
     <section className="map-page">
@@ -46,50 +76,118 @@ function MapPage({ sites }: MapPageProps) {
         <h1>Autonomous Mining Equipment Market Map</h1>
         <p className="intro">
           Explore autonomous mining deployments. The locations shown here are
-          synthetic demonstration data and are not factual deployment claims.
+          verified records loaded from the project API.
         </p>
       </header>
 
       <div className="map-toolbar">
-        <label htmlFor="supplier-filter">Filter by technology supplier</label>
-        <input
+        <label htmlFor="supplier-filter">Technology supplier</label>
+        <select
           id="supplier-filter"
-          type="search"
-          list="supplier-options"
-          value={supplierQuery}
-          onChange={(event) => setSupplierQuery(event.target.value)}
-          placeholder="Enter a supplier name"
-        />
-        <datalist id="supplier-options">
+          value={supplier}
+          onChange={(event) => setSupplier(event.target.value)}
+        >
+          <option value="">All suppliers</option>
           {supplierOptions.map((supplier) => (
-            <option key={supplier} value={supplier} />
+            <option key={supplier} value={supplier}>{supplier}</option>
           ))}
-        </datalist>
+        </select>
+
+        <label htmlFor="machine-type-filter">Machine type</label>
+        <select id="machine-type-filter" value={machineType} onChange={(event) => setMachineType(event.target.value)}>
+          <option value="">All machine types</option>
+          {MACHINE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+
+        <label htmlFor="date-filter">Show records active on (DD/MM/YYYY)</label>
+        <input
+          id="date-filter"
+          className="date-filter-input"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="DD/MM/YYYY"
+          maxLength={10}
+          value={dateInput}
+          aria-invalid={dateInput.length === 10 && date === undefined}
+          onChange={(event) => setDateInput(formatAustralianDateInput(event.target.value))}
+        />
+
+        <label className="map-checkbox">
+          <input
+            type="checkbox"
+            checked={showDecommissioned}
+            onChange={(event) => setShowDecommissioned(event.target.checked)}
+          />
+          Show decommissioned records
+        </label>
+
+        <label className="map-checkbox">
+          <input
+            type="checkbox"
+            checked={showDensity}
+            onChange={(event) => setShowDensity(event.target.checked)}
+          />
+          Show machine quantity density
+        </label>
 
         <p className="filter-result" aria-live="polite">
-          {filteredSites.length}{' '}
-          {filteredSites.length === 1 ? 'site' : 'sites'} shown
+          {visibleSites.length} {visibleSites.length === 1 ? 'site' : 'sites'} shown
         </p>
       </div>
 
-      <section className="map-legend" aria-label="Deployment status legend">
-        <strong>Marker status</strong>
-        <ul>
-          <li><span className="legend-dot legend-dot--operational" />Operational</li>
-          <li><span className="legend-dot legend-dot--commissioning" />Commissioning</li>
-          <li><span className="legend-dot legend-dot--announced" />Announced</li>
-          <li><span className="legend-dot legend-dot--decommissioned" />Decommissioned</li>
-        </ul>
-      </section>
+      {excludedCount > 0 && date && (
+        <p className="filter-note" role="status">
+          {excludedCount} record{excludedCount === 1 ? '' : 's'} without a commissioning date were excluded from the timeline.
+        </p>
+      )}
 
-      {filteredSites.length === 0 && (
+      {date && !showDecommissioned && (
+        <p className="filter-note" role="status">
+          Date view includes deployments active on the selected date, including records now marked non-operational.
+        </p>
+      )}
+
+      {showDensity && (
+        <section className="density-guide" aria-label="Machine quantity density guide">
+          <strong>Machine quantity density</strong>
+          <p>Brighter halos indicate more verified machines at a site. Colour does not represent operating status.</p>
+          <ul>
+            <li><span className="density-swatch density-swatch--low" />1–10 machines</li>
+            <li><span className="density-swatch density-swatch--medium" />11–50 machines</li>
+            <li><span className="density-swatch density-swatch--high" />51+ machines</li>
+          </ul>
+        </section>
+      )}
+
+      {loading && <StateMessage variant="loading" title="Loading live records" message="Connecting to the backend API…" />}
+      {error && <StateMessage variant="error" title="Unable to load the map" message={`${error}. Check that the backend is running and try again.`} />}
+      {!loading && !error && visibleSites.length === 0 && (
         <StateMessage
           title="No matching sites"
           message="Try a different supplier name or clear the filter."
         />
       )}
 
-      <MiningMap sites={filteredSites} />
+      {!loading && !error && visibleSites.length > 0 && (
+        <>
+          <MiningMap sites={visibleSites} showDensity={showDensity} />
+          <section className="site-summary" aria-labelledby="visible-locations-heading">
+            <h2 id="visible-locations-heading">Visible locations</h2>
+            <ul>
+              {visibleSites.map((site) => {
+                const quantity = site.deployments.reduce((total, deployment) => total + deployment.quantity, 0)
+                return (
+                  <li key={site.id}>
+                    <strong>{site.name}</strong>
+                    <span>{quantity} verified machines · {site.region}, {site.country}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        </>
+      )}
     </section>
   )
 }

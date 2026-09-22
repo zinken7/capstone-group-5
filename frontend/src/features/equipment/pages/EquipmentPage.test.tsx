@@ -28,7 +28,11 @@ describe('EquipmentPage', () => {
     ).toBeInTheDocument()
 
     expect(
-      screen.getByRole('combobox', { name: /sort by/i }),
+      screen.getByRole('combobox', { name: /commissioning year/i }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', { name: /sort by quantity/i }),
     ).toBeInTheDocument()
 
     expect(
@@ -103,14 +107,29 @@ describe('EquipmentPage', () => {
 
     render(<EquipmentPage records={records} />)
 
-    const sortSelect = screen.getByRole('combobox', {
-      name: /sort by/i,
+    const quantitySortButton = screen.getByRole('button', {
+      name: /sort by quantity/i,
     })
 
-    await user.selectOptions(sortSelect, 'quantity-desc')
+    await user.click(quantitySortButton)
 
     const rows = screen.getAllByRole('row')
 
     expect(rows.length).toBeGreaterThan(1)
+    expect(within(rows[1]).getByText('12')).toBeInTheDocument()
+  })
+
+  test('filters by commissioning year', async () => {
+    const user = userEvent.setup()
+
+    render(<EquipmentPage records={records} />)
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: /commissioning year/i }),
+      '2021',
+    )
+
+    expect(screen.getByText('1 records shown')).toBeInTheDocument()
+    expect(screen.getByText('15/03/2021')).toBeInTheDocument()
   })
 })

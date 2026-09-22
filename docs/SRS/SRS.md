@@ -345,7 +345,7 @@ All traffic between browser and server uses HTTPS. Requests to external services
 | ID | Requirement | Priority | Status | Source |
 |---|---|:--:|:--:|---|
 | FR-15 | The system shall display a map with one marker per mine site at its geographic location. | M | ✅ | CM1 |
-| FR-16 | Each site marker shall be coloured by the most advanced status among the deployments at that site, in the precedence operational, commissioning, announced, decommissioned. | M | ✅ | CM1, REF-2 |
+| FR-16 | The map shall default to operational deployments. A user shall be able to include decommissioned deployments through an explicit option, while a date-restricted view shall include deployments valid on the selected date regardless of their current status. Marker colour shall not be the sole encoding of status; status shall remain available as readable text in the site detail. | M | ✅ | CM3 supersedes CM1, REF-2 |
 | FR-17 | Selecting a marker shall display the site and, for each deployment recorded against it, the machine model or, where no model is recorded, the machine type; together with quantity, technology supplier and status. Further detail is served by the equipment register. | M | ✅ | CM1 |
 | FR-18 | The map shall be filterable by technology supplier. | M | ✅ | CM1 |
 | FR-19 | The map shall provide a time control that restricts the markers shown to deployments in service at a selected date, so that accumulation over time can be observed. Deployments with no commissioning date are excluded from a date-restricted view, and the number excluded shall be stated. | M | ✅ | CM1, CM2, REF-1 |

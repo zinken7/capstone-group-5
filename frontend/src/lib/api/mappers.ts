@@ -26,12 +26,17 @@ export function mapSiteDetail(dto: SiteDetailDto): SiteDetail {
     longitude: dto.longitude,
     deployments: dto.deployments.map((deployment) => ({
       id: deployment.id,
+      machineManufacturer: deployment.machine_manufacturer,
       machineModel: deployment.machine_model,
       machineType: deployment.machine_type,
       quantity: deployment.quantity,
       technologySupplier: deployment.technology_supplier,
+      automationLevel: deployment.automation_level,
+      environment: deployment.environment,
       status: deployment.status,
       commissioningDate: deployment.commissioning_date,
+      validFrom: deployment.valid_from,
+      validTo: deployment.valid_to,
     })),
   }
 }

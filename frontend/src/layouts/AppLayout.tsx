@@ -22,7 +22,7 @@ function AppLayout({ children }: PropsWithChildren) {
       </header>
       <main className="page-content" id="main-content">{children}</main>
       <footer className="site-footer">
-        <p>Demonstration data only. Verified public data will be connected during integration.</p>
+        <p>Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
       </footer>
     </div>
   )
