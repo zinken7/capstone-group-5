@@ -155,7 +155,7 @@ No query parameters.
 
 ## Tests
 
-Route tests (`backend/src/routes/*.test.ts`) and repository tests (`backend/src/repositories/sites.test.ts`) run against the PostGIS database that CI provides, seeding fixtures from `backend/src/test/fixtures.ts` before each case. Locally, start the database with `docker compose up -d db`, run `npm run db:migrate`, then `npm test`.
+Route tests (`backend/src/routes/*.test.ts`) and repository tests (`backend/src/repositories/sites.test.ts`) run against a real PostGIS database, seeding fixtures from `backend/src/test/fixtures.ts` before each case. The suite uses a dedicated test database derived from `DATABASE_URL` (`<name>_test`), created and migrated automatically on first run, and `resetDatabase()` refuses any database not named for testing. Locally, start the database with `docker compose up -d db`, then `npm test`. See `backend/README.md` for details.
 
 ## Outstanding
 
