@@ -194,17 +194,18 @@ environment is known (Q-4).
 | Environment | Purpose | Platform | Deployed by |
 |---|---|---|---|
 | Local | Development | Docker Compose: application, PostgreSQL/PostGIS, seed data | Any member |
-| Staging | Integration and client demonstration | TBC | CI pipeline from `main` |
+| Staging | Integration and client demonstration | Vercel (frontend and backend) and Neon PostgreSQL/PostGIS; see [`staging.md`](staging.md) | Vercel Git integration from `main` |
 | Production | Handover | UWA-provided environment | M1, manual approval |
 
-**Pipeline.** Merge to `main` → build image → run migrations → deploy to
-staging. Production deploys are the same workflow with a manual approval step.
-Rollback is a redeploy of the previous image tag.
+**Pipeline.** Staging: apply any new migrations, then merge to `main`; Vercel
+builds and deploys the affected project. Rollback is Vercel Instant Rollback.
+Production deploys to the UWA environment follow once it is known, with a
+manual approval step.
 
 **Contingencies** (the UWA environment is unconfirmed, Q-4):
 
 - **Docker not permitted.** Install from system packages behind nginx under
-  systemd; keep containers for local and staging.
+  systemd; keep containers for local development.
 - **PostGIS unavailable.** Store latitude and longitude columns; the MVP needs
   point rendering and bounding-box queries only.
 - **Outbound access blocked.** Self-host map tiles; drop optional sign-in and
@@ -212,6 +213,7 @@ Rollback is a redeploy of the previous image tag.
 - **Environment arrives late.** Staging remains the demonstration environment;
   no milestone before Sprint 3 depends on it.
 
-**Open before Sprint 3:** staging host, domain and TLS, secret storage, who
-administers the environment after handover, and whether a budget exists for
-any recurring cost.
+**Open before Sprint 3:** who administers the environment after handover, and
+whether a budget exists for any recurring cost. Staging uses free tiers, the
+`vercel.app` domains with Vercel-managed TLS, and Vercel environment variables
+for secrets.

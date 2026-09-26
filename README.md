@@ -70,3 +70,10 @@ Inside Docker Compose, the backend connection string is overridden to use
 `db`—the Compose database service name—as its host. This keeps the checked-in
 example useful for running the backend directly while preserving container
 networking.
+
+## Staging
+
+The integrated build runs at <https://capstone-group-5.vercel.app>, with the
+API at <https://capstone-group-5-api.vercel.app>. See
+[`docs/staging.md`](docs/staging.md) for its architecture, environment
+variables, deployment, migrations and rollback.
