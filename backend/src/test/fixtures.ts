@@ -1,9 +1,22 @@
+import { config } from '../config.js'
 import { query } from '../database.js'
+import { databaseNameOf, isTestDatabaseName } from './database-url.js'
+
+/** Throws unless the connection string names a test database, so a reset can never hit development data. */
+export function assertTestDatabase(connectionString: string): void {
+  const name = databaseNameOf(connectionString)
+  if (!isTestDatabaseName(name)) {
+    throw new Error(
+      `Refusing to reset database "${name}": test helpers only run against a database named "test" or ending in "_test"`,
+    )
+  }
+}
 
 /**
  * Truncate business tables and reset identities; call before each test case.
  */
 export async function resetDatabase(): Promise<void> {
+  assertTestDatabase(config.databaseUrl)
   await query(`
     TRUNCATE deployment, technology_product, machine_model, site_company_role, site, region, company
     RESTART IDENTITY CASCADE
