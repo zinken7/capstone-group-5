@@ -103,12 +103,17 @@ No query parameters.
   "deployments": [
     {
       "id": 10,
+      "machine_manufacturer": "Caterpillar",
       "machine_model": "Caterpillar 793F",
       "machine_type": "haul_truck",
       "quantity": 96,
       "technology_supplier": "Caterpillar",
+      "automation_level": "autonomous",
+      "environment": "surface",
       "status": "operational",
-      "commissioning_date": "2021-01-01"
+      "commissioning_date": "2021-01-01",
+      "valid_from": "2021-01-01",
+      "valid_to": null
     }
   ]
 }
@@ -120,8 +125,12 @@ No query parameters.
 | `mine_status` | The mine's own operating status, tentatively `operating`\|`commissioning` |
 | `latitude`/`longitude` | Split from `SITE.point_4326` |
 | `deployments[]` | The site's verified deployment records (FR-17) |
+| `deployments[].machine_manufacturer` | Base machine manufacturer; separate from the technology supplier |
 | `deployments[].machine_model` | May be `null`; the frontend should fall back to displaying `machine_type` |
+| `deployments[].automation_level` | Four-level classification when known; may be `null` for an unclassified record |
+| `deployments[].environment` | `surface`, `underground` or `both` |
 | `deployments[].technology_supplier` | Derived field, obtained via the `technology_product → company` relationship |
+| `deployments[].valid_from`/`valid_to` | Deployment validity window used by historical map views |
 
 ### Error responses
 

@@ -16,4 +16,5 @@ export interface EquipmentRecord {
   commissioningDate?: string
 }
 
-export type EquipmentSort = 'site' | 'quantity-desc' | 'supplier' | 'status'
+export type EquipmentSort = 'site' | 'quantity' | 'supplier' | 'status' | 'commissioning'
+export type SortDirection = 'asc' | 'desc'

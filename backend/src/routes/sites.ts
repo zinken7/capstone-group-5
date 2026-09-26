@@ -29,12 +29,17 @@ router.get('/sites/:id', (req, res) => {
     longitude: site.longitude,
     deployments: siteDeployments.map((deployment) => ({
       id: deployment.id,
+      machine_manufacturer: deployment.machineManufacturer,
       machine_model: deployment.machineModel,
       machine_type: deployment.machineType,
       quantity: deployment.quantity,
       technology_supplier: deployment.technologySupplier,
+      automation_level: deployment.automationLevel,
+      environment: deployment.environment,
       status: deployment.status,
       commissioning_date: deployment.commissioningDate,
+      valid_from: deployment.validFrom,
+      valid_to: deployment.validTo,
     })),
   })
 })

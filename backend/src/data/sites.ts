@@ -37,6 +37,7 @@ export const deployments: Deployment[] = [
   {
     id: 10,
     siteId: 1,
+    machineManufacturer: 'Caterpillar',
     machineModel: 'Caterpillar 793F',
     machineType: 'haul_truck',
     quantity: 96,
@@ -52,6 +53,7 @@ export const deployments: Deployment[] = [
   {
     id: 11,
     siteId: 2,
+    machineManufacturer: 'Sandvik',
     machineModel: null,
     machineType: 'drill',
     quantity: 5,
@@ -67,6 +69,7 @@ export const deployments: Deployment[] = [
   {
     id: 12,
     siteId: 3,
+    machineManufacturer: 'Sandvik',
     machineModel: 'Sandvik LH517i',
     machineType: 'lhd',
     quantity: 8,
@@ -85,6 +88,7 @@ export const deployments: Deployment[] = [
     // even though its *current* status is 'decommissioned'.
     id: 14,
     siteId: 1,
+    machineManufacturer: 'Caterpillar',
     machineModel: 'Caterpillar 777F',
     machineType: 'haul_truck',
     quantity: 20,

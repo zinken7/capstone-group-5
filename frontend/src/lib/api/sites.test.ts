@@ -16,12 +16,17 @@ const siteDto: SiteDetailDto = {
   longitude: 118.7,
   deployments: [{
     id: 10,
+    machine_manufacturer: 'Caterpillar',
     machine_model: 'Caterpillar 793F',
     machine_type: 'haul_truck',
     quantity: 96,
     technology_supplier: 'Caterpillar',
+    automation_level: 'autonomous',
+    environment: 'surface',
     status: 'operational',
     commissioning_date: '2021-01-01',
+    valid_from: '2021-01-01',
+    valid_to: null,
   }],
 }
 
@@ -51,12 +56,17 @@ describe('getSite', () => {
       longitude: 118.7,
       deployments: [{
         id: 10,
+        machineManufacturer: 'Caterpillar',
         machineModel: 'Caterpillar 793F',
         machineType: 'haul_truck',
         quantity: 96,
         technologySupplier: 'Caterpillar',
+        automationLevel: 'autonomous',
+        environment: 'surface',
         status: 'operational',
         commissioningDate: '2021-01-01',
+        validFrom: '2021-01-01',
+        validTo: null,
       }],
     })
     expect(fetchMock.mock.calls[0][0]).toBe('/api/sites/1')
