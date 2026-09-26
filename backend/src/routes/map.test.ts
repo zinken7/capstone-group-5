@@ -1,9 +1,18 @@
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
-
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
+const { closeDatabase } = await import('../database.js')
+const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
+
+beforeEach(async () => {
+  await resetDatabase()
+  await seedMapFixtures()
+})
+
+afterAll(async () => {
+  await closeDatabase()
+})
 
 function siteIds(features: Array<{ properties: { id: number } }>): number[] {
   return features.map((feature) => feature.properties.id).sort((a, b) => a - b)

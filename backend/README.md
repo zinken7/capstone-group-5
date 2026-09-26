@@ -59,9 +59,10 @@ database are ready, and HTTP 503 when the database is unavailable.
 
 ## Testing
 
-Install dependencies and run the backend automated tests with:
+Start the database, then install dependencies and run the backend automated tests with:
 
 ```sh
+docker compose up -d db   # from the repository root
 npm ci
 npm test
 ```
@@ -77,6 +78,18 @@ src/app.ts
 src/app.test.ts
 ```
 
-The current automated test verifies that `GET /health` returns HTTP 200 with `{ "status": "ok" }`.
+Route and repository tests run against a real PostGIS database, seeding fixtures from `src/test/fixtures.ts` before each case.
 
 The test command exits with a non-zero status if any test fails, making it suitable for use in GitHub Actions.
+
+### Test database
+
+The suite never runs against the development database. `vitest.config.ts` derives the test connection string from `DATABASE_URL` by appending `_test` to the database name (so `autonomous_mining` becomes `autonomous_mining_test`), and a global setup step creates that database and applies migrations before the first test file runs. A `DATABASE_URL` that already names a test database (`test`, or any name ending in `_test`, as in CI) is used unchanged.
+
+Set `TEST_DATABASE_URL` to point the suite at a different database instead.
+
+As a second safeguard, `resetDatabase()` in `src/test/fixtures.ts` refuses to truncate any database whose name is not `test` or does not end in `_test`.
+
+## Shutdown
+
+On `SIGINT` or `SIGTERM` the server stops accepting new connections, waits for in-flight requests to finish, closes the PostgreSQL connection pool and exits with code 0. If that takes longer than 10 seconds the process exits with code 1. The Docker Compose backend service runs with `init: true`, so signals from `docker compose stop` reach the Node process.
