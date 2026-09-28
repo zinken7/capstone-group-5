@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
+import { postContribution } from '../../../lib/api/contributions'
 import StateMessage from '../../../shared/components/StateMessage'
 import {
-  DEPLOYMENT_STATUSES,
+  DEFAULT_CONTRIBUTION_REFERENCE_DATA,
   EMPTY_CONTRIBUTION_FORM,
-  ENVIRONMENTS,
-  MACHINE_TYPES,
   type ContributionErrors,
   type ContributionFormValues,
+  type ContributionReferenceData,
+  type ContributionVerificationStatus,
   type ContributionSubmitter,
 } from '../types'
 import { hasContributionErrors, validateContribution } from '../validation'
@@ -19,10 +20,21 @@ type TextField = Exclude<keyof ContributionFormValues, 'evidenceUrls' | 'disclos
 
 export interface ContributePageProps {
   submitContribution?: ContributionSubmitter
+  referenceData?: ContributionReferenceData
+  referenceDataLoading?: boolean
 }
 
-const unavailableSubmitter: ContributionSubmitter = async () => {
-  throw new Error('The contribution API is not connected yet.')
+function submissionMessage(status: ContributionVerificationStatus): string {
+  if (status === 'verified') {
+    return 'Your contribution has been received and marked as verified. It is now eligible for the public verified views.'
+  }
+  if (status === 'rejected') {
+    return 'Your contribution was received but rejected during review, so it will not be published.'
+  }
+  if (status === 'unverified') {
+    return 'Your contribution has been received as unverified. It remains hidden from the public verified views until review.'
+  }
+  return 'Your contribution has been received and is pending review. It will become part of the public verified views after review.'
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -30,12 +42,17 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   return <p className="form-error" id={id} role="alert">{message}</p>
 }
 
-function ContributePage({ submitContribution = unavailableSubmitter }: ContributePageProps) {
+function ContributePage({
+  submitContribution = postContribution,
+  referenceData = DEFAULT_CONTRIBUTION_REFERENCE_DATA,
+  referenceDataLoading = false,
+}: ContributePageProps) {
   const [values, setValues] = useState<ContributionFormValues>({ ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
   const [errors, setErrors] = useState<ContributionErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [submitMessage, setSubmitMessage] = useState('')
+  const referenceDataAvailable = Object.values(referenceData).every((options) => options.length > 0)
 
   const showError = (field: keyof ContributionErrors) => {
     if (touched.has(field) || Object.keys(errors).length > 0) return validateContribution(values)[field]
@@ -92,9 +109,9 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
     setSubmitState('submitting')
     setSubmitMessage('')
     try {
-      await submitContribution(values)
+      const result = await submitContribution(values)
       setSubmitState('success')
-      setSubmitMessage('Your contribution has been sent for review.')
+      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review'))
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'We could not submit your contribution. Please try again.')
@@ -127,6 +144,44 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
     )
   }
 
+  if (referenceDataLoading) {
+    return (
+      <section className="product-page contribute-page" aria-labelledby="contribute-heading">
+        <header className="page-heading">
+          <div>
+            <p className="eyebrow">Community data</p>
+            <h1 id="contribute-heading">Contribute a deployment</h1>
+            <p className="intro">Share a verified autonomous mining equipment deployment with the project team.</p>
+          </div>
+        </header>
+        <StateMessage
+          variant="loading"
+          title="Loading reference data"
+          message="The controlled values for this form are being loaded."
+        />
+      </section>
+    )
+  }
+
+  if (!referenceDataAvailable) {
+    return (
+      <section className="product-page contribute-page" aria-labelledby="contribute-heading">
+        <header className="page-heading">
+          <div>
+            <p className="eyebrow">Community data</p>
+            <h1 id="contribute-heading">Contribute a deployment</h1>
+            <p className="intro">Share a verified autonomous mining equipment deployment with the project team.</p>
+          </div>
+        </header>
+        <StateMessage
+          variant="error"
+          title="Reference data unavailable"
+          message="The controlled values needed for this form could not be loaded. Please try again later."
+        />
+      </section>
+    )
+  }
+
   return (
     <section className="product-page contribute-page" aria-labelledby="contribute-heading">
       <header className="page-heading">
@@ -147,12 +202,12 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
           <legend>Deployment details</legend>
           <div className="form-grid">
             <label className="form-field form-field--wide" htmlFor="site-name">Mine site name <span aria-hidden="true">*</span>
-              <input id="site-name" name="siteName" value={values.siteName} onChange={(event) => updateTextField('siteName', event.target.value)} aria-invalid={Boolean(showError('siteName'))} aria-describedby={showError('siteName') ? 'site-name-error' : undefined} />
+              <input id="site-name" name="siteName" value={values.siteName} onChange={(event) => updateTextField('siteName', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('siteName'))} aria-describedby={showError('siteName') ? 'site-name-error' : undefined} />
               <FieldError id="site-name-error" message={showError('siteName')} />
             </label>
 
             <label className="form-field" htmlFor="country-code">Country code <span aria-hidden="true">*</span>
-              <input id="country-code" name="countryCode" maxLength={2} placeholder="AU" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value.toUpperCase())} aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined} />
+              <input id="country-code" name="countryCode" maxLength={2} placeholder="AU" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value.toUpperCase())} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined} />
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
@@ -164,25 +219,28 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
             </label>
 
             <label className="form-field" htmlFor="machine-type">Machine type <span aria-hidden="true">*</span>
-              <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{MACHINE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{referenceData.machineTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <FieldError id="machine-type-error" message={showError('machineType')} />
             </label>
             <label className="form-field" htmlFor="manufacturer">Machine manufacturer <span aria-hidden="true">*</span>
-              <input id="manufacturer" name="manufacturer" placeholder="Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
+              <input id="manufacturer" name="manufacturer" placeholder="Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
               <FieldError id="manufacturer-error" message={showError('manufacturer')} />
             </label>
             <label className="form-field" htmlFor="machine-model">Machine model
               <input id="machine-model" name="machineModel" placeholder="793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
             </label>
+            <label className="form-field" htmlFor="machine-model-variant">Machine model variant
+              <input id="machine-model-variant" name="machineModelVariant" placeholder="Optional" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
+            </label>
             <label className="form-field" htmlFor="quantity">Quantity <span aria-hidden="true">*</span>
-              <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
+              <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
               <FieldError id="quantity-error" message={showError('quantity')} />
             </label>
             <label className="form-field" htmlFor="environment">Mining environment
-              <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{ENVIRONMENTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{referenceData.environments.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             </label>
             <label className="form-field" htmlFor="deployment-status">Deployment status
-              <select id="deployment-status" name="deploymentStatus" value={values.deploymentStatus} onChange={(event) => updateTextField('deploymentStatus', event.target.value)}><option value="">Select a status</option>{DEPLOYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select id="deployment-status" name="deploymentStatus" value={values.deploymentStatus} onChange={(event) => updateTextField('deploymentStatus', event.target.value)}><option value="">Select a status</option>{referenceData.deploymentStatuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             </label>
             <label className="form-field" htmlFor="commissioning-date">Commissioning date or year
               <input id="commissioning-date" name="commissioningDate" placeholder="2025 or 2025-06-30" value={values.commissioningDate} onChange={(event) => updateTextField('commissioningDate', event.target.value)} aria-invalid={Boolean(showError('commissioningDate'))} aria-describedby={showError('commissioningDate') ? 'commissioning-date-error' : undefined} />
@@ -199,6 +257,12 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
               <input id="technology-product" name="technologyProduct" placeholder="Optional until verified" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
+            </label>
+            <label className="form-field" htmlFor="automation-level">Automation level
+              <select id="automation-level" name="automationLevel" value={values.automationLevel} onChange={(event) => updateTextField('automationLevel', event.target.value)}><option value="">Select an automation level</option>{referenceData.automationLevels.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            </label>
+            <label className="form-field" htmlFor="installation-type">Installation type
+              <select id="installation-type" name="installationType" value={values.installationType} onChange={(event) => updateTextField('installationType', event.target.value)}><option value="">Select an installation type</option>{referenceData.installationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             </label>
           </div>
         </fieldset>
@@ -227,7 +291,7 @@ function ContributePage({ submitContribution = unavailableSubmitter }: Contribut
               </label>
             </div>
             <label className={`disclosure-check ${showError('disclosureAccepted') ? 'disclosure-check--error' : ''}`} htmlFor="disclosure-accepted">
-              <input id="disclosure-accepted" name="disclosureAccepted" type="checkbox" checked={values.disclosureAccepted} onChange={(event) => updateDisclosure(event.target.checked)} aria-invalid={Boolean(showError('disclosureAccepted'))} aria-describedby={showError('disclosureAccepted') ? 'disclosure-error' : undefined} />
+              <input id="disclosure-accepted" name="disclosureAccepted" type="checkbox" checked={values.disclosureAccepted} onChange={(event) => updateDisclosure(event.target.checked)} required aria-required="true" aria-invalid={Boolean(showError('disclosureAccepted'))} aria-describedby={showError('disclosureAccepted') ? 'disclosure-error' : undefined} />
               <span>I confirm that I am authorised to disclose this information and understand it may be published after verification. <span aria-hidden="true">*</span></span>
             </label>
             <FieldError id="disclosure-error" message={showError('disclosureAccepted')} />

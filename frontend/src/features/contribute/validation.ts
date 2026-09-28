@@ -4,6 +4,15 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const COUNTRY_CODE_PATTERN = /^[A-Za-z]{2}$/
 const YEAR_OR_DATE_PATTERN = /^(\d{4}|\d{4}-\d{2}-\d{2})$/
 
+function isValidYearOrDate(value: string): boolean {
+  if (!YEAR_OR_DATE_PATTERN.test(value)) return false
+  if (/^\d{4}$/.test(value)) return true
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value)
@@ -37,7 +46,7 @@ export function validateContribution(values: ContributionFormValues): Contributi
     errors.quantity = 'Quantity must be a positive whole number.'
   }
 
-  if (values.commissioningDate.trim() && !YEAR_OR_DATE_PATTERN.test(values.commissioningDate.trim())) {
+  if (values.commissioningDate.trim() && !isValidYearOrDate(values.commissioningDate.trim())) {
     errors.commissioningDate = 'Use a year (YYYY) or a full date (YYYY-MM-DD).'
   }
 
