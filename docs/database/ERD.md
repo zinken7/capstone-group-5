@@ -62,6 +62,7 @@ erDiagram
         bigint id PK
         bigint manufacturer_id FK
         text model_name "nullable"
+        text model_variant "default base; case-insensitive comparison"
         machine_type machine_type
         text size_class
         numeric max_payload_tonnes
@@ -130,82 +131,105 @@ erDiagram
         text change_note
         timestamptz changed_at
     }
+
 ```
 
 This diagram is the single maintained copy.  SRS Section 5.1 shows a rendered
 image of it rather than a second copy of the source.  Regenerate the image
 whenever the diagram changes:
 
-    awk '/^```mermaid/{f=1;next} f&&/^```/{exit} f' docs/database/ERD.md > /tmp/erd.mmd
-    mmdc -i /tmp/erd.mmd -o docs/images/erd.png -b white -w 2400 -s 2
+```bash
+awk '/^```mermaid/{f=1;next} f&&/^```/{exit} f' docs/database/ERD.md > /tmp/erd.mmd
+mmdc -i /tmp/erd.mmd -o docs/images/erd.png -b white -w 2400 -s 2
+```
 
 ## Relationship rules
 
-| Relationship | Cardinality | Rule |
-|---|---:|---|
-| Region–site | 0..1:N | A site may sit in a named region, or in none.  Regions are reference data so that grouping and filtering resolve to one value (FR-12). |
-| Company–machine model | 1:N | A model has one manufacturer; a company may manufacture many models. |
-| Company–technology product | 1:N | A product has one supplier; the supplier may also be a machine manufacturer. |
-| Site–company role | M:N | A site can have owners, operators and contractors.  The association table records the role. |
-| Site–deployment | 1:N | Each deployment belongs to one mine site. |
-| Machine model–deployment | 1:N | A model may occur in many deployments.  The model name may be unknown initially. |
-| Technology product–deployment | 0..1:N | A submission may initially omit the product, but it is required before verification. |
-| Deployment–evidence | 1:0..N | A deployment may initially have no evidence; verified deployments require at least one evidence record (see integrity constraints). |
-| Deployment–verification review | 1:N | Every verification decision is retained as a separate, append-only review record. |
-| Admin user–verification review | 1:N | Each review is performed by one administrator; an administrator may perform many reviews. |
-| Deployment–revision | 1:N | Changes are append-only; the deployment row is the current state and revisions provide an audit trail.  A revision may be made by a contributor or by an admin user. |
+| Relationship                   | Cardinality | Rule                                                                                                                                                                 |
+| ------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Region–site                    | 0..1:N      | A site may sit in a named region, or in none.  Regions are reference data so that grouping and filtering resolve to one value (FR-12).                               |
+| Company–machine model          | 1:N         | A model has one manufacturer; a company may manufacture many models.                                                                                                 |
+| Company–technology product     | 1:N         | A product has one supplier; the supplier may also be a machine manufacturer.                                                                                         |
+| Site–company role              | M:N         | A site can have owners, operators and contractors.  The association table records the role.                                                                          |
+| Site–deployment                | 1:N         | Each deployment belongs to one mine site.                                                                                                                            |
+| Machine model–deployment       | 1:N         | A model may occur in many deployments.  The model name may be unknown initially.                                                                                     |
+| Technology product–deployment  | 0..1:N      | A submission may initially omit the product, but it is required before verification.                                                                                 |
+| Deployment–evidence            | 1:0..N      | A deployment may initially have no evidence; verified deployments require at least one evidence record (see integrity constraints).                                  |
+| Deployment–verification review | 1:N         | Every verification decision is retained as a separate, append-only review record.                                                                                    |
+| Admin user–verification review | 1:N         | Each review is performed by one administrator; an administrator may perform many reviews.                                                                            |
+| Deployment–revision            | 1:N         | Changes are append-only; the deployment row is the current state and revisions provide an audit trail.  A revision may be made by a contributor or by an admin user. |
 
 ## Controlled values
 
 The following should be PostgreSQL enums or lookup tables, not unconstrained
 free text:
 
-| Field | Values |
-|---|---|
-| `company_role` | `owner`, `operator`, `contractor` |
-| `site_status` | `operating`, `commissioning`|
-| `machine_type` | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `other` |
-| `automation_level` | `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous` |
-| `mining_environment` | `surface`, `underground`, `both` |
-| `deployment_status` | `announced`, `commissioning`, `operational`, `decommissioned` |
-| `verification_status` | `unverified`, `pending_review`, `verified`, `rejected` |
-| `verification_decision` | `approved`, `rejected`, `needs_changes` |
-| `evidence_type` | `company_release`, `news`, `academic`, `government`, `report`, `other` |
+| Field                   | Values                                                                                                                                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `company_role`          | `owner`, `operator`, `contractor`                                                                                                                                                                                                        |
+| `site_status`           | `operating`, `commissioning`                                                                                                                                                                                                             |
+| `machine_type`          | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `underground_haul_truck`, `water_truck`, `wheel_loader`, `crawler_loader`, `rock_breaker`, `skid_steer`, `strut_handler`, `shovel`, `other` |
+| `automation_level`      | `operator_assistance`, `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous`                                                                                                                                             |
+| `mining_environment`    | `surface`, `underground`, `both`                                                                                                                                                                                                         |
+| `deployment_status`     | `announced`, `commissioning`, `operational`, `decommissioned`                                                                                                                                                                            |
+| `verification_status`   | `unverified`, `pending_review`, `verified`, `rejected`                                                                                                                                                                                   |
+| `verification_decision` | `approved`, `rejected`, `needs_changes`                                                                                                                                                                                                  |
+| `evidence_type`         | `company_release`, `news`, `academic`, `government`, `report`, `other`                                                                                                                                                                   |
+
+### Automation level mapping
+
+Sources that state an SAE-style or vendor level (L1–L4) are mapped to
+`automation_level` as follows.  The source level text is kept in
+`technology_product.level_basis`.
+
+| Source level | `automation_level`    |
+| ------------ | --------------------- |
+| `L1`         | `operator_assistance` |
+| `L2`         | `teleremote`          |
+| `L3`         | `semi_autonomous`     |
+| `L4`         | `autonomous`          |
+
+## Normalisation rules
+
+Controlled enum inputs are trimmed and matched case-insensitively against the
+documented enum or source-level mapping before storage.  Values that match
+neither an enum value nor a documented alias are rejected rather than guessed.
+
+The following source labels are accepted as aliases for `machine_type`:
+
+| Input (any case) | Stored value |
+| ---------------- | ------------ |
+| `Truck`          | `haul_truck` |
+| `ROC`            | `other`      |
+
+Machine-model variants follow separate rules:
+
+1. Leading and trailing whitespace is removed.
+2. Empty, whitespace-only or absent values are stored as `base`, because the
+   client confirmed that a blank variant means the base version rather than an
+   unknown value.
+3. Non-empty spelling and capitalisation are preserved for display.
+4. Comparison and duplicate detection are case-insensitive.  For example, `i`
+   and `I` identify the same variant, as do `K` and `k`.
 
 ## Integrity constraints and indexes
 
-* `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is
-  used.  If PostGIS is unavailable, `point_4326` is replaced by latitude and
-  longitude columns, which serve the point rendering and bounding-box queries
-  the map requires.
-* `valid_to` must be on or after `valid_from`; a relocation closes one
-  deployment and creates another.
-* A verified deployment requires a technology product and at least one evidence
-  record.  Enforce this in the application transaction or a database trigger.
-* A verification review must reference an active administrator. Review records
-  are append-only; `verification_status` represents the current verification
-  state and is updated transactionally when a review decision changes it.
-* `admin_user.email` is unique. Store only a strong password hash (for example,
-  Argon2id or bcrypt), never a plaintext password.
-* `contributor` holds only an email address and, where offered, an organisation
-  (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if
-  FR-52 and FR-53 are taken up.
-* `region` is unique on `(name, country_code)`.
-* A site's country must match its region's country.  Enforce with a unique
-  constraint on `region(id, country_code)` and a composite foreign key from
-  `site` on `(region_id, country_code)`, or with a trigger.
-* `site_company_role` is unique on `(site_id, company_id, role)`.
-* `machine_model` is unique on `(manufacturer_id, model_name)` where
-  `model_name` is not null.
-* Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`,
-  `technology_product_id`, `verification_status`, `status`,
-  `commissioning_date`, and the site `country_code` and `region_id`.
-* Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and
-  `verification_review(admin_user_id)` to support review history and audit
-  queries.
-* Add a GiST index on `site.point_4326` for viewport and radius queries.
-* Store source URLs as text and optionally add a unique index on
-  `(deployment_id, url)` to prevent duplicate evidence.
+- `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is used.  If PostGIS is unavailable, `point_4326` is replaced by latitude and longitude columns, which serve the point rendering and bounding-box queries the map requires.
+- `valid_to` must be on or after `valid_from`; a relocation closes one deployment and creates another.
+- A verified deployment requires a technology product and at least one evidence record.  Enforce this in the application transaction or a database trigger.
+- A verification review must reference an active administrator. Review records are append-only; `verification_status` represents the current verification state and is updated transactionally when a review decision changes it.
+- `admin_user.email` is unique. Store only a strong password hash (for example, Argon2id or bcrypt), never a plaintext password.
+- `contributor` holds only an email address and, where offered, an organisation (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if FR-52 and FR-53 are taken up.
+- `company.name` is unique.
+- `region` is unique on `(name, country_code)`.
+- A site's country must match its region's country.  Enforce with a unique constraint on `region(id, country_code)` and a composite foreign key from `site` on `(region_id, country_code)`, or with a trigger.
+- `site_company_role` is unique on `(site_id, company_id, role)`.
+- `machine_model.model_variant` is `NOT NULL DEFAULT 'base'` with `CHECK (model_variant = btrim(model_variant) AND model_variant <> '')`.  Capitalisation is preserved for display.
+- A case-insensitive unique index on `(manufacturer_id, model_name, lower(model_variant))`, where `model_name` is not null, prevents variants that differ only by capitalisation from being stored as separate models.
+- Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`, `technology_product_id`, `verification_status`, `status`, `commissioning_date`, and the site `country_code` and `region_id`.
+- Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and `verification_review(admin_user_id)` to support review history and audit queries.
+- Add a GiST index on `site.point_4326` for viewport and radius queries.
+- Store source URLs as text and optionally add a unique index on `(deployment_id, url)` to prevent duplicate evidence.
 
 ## Deliberate exclusions for the MVP
 
