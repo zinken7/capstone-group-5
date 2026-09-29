@@ -1,9 +1,18 @@
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
-
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
+const { closeDatabase } = await import('../database.js')
+const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
+
+beforeEach(async () => {
+  await resetDatabase()
+  await seedMapFixtures()
+})
+
+afterAll(async () => {
+  await closeDatabase()
+})
 
 describe('GET /api/sites/:id', () => {
   it('returns full detail for an existing site, with only verified deployments', async () => {
@@ -27,5 +36,14 @@ describe('GET /api/sites/:id', () => {
 
     expect(response.status).toBe(404)
     expect(response.body).toEqual({ error: 'site not found' })
+  })
+
+  it('returns 404 for an id that is not a positive integer', async () => {
+    for (const id of ['abc', '1.5', '-1', '99999999999999999999']) {
+      const response = await request(app).get(`/api/sites/${id}`)
+
+      expect(response.status).toBe(404)
+      expect(response.body).toEqual({ error: 'site not found' })
+    }
   })
 })
