@@ -83,7 +83,10 @@ erDiagram
         bigint technology_product_id FK "nullable until verification"
         integer quantity
         mining_environment environment
+        automation_level automation_level "nullable; allowed without a product"
+        installation_type installation_type "default unknown"
         date commissioning_date
+        smallint commissioning_year "nullable; year-only precision"
         deployment_status status
         verification_status verification_status
         date valid_from
@@ -153,7 +156,7 @@ mmdc -i /tmp/erd.mmd -o docs/images/erd.png -b white -w 2400 -s 2
 | Site–company role              | M:N         | A site can have owners, operators and contractors.  The association table records the role.                                                                          |
 | Site–deployment                | 1:N         | Each deployment belongs to one mine site.                                                                                                                            |
 | Machine model–deployment       | 1:N         | A model may occur in many deployments.  The model name may be unknown initially.                                                                                     |
-| Technology product–deployment  | 0..1:N      | A submission may initially omit the product, but it is required before verification.                                                                                 |
+| Technology product–deployment  | 0..1:N      | A submission may initially omit the product, but it is required before verification.  A deployment's own `automation_level` may be recorded while the product is unknown; no placeholder product is created to carry it. |
 | Deployment–evidence            | 1:0..N      | A deployment may initially have no evidence; verified deployments require at least one evidence record (see integrity constraints).                                  |
 | Deployment–verification review | 1:N         | Every verification decision is retained as a separate, append-only review record.                                                                                    |
 | Admin user–verification review | 1:N         | Each review is performed by one administrator; an administrator may perform many reviews.                                                                            |
@@ -171,10 +174,12 @@ free text:
 | `machine_type`          | `haul_truck`, `lhd`, `loader`, `dozer`, `excavator`, `drill`, `scaler`, `shotcrete_machine`, `underground_haul_truck`, `water_truck`, `wheel_loader`, `crawler_loader`, `rock_breaker`, `skid_steer`, `strut_handler`, `shovel`, `other` |
 | `automation_level`      | `operator_assistance`, `line_of_sight_remote`, `teleremote`, `semi_autonomous`, `autonomous`                                                                                                                                             |
 | `mining_environment`    | `surface`, `underground`, `both`                                                                                                                                                                                                         |
+| `installation_type`     | `factory_installed`, `retrofit`, `unknown`                                                                                                                                                                                               |
 | `deployment_status`     | `announced`, `commissioning`, `operational`, `decommissioned`                                                                                                                                                                            |
 | `verification_status`   | `unverified`, `pending_review`, `verified`, `rejected`                                                                                                                                                                                   |
 | `verification_decision` | `approved`, `rejected`, `needs_changes`                                                                                                                                                                                                  |
 | `evidence_type`         | `company_release`, `news`, `academic`, `government`, `report`, `other`                                                                                                                                                                   |
+| `revision_action`       | `create`, `update`, `verification_change`                                                                                                                                                                                                |
 
 ### Automation level mapping
 
@@ -212,12 +217,23 @@ Machine-model variants follow separate rules:
 4. Comparison and duplicate detection are case-insensitive.  For example, `i`
    and `I` identify the same variant, as do `K` and `k`.
 
+Commissioning time is stored at the precision the source gives.  A year-only
+source value sets `commissioning_year` and leaves `commissioning_date` NULL; no
+month or day is invented.  A full date sets both.
+
+`installation_type` is `unknown` unless a source states factory installation
+or retrofit.  The client `Category` field (New / Upgrade) is not mapped to it
+until #62 confirms that meaning.
+
 ## Integrity constraints and indexes
 
 - `quantity > 0`; latitude/longitude are not duplicated when `point_4326` is used.  If PostGIS is unavailable, `point_4326` is replaced by latitude and longitude columns, which serve the point rendering and bounding-box queries the map requires.
 - `valid_to` must be on or after `valid_from`; a relocation closes one deployment and creates another.
+- `commissioning_date IS NULL OR commissioning_year = EXTRACT(YEAR FROM commissioning_date)`, with `commissioning_year` required whenever `commissioning_date` is present.
+- `deployment.installation_type` is `NOT NULL DEFAULT 'unknown'`.
 - A verified deployment requires a technology product and at least one evidence record.  Enforce this in the application transaction or a database trigger.
 - A verification review must reference an active administrator. Review records are append-only; `verification_status` represents the current verification state and is updated transactionally when a review decision changes it.
+- A revision names at most one actor: `contributor_id IS NULL OR admin_user_id IS NULL`.  Both NULL means the actor is unknown, for example a bulk import.
 - `admin_user.email` is unique. Store only a strong password hash (for example, Argon2id or bcrypt), never a plaintext password.
 - `contributor` holds only an email address and, where offered, an organisation (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if FR-52 and FR-53 are taken up.
 - `company.name` is unique.
@@ -228,8 +244,9 @@ Machine-model variants follow separate rules:
 - A case-insensitive unique index on `(manufacturer_id, model_name, lower(model_variant))`, where `model_name` is not null, prevents variants that differ only by capitalisation from being stored as separate models.
 - Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`, `technology_product_id`, `verification_status`, `status`, `commissioning_date`, and the site `country_code` and `region_id`.
 - Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and `verification_review(admin_user_id)` to support review history and audit queries.
+- Add a B-tree index on `revision(deployment_id, changed_at)` to support revision history.
 - Add a GiST index on `site.point_4326` for viewport and radius queries.
-- Store source URLs as text and optionally add a unique index on `(deployment_id, url)` to prevent duplicate evidence.
+- Store source URLs as text.  A unique index on `(deployment_id, url)` prevents duplicate evidence and also serves evidence lookup by deployment.
 
 ## Deliberate exclusions for the MVP
 
