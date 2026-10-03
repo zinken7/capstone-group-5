@@ -7,8 +7,8 @@ Target `backend/`. Schema `migrations/001_initial_schema.sql`. Style matches
 
 | | Reference data | Fixtures |
 |---|---|---|
-| What | Regions, OEMs, technology suppliers, machine models, technology products (with automation level + basis) | Mine sites, site ownership roles, deployments, and the fictional companies that own/operate them |
-| Nature | Real, public, sourced | Synthetic, fictional |
+| What | Regions; companies (OEMs, technology suppliers, mine owners, operators, contractors); machine models; technology products (with automation level + basis) | Mine sites, site ownership roles, deployments |
+| Nature | Real, public, sourced | Invented |
 | Environments | All, including production | Development and test only |
 | Load strategy | Upsert on natural key | Truncate fixture tables, insert in file order |
 | Command | `npm run db:seed:reference` | `npm run db:seed:fixtures` |
@@ -25,6 +25,33 @@ environment. Sites and deployments are what contributors submit; synthetic
 ones exist only to develop against. "Clearly identified as synthetic" (#26)
 is then structural: everything under `fixtures/` is fictional by definition.
 
+### 1.1 Real or invented, per table
+
+The test: does the row **describe a thing** or **make a claim**? Things that
+exist (a company, a model, a region, a product) are real and sourced. Claims
+(*this fleet, at this place, at this time*) are invented, and an invented
+claim is only harmless when it is about an invented place.
+
+| Table | Fixtures | Why |
+|---|---|---|
+| `company` | Real | Public entities; any real record will reference them |
+| `region` | Real | Geographic reference; nothing to invent |
+| `machine_model` | Real | Catalogue; specs from spec sheets |
+| `technology_product` | Real | The client's classification applied to real products, with basis and source |
+| `site` | **Invented** | A real site with invented deployments is a false claim about a real place |
+| `site_company_role` | Real companies on invented sites | "Rio Tinto owns Wandarra Iron" is visibly fictional because Wandarra Iron does not exist |
+| `deployment` | **Invented** | Quantities, dates and statuses are the facts the product exists to get right |
+
+Never an invented number on a real site. Real deployments are product
+content, not fixtures: they arrive with evidence and a `data_source` of
+`contributor` or `admin`, once migration 002 provides the tables.
+
+For the tables migration 002 adds: `evidence` has no fixture rows (invented
+URLs prove nothing); `verification_review` and `revision` may be invented,
+since they exercise a workflow rather than assert a fact; `contributor` and
+`admin_user` fixtures are test accounts (`test-admin@example.com`), never
+real ones.
+
 ## 2. Layout
 
 ```
@@ -32,11 +59,11 @@ backend/seed/
   README.md
   reference/
     regions.json
-    companies.json            OEMs and technology suppliers only
+    companies.json            every real company: OEMs, suppliers, owners, operators, contractors
     machine_models.json
     technology_products.json
   fixtures/
-    companies.json            fictional owners / operators / contractors
+    companies.json            normally empty; see §5
     sites.json                site_company_role nested under each site
     deployments.json
 ```
@@ -100,8 +127,10 @@ Upsert on `(name, country_code)`.
   "aliases": [ { "alias": "Cat", "language": "en" } ],
   "source": "https://www.caterpillar.com/" }
 ```
-Upsert on `name`. Spellings are agreed in this file, once: `Caterpillar`,
-`Komatsu`, `Sandvik`, `Epiroc` — no legal suffixes.
+Upsert on `name`. Mine owners, operators and contractors live here too,
+each with a `source`. Spellings are agreed in this file, once:
+`Caterpillar`, `Komatsu`, `Sandvik`, `Epiroc`, `Rio Tinto` — no legal
+suffixes.
 
 ### reference/machine_models.json
 ```json
@@ -135,10 +164,11 @@ classification" state the UI has to render.
 
 ### fixtures/companies.json
 ```json
-{ "key": "pilbara-iron-holdings", "name": "Pilbara Iron Holdings", "country_code": "AU" }
+[]
 ```
-Fictional. Upsert on `name` (same statement as reference companies; the
-truncate does not touch `company`).
+Normally empty. Only for a role that must not resolve to a real company —
+a test case, never a stand-in for a real owner. Upsert on `name` (same
+statement as reference companies; the truncate does not touch `company`).
 
 ### fixtures/sites.json
 ```json
@@ -146,14 +176,15 @@ truncate does not touch `company`).
   "region": "pilbara", "commodity": "iron_ore", "mine_status": "operating",
   "lat": -22.61, "lng": 119.32,
   "roles": [
-    { "company": "pilbara-iron-holdings", "role": "owner" },
-    { "company": "pilbara-iron-holdings", "role": "operator" }
+    { "company": "rio-tinto", "role": "owner" },
+    { "company": "rio-tinto", "role": "operator" }
   ] }
 ```
 `region` nullable. When set, the loader checks the region's country equals
 the site's before insert (001 enforces it with a composite FK; the loader
 turns the constraint error into a readable one). `roles` become
-`site_company_role` rows; companies may come from either companies file.
+`site_company_role` rows; companies resolve against `reference/companies.json`
+first, then `fixtures/companies.json`. Site names must read as invented.
 
 ### fixtures/deployments.json
 ```json
@@ -186,7 +217,7 @@ Sequence for `--fixtures`:
 3. Resolve every reference to a key. Unknown key → error.
 4. `BEGIN`.
 5. `TRUNCATE deployment, site_company_role, site RESTART IDENTITY`.
-6. Upsert `fixtures/companies.json` rows into `company`.
+6. Upsert `fixtures/companies.json` rows into `company` (usually none).
 7. Insert sites in order; then roles; then deployments. Resolve foreign keys
    by querying the natural key (`SELECT id FROM company WHERE name = $1`),
    cached per run.
@@ -236,9 +267,9 @@ it serves and the assertion that proves it is present.
 | China ≈ 40% of deployments and of machines | A-07 — China is not a rounding error | |
 | Every CN company and site has a `zh` alias; ≥ 3 western companies have an `en` short-form alias | romanisation / duplicate risk | JSON-level check |
 
-Row targets that satisfy the above: 10 regions, ~14 reference companies,
-~8 fictional companies, ~18 models, ~12 products, ~22 sites, ~45 roles,
-~60 deployments.
+Row targets that satisfy the above: 10 regions, ~22 companies (OEMs,
+suppliers, owners, operators, contractors), ~18 models, ~12 products,
+~22 sites, ~45 roles, ~60 deployments.
 
 ## 9. Open items for migration 002
 
