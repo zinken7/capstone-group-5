@@ -79,7 +79,9 @@ export class LlmVerifier implements Verifier {
   private prompt: string | null = null
 
   constructor(options: LlmVerifierOptions = {}) {
-    this.apiKey = options.apiKey === undefined ? (process.env.ANTHROPIC_API_KEY ?? null) : options.apiKey
+    // An explicitly empty ANTHROPIC_API_KEY= means "run without the LLM".
+    const fromEnv = process.env.ANTHROPIC_API_KEY
+    this.apiKey = options.apiKey === undefined ? (fromEnv === undefined || fromEnv === '' ? null : fromEnv) : options.apiKey
     this.model = options.model ?? LLM_MODEL_ID
     this.transport = options.transport ?? null
   }

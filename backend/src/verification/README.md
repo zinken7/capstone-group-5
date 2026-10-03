@@ -145,6 +145,73 @@ required for `verify` recommendations (§10 A.4.10); the reviewer sees the
 D6 basis on the report and decides as always (R3). The end-to-end
 expectations live in `eval/smoke-pipeline.test.ts`.
 
+### A real page through the CLI (Gudai-Darri, 2026-10-03)
+
+`eval/examples/gudai-darri.json` runs Rio Tinto's Gudai-Darri opening
+release through the full pipeline with a live fetch
+(`npm run verify -- --file src/verification/eval/examples/gudai-darri.json`;
+the CLI loads the repo-root `.env`, so the LLM path runs when
+`ANTHROPIC_API_KEY` is set there — `ANTHROPIC_API_KEY=` on the command
+line suppresses it). Both panels, as run:
+
+Without the LLM (D6):
+
+```
+report: gudai-darri.json
+spam gate: passed
+recommendation: request_more_evidence
+basis: the site is only partially supported by this source
+models: nli:Xenova/nli-deberta-v3-base — LLM unavailable, D6 degradation
+
+field verdicts:
+  site           partially supported
+  company_role   partially supported
+  machine        supported
+  technology     supported
+
+claims:
+  site.name                                  supported     "Gudai-Darri has 23 CAT 793F autonomous haul trucks and three CAT MD63…"
+  site.country                               supported     "Gudai-Darri has 23 CAT 793F autonomous haul trucks and three CAT MD63…"
+                                             note: s1_context_only_support routed; unreviewed (LLM verifier unavailable: no API key); NLI verdict stands (D6)
+  site.region                                insufficient  —
+  company_role.company_named (rio tinto:owner)    supported  "Bill Johnston MLA, today joined Rio Tinto employees as well as valued…"
+  company_role.company_named (rio tinto:operator) supported  "Bill Johnston MLA, today joined Rio Tinto employees as well as valued…"
+  company_role.role_stated (rio tinto:owner)      insufficient  —
+  company_role.role_stated (rio tinto:operator)   insufficient  —
+  machine.manufacturer                       supported     "Once development is complete, it is anticipated the world's first ope…"
+  machine.machine_type                       supported     "Once development is complete, it is anticipated the world's first ope…"
+  technology.supplier_named                  supported     "Once development is complete, it is anticipated the world's first ope…"
+
+source: https://www.riotinto.com/en/news/releases/2022/rio-tinto-opens-gudai-darri-its-most-technologically-advanced-mine [company_release]
+```
+
+With the LLM (`claude-haiku-4-5`, real calls): identical except
+`site.country`, where the LLM **overturned** the routed context-only
+support to insufficient with the reviewer note "The page lead indicates
+the article is from Perth, Australia, but no candidate explicitly states
+that the Gudai-Darri mine site itself is located in Australia" — S1 doing
+its job, stricter than a human reviewer would be, and erring safe. The
+recommendation is request_more_evidence either way: the optional region
+sub-fact finds nothing, site reads partially supported, and the verify
+rule requires site fully supported.
+
+Two findings from this page, for later stages:
+
+1. **Forecast sentences pass bare (hedge screen — stage 6 candidate).**
+   machine.* and technology.supplier_named are supported by "Once
+   development is complete, it is anticipated the world's first…" — a
+   forecast that names Caterpillar and trucks, so it clears S1's bare
+   threshold and never reaches the LLM, whose prompt is the only place the
+   hedge rule lives. A lexical hedge screen ("anticipated", "planned",
+   "expected to") that forces routing would close the gap.
+2. **role_stated scores near zero on an implied role (§6.1 — client
+   question).** The page plainly implies Rio Tinto operates Gudai-Darri
+   but never writes "Rio Tinto is the operator", and the sub-fact's
+   hypothesis demands exactly that (entailment 0.006–0.017). Same shape as
+   the berrigan JV case in the smoke set: whether an implied role should
+   count as role_stated is a definition question for the client, not a
+   model fix.
+
 ## Batching warning
 
 Padded batches are numerically unsafe with this DeBERTa-v3 ONNX export: an

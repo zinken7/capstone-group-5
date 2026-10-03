@@ -19,7 +19,8 @@ import { VERDICTS } from '../verifier/types.js'
 
 const text = z.string().min(1)
 
-const submissionSchema = z.strictObject({
+/** Exported for the CLI's --file input, which shares the submission shape. */
+export const submissionSchema = z.strictObject({
   site: z.strictObject({
     name: text,
     countryCode: z.string().regex(/^[A-Z]{2}$/),
@@ -58,6 +59,8 @@ const smokeItemSchema = z.strictObject({
   exercises: text,
   submission: submissionSchema,
   evidenceUrl: z.url(),
+  /** The submission's free-text field; spam gate rule 4 reads it (links-only). */
+  note: text.optional(),
   page: z
     .strictObject({
       storedText: text,

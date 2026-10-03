@@ -1,0 +1,15 @@
+{
+  "submission": {
+    "site": { "name": "Gudai-Darri", "countryCode": "AU", "region": "Pilbara" },
+    "companyRoles": [
+      { "company": "Rio Tinto", "role": "owner" },
+      { "company": "Rio Tinto", "role": "operator" }
+    ],
+    "machine": { "manufacturer": "Caterpillar", "machineType": "haul_truck", "modelName": null },
+    "technology": { "supplier": "Caterpillar", "productName": null },
+    "quantity": null,
+    "commissioning": null
+  },
+  "evidenceUrl": "https://www.riotinto.com/en/news/releases/2022/rio-tinto-opens-gudai-darri-its-most-technologically-advanced-mine",
+  "note": "Opening release for Gudai-Darri; autonomous fleet details are in the body."
+}
