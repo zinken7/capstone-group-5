@@ -1,10 +1,12 @@
 # FR-55 verification module
 
 The automated evidence checker specified in `docs/verification/fr55-design.md`
-(branch `docs/83-fr55-design`). Stages 1–4 of the design's §9 build order are
+(branch `docs/83-fr55-design`). Stages 1–5 of the design's §9 build order are
 implemented: fetch + extract (`sources.ts`), decompose + retrieve
-(`decompose.ts`, `retrieve.ts`), the NLI verifier (`verifier/nli.ts`) and the
-LLM verifier (`verifier/llm.ts`).
+(`decompose.ts`, `retrieve.ts`), the NLI verifier (`verifier/nli.ts`), the
+LLM verifier (`verifier/llm.ts`), and the hybrid, aggregation, store and
+pipeline (`verifier/hybrid.ts`, `aggregate.ts`, `store.ts`, `pipeline.ts`),
+with a manual CLI trigger (`npm run verify -- --smoke <key>`).
 The module is standalone: no database, no API callers; the migration is
 parked in `sql/` and the alias map is an input (`eval/alias-groups.json`).
 
@@ -111,6 +113,38 @@ including kurogane's cross-script manufacturer (日立建機 → supported) —
 and the live injection probe (page text ordering the model to cite a
 non-existent candidate) returned insufficient.
 
+## Hybrid, aggregation and pipeline (stage 5)
+
+`verifier/hybrid.ts` runs the NLI scorer first and routes structurally
+risky claims to the LLM: **S1** when no top-3 candidate clears the
+supported threshold on its own (the support exists only through the page
+lead's coreference; when a candidate does stand bare, it becomes the
+citation and the claim is not routed), **S2** for every contradicted
+verdict, and a **residual band** for supports whose cited bare score is
+below 0.5. `aggregate.ts` is pure code: the §6 stage 5 field table, D3's
+date comparison (a conflicting value in a source published before
+commissioning reads "partial, older figure"), the S3 site-anchor cap, D4's
+qualifying source classes, and D6. `store.ts` is append-only behind
+`ReportStore` (in-memory now; Postgres targets the parked migration) and
+refuses any span outside the stored text. `pipeline.ts` runs stages 0–6;
+quote offsets are stored absolute into `extracted_text`.
+
+**Documented degradation (D6, narrowed 2026-10-03): without
+`ANTHROPIC_API_KEY`, no submission can be recommended `verify`.** D6
+withholds `verify` while any required non-site sub-fact is supported only
+through page-lead context and unreviewed; site sub-facts are exempt (the
+lead names the site directly, and S3 anchors the site independently). On
+the smoke set, NLI-only mode reaches verify on **0/20** items: eighteen
+fail the verify rule's own field conditions or the gate, and the two that
+pass them all — `wandarra-full-clean` and `witvlakte-underground-lhd` —
+are blocked by D6 on machine.manufacturer, machine.machine_type,
+quantity.count and commissioning.year, whose evidence sentences never
+re-name the site ("the haul fleet consists of 36 Caterpillar 793F
+trucks"). That is the intended conservatism: an LLM key is operationally
+required for `verify` recommendations (§10 A.4.10); the reviewer sees the
+D6 basis on the report and decides as always (R3). The end-to-end
+expectations live in `eval/smoke-pipeline.test.ts`.
+
 ## Batching warning
 
 Padded batches are numerically unsafe with this DeBERTa-v3 ONNX export: an
@@ -131,6 +165,12 @@ LIVE_NLI=1 npm test -- src/verification/verifier/nli.live.test.ts
 
 # LLM verifier against the routed smoke-set errors (needs ANTHROPIC_API_KEY)
 LIVE_LLM=1 npm test -- src/verification/verifier/llm.live.test.ts
+
+# pipeline end-to-end over all twenty smoke items (D6 mode, no key needed)
+LIVE_NLI=1 npm test -- src/verification/eval/smoke-pipeline.test.ts
+
+# one smoke item through the pipeline, printed as the review panel shows it
+npm run verify -- --smoke wandarra-quantity-growth
 
 # smoke-set evaluation: scores all pairs, sweeps thresholds, prints this
 # README's tables; NLI_EVAL_CACHE caches pair scores between runs

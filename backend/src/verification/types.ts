@@ -20,6 +20,18 @@ export type ClaimField = (typeof CLAIM_FIELDS)[number]
 export const COMPANY_ROLES = ['owner', 'operator', 'contractor'] as const
 export type CompanyRole = (typeof COMPANY_ROLES)[number]
 
+/** 'passed', or the first stage-0 rule that failed; matches the CHECK on verification_report.spam_gate_result. */
+export const SPAM_GATE_RESULTS = ['passed', 'no_url', 'unresolvable_url', 'junk_domain', 'links_only'] as const
+export type SpamGateResult = (typeof SPAM_GATE_RESULTS)[number]
+
+/** Matches the CHECK on verification_report.recommendation in migration 003. */
+export const RECOMMENDATIONS = ['verify', 'request_more_evidence', 'reject'] as const
+export type Recommendation = (typeof RECOMMENDATIONS)[number]
+
+/** Field-level verdicts computed by aggregation (design §6 stage 5); stored in verification_report.field_verdicts. */
+export const FIELD_VERDICTS = ['supported', 'partially_supported', 'contradicted', 'insufficient'] as const
+export type FieldVerdict = (typeof FIELD_VERDICTS)[number]
+
 export const MACHINE_TYPES = [
   'haul_truck',
   'lhd',

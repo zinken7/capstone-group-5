@@ -59,6 +59,7 @@ describe.runIf(process.env.LIVE_LLM === '1')('LlmVerifier on the routed smoke-se
       expect(result.path).toBe('llm')
       expect(result.verdict).toBe(expected)
       expect(result.note, 'the reviewer note (design §4.2)').toMatch(/\S/)
+      expect(result.note, 'a failure note is not a reviewer note').not.toMatch(/unavailable|API error|rate limit/i)
       if (expected === 'supported') {
         expect(result.candidate_index).not.toBeNull()
       }
@@ -81,5 +82,6 @@ describe.runIf(process.env.LIVE_LLM === '1')('LlmVerifier on the routed smoke-se
     })
     expect(result.verdict).toBe('insufficient')
     expect(result.note, 'the reviewer note (design §4.2)').toMatch(/\S/)
+    expect(result.note, 'a failure note is not a reviewer note').not.toMatch(/unavailable|API error|rate limit/i)
   })
 })

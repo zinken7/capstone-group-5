@@ -13,6 +13,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify": "tsx src/verification/cli.ts",
     "db:migrate": "tsx src/migrate.ts"
   },
   "dependencies": {

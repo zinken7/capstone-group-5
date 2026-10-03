@@ -23,6 +23,11 @@ import { VERDICTS, type Candidate, type Verifier, type VerifierInput, type Verif
 export const LLM_MODEL_ID = 'claude-haiku-4-5'
 export const PROMPT_VERSION = 'verify-claim.v1'
 
+// The hybrid treats these notes as "the LLM did not actually review this
+// claim" and falls back to the NLI verdict under D6.
+export const LLM_UNAVAILABLE_NOTE = 'LLM verifier unavailable: no API key'
+export const LLM_FAILURE_NOTE_PREFIX = 'LLM call failed'
+
 const promptPath = new URL(`../prompts/${PROMPT_VERSION}.md`, import.meta.url)
 
 /** What the model must return; unknown keys are stripped, anything else is rejected and becomes insufficient. */
@@ -86,7 +91,7 @@ export class LlmVerifier implements Verifier {
 
   async verify({ hypothesis, candidates, context }: VerifierInput): Promise<VerifierResult> {
     if (!this.available) {
-      return insufficient('LLM verifier unavailable: no API key')
+      return insufficient(LLM_UNAVAILABLE_NOTE)
     }
     if (candidates.length === 0) {
       return insufficient('no candidate sentences to judge')
@@ -97,12 +102,12 @@ export class LlmVerifier implements Verifier {
       response = await this.send(hypothesis, candidates, context ?? null)
     } catch (error) {
       if (error instanceof Anthropic.RateLimitError) {
-        return insufficient('LLM call failed: rate limited')
+        return insufficient(`${LLM_FAILURE_NOTE_PREFIX}: rate limited`)
       }
       if (error instanceof Anthropic.APIError) {
-        return insufficient(`LLM call failed: API error ${error.status ?? 'unknown'}`)
+        return insufficient(`${LLM_FAILURE_NOTE_PREFIX}: API error ${error.status ?? 'unknown'}`)
       }
-      return insufficient(`LLM call failed: ${error instanceof Error ? error.message : 'unknown error'}`)
+      return insufficient(`${LLM_FAILURE_NOTE_PREFIX}: ${error instanceof Error ? error.message : 'unknown error'}`)
     }
 
     const text = response.content

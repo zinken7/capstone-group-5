@@ -1,6 +1,6 @@
 import { AutoModelForSequenceClassification, AutoTokenizer, env } from '@huggingface/transformers'
 
-import type { Verifier, VerifierInput, VerifierResult } from './types.js'
+import type { Candidate, Verifier, VerifierInput, VerifierResult } from './types.js'
 
 /**
  * Stage 4, NLI branch (design §4.2): a pretrained NLI cross-encoder scores
@@ -204,7 +204,21 @@ export function buildPremise(context: string | null | undefined, candidate: stri
   return `${context} ${candidate}`
 }
 
-/** The §4.4 NLI implementation. The cited span is the whole best-scoring candidate sentence. */
+/** A §4.4 row from a threshold decision: the cited span is the whole best-scoring candidate sentence. */
+export function nliResult(decision: NliDecision, candidates: readonly Candidate[]): VerifierResult {
+  const cited = decision.index === null ? null : (candidates[decision.index] ?? null)
+  return {
+    verdict: decision.verdict,
+    candidate_index: decision.index,
+    start: cited === null ? null : 0,
+    end: cited === null ? null : cited.text.length,
+    score: decision.score,
+    note: decision.note,
+    path: 'nli',
+  }
+}
+
+/** The §4.4 NLI implementation. */
 export class NliVerifier implements Verifier {
   constructor(
     private readonly scorer: NliScorer,
@@ -228,16 +242,6 @@ export class NliVerifier implements Verifier {
       candidates.map((candidate) => buildPremise(context, candidate.text)),
       hypothesis,
     )
-    const decision = decideVerdict(scores, this.thresholds)
-    const cited = decision.index === null ? null : (candidates[decision.index] ?? null)
-    return {
-      verdict: decision.verdict,
-      candidate_index: decision.index,
-      start: cited === null ? null : 0,
-      end: cited === null ? null : cited.text.length,
-      score: decision.score,
-      note: decision.note,
-      path: 'nli',
-    }
+    return nliResult(decideVerdict(scores, this.thresholds), candidates)
   }
 }

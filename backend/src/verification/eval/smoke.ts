@@ -1,7 +1,10 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { z } from 'zod'
+
+import type { FetchedSource } from '../sources.js'
 
 import { CLAIM_FIELDS, COMPANY_ROLES, EVIDENCE_TYPES, MACHINE_TYPES } from '../types.js'
 import { VERDICTS } from '../verifier/types.js'
@@ -73,4 +76,37 @@ export type SmokeExpectation = z.infer<typeof expectationSchema>
 export function loadSmokeSet(): SmokeItem[] {
   const path = fileURLToPath(new URL('./smoke-set.json', import.meta.url))
   return z.array(smokeItemSchema).parse(JSON.parse(readFileSync(path, 'utf8')))
+}
+
+/**
+ * The item's stored page as stage 1 would have returned it, so the pipeline
+ * runs offline and reproducibly over the smoke set (fetchedAt pinned). The
+ * 403 item has no stored page and comes back as a fetch failure, which the
+ * spam gate turns into unresolvable_url.
+ */
+export function smokeFetchedSource(item: SmokeItem): FetchedSource {
+  if (item.page === null) {
+    return {
+      url: item.evidenceUrl,
+      archivedUrl: null,
+      httpStatus: 403,
+      publishedDate: null,
+      sourceClass: null,
+      extractedText: null,
+      textSha256: null,
+      fetchedAt: new Date(0),
+      failure: 'HTTP 403; stored smoke stand-in for the live fetch',
+    }
+  }
+  return {
+    url: item.evidenceUrl,
+    archivedUrl: null,
+    httpStatus: 200,
+    publishedDate: item.page.publishedDate,
+    sourceClass: item.page.sourceClass,
+    extractedText: item.page.storedText,
+    textSha256: createHash('sha256').update(item.page.storedText, 'utf8').digest('hex'),
+    fetchedAt: new Date(0),
+    failure: null,
+  }
 }
