@@ -297,6 +297,12 @@ candidates → verdict *insufficient*; stage 4 skipped.
 | some required supported | partially supported |
 | no sub-fact supported | insufficient |
 
+D3 is evaluated per field, across all of that field's sub-fact results
+together: a conflicting value usually surfaces through a sibling sub-fact's
+candidates (a different model name arrives via the machine-type claim, whose
+terms the conflicting sentence actually shares), so contradiction is a
+field-level judgement, not a per-sub-fact one.
+
 **Recommendation from field verdicts:**
 
 | Condition | Recommendation |
@@ -324,18 +330,31 @@ stored source text at the offset.
 
 ### 6.1 Sub-fact table (D2)
 
-| Field | Required | Optional | Hypothesis template |
+| Field | Sub-fact | Required | Hypothesis template |
 |---|---|---|---|
-| site | name, country | region | "A mine site named {name} is in {country}." / "… is in the {region} region." |
-| company role | company named, role stated | — | "{company} is the {role} of {site}." |
-| machine | manufacturer, machine type | model name | "{site} operates {manufacturer} {machine_type}s." / "… {model} …" |
-| technology | supplier named | product name | "{site} uses automation technology supplied by {supplier}." / "… the product {product}." |
-| quantity | count, at this site | machine type matches | "{site} has {n} machines." / "… {n} {machine_type}s." |
-| commissioning | year | month | "The deployment at {site} began in {year}." |
+| site | name | yes | "There is a mine site named {name}." |
+| site | country | yes | "The {name} mine site is in {country}." |
+| site | region | no | "The {name} mine site is in the {region} region." |
+| company role¹ | company named | yes | "{company} is associated with the {name} mine site." |
+| company role¹ | role stated | yes | "{company} is the {role} of the {name} mine site." |
+| machine | manufacturer | yes | "The {name} mine site operates {manufacturer} machines." |
+| machine | machine type | yes | "The {name} mine site operates {manufacturer} {machine_type}s." |
+| machine | model name | no | "The {name} mine site operates {manufacturer} {model} machines." |
+| technology | supplier named | yes | "The {name} mine site uses automation technology supplied by {supplier}." |
+| technology | product name | no | "The {name} mine site uses the product {product}." |
+| quantity | count | yes | "The {name} mine site has {n} machines." |
+| quantity | machine type matches | no | "The {name} mine site has {n} {machine_type}s." |
+| commissioning | year | yes | "The deployment at {name} began in {year}." |
+| commissioning | month | no | "The deployment at {name} began in {month} {year}." |
 
-Thirteen sub-facts, eight required. This table is the plain-English
-definition of what a source must say before a field is called supported. It
-should be confirmed with the client.
+¹ Once per (company, role) pair in the submission; the pair is the claim's
+subject.
+
+Fourteen sub-facts, nine required. There is no separate "at this site"
+sub-fact because it is structural: every quantity hypothesis names the site,
+so a sentence only supports it by tying the number to this site. This table
+is the plain-English definition of what a source must say before a field is
+called supported. It should be confirmed with the client.
 
 ---
 
