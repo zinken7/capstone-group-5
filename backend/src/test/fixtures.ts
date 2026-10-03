@@ -69,11 +69,11 @@ export async function seedMapFixtures(): Promise<void> {
   await query(`
     INSERT INTO deployment (
       id, site_id, machine_model_id, technology_product_id, quantity, environment,
-      commissioning_date, status, verification_status, valid_from, valid_to
+      commissioning_date, commissioning_year, status, verification_status, valid_from, valid_to
     ) VALUES
-      (10, 1, 1, 1, 96, 'surface', '2021-01-01', 'operational', 'verified', '2021-01-01', NULL),
-      (11, 2, 2, 2, 5, 'surface', NULL, 'commissioning', 'verified', '2023-06-01', NULL),
-      (12, 3, 3, 3, 8, 'underground', NULL, 'announced', 'pending_review', '2024-01-01', NULL),
-      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 'decommissioned', 'verified', '2015-03-01', '2020-12-31')
+      (10, 1, 1, 1, 96, 'surface', '2021-01-01', 2021, 'operational', 'verified', '2021-01-01', NULL),
+      (11, 2, 2, 2, 5, 'surface', NULL, NULL, 'commissioning', 'verified', '2023-06-01', NULL),
+      (12, 3, 3, 3, 8, 'underground', NULL, NULL, 'announced', 'pending_review', '2024-01-01', NULL),
+      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31')
   `)
 }
