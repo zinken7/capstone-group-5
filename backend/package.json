@@ -16,8 +16,11 @@
     "db:migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "express": "^5.2.1",
-    "pg": "^8.23.0"
+    "linkedom": "^0.18.13",
+    "pg": "^8.23.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
