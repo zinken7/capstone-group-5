@@ -17,9 +17,15 @@ export function assertTestDatabase(connectionString: string): void {
  */
 export async function resetDatabase(): Promise<void> {
   assertTestDatabase(config.databaseUrl)
+  // History tables reject TRUNCATE; replica mode skips those triggers for this transaction only
   await query(`
-    TRUNCATE deployment, technology_product, machine_model, site_company_role, site, region, company
-    RESTART IDENTITY CASCADE
+    BEGIN;
+    SET LOCAL session_replication_role = replica;
+    TRUNCATE
+      revision, verification_review, evidence, admin_user, contributor,
+      deployment, technology_product, machine_model, site_company_role, site, region, company
+    RESTART IDENTITY CASCADE;
+    COMMIT;
   `)
 }
 
