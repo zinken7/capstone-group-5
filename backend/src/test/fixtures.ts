@@ -66,7 +66,9 @@ export async function seedMapFixtures(): Promise<void> {
       (3, 2, 'Sandvik AutoMine', 'semi_autonomous'),
       (4, 1, 'Cat MineStar (unclassified)', NULL)
   `)
+  // Verified deployments need evidence by commit time, so both inserts share one transaction
   await query(`
+    BEGIN;
     INSERT INTO deployment (
       id, site_id, machine_model_id, technology_product_id, quantity, environment,
       commissioning_date, commissioning_year, status, verification_status, valid_from, valid_to
@@ -74,6 +76,11 @@ export async function seedMapFixtures(): Promise<void> {
       (10, 1, 1, 1, 96, 'surface', '2021-01-01', 2021, 'operational', 'verified', '2021-01-01', NULL),
       (11, 2, 2, 2, 5, 'surface', NULL, NULL, 'commissioning', 'verified', '2023-06-01', NULL),
       (12, 3, 3, 3, 8, 'underground', NULL, NULL, 'announced', 'pending_review', '2024-01-01', NULL),
-      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31')
+      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31');
+    INSERT INTO evidence (deployment_id, url, source_type) VALUES
+      (10, 'https://example.com/evidence/10', 'company_release'),
+      (11, 'https://example.com/evidence/11', 'news'),
+      (14, 'https://example.com/evidence/14', 'report');
+    COMMIT;
   `)
 }
