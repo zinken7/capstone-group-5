@@ -160,6 +160,8 @@ interface Verifier {
   verify(input: {
     hypothesis: string            // "The site is named Wandarra Iron."
     candidates: Candidate[]       // numbered sentences with offsets into source text
+    context: string | null        // the page's lead sentence; prepended to each
+                                  // candidate for scoring only, never cited
   }): Promise<{
     verdict: 'supported' | 'contradicted' | 'insufficient'
     candidate_index: number | null
@@ -175,6 +177,18 @@ interface Verifier {
 Two implementations: `NliVerifier`, `LlmVerifier`. The hybrid is a third
 that composes them by threshold. All three run against the same evaluation
 set.
+
+`context` exists because sentence-level NLI fails structurally without it:
+"the mine runs 36 trucks" never names the site, so every site-naming
+hypothesis reads as neutral. On the smoke set, prepending the page's lead
+sentence raised supported recall from 0.74 to 0.99. The cited span is still
+the candidate alone (R1).
+
+Precedence: when a candidate clears the supported threshold and another
+clears the contradicted threshold, the verdict is *supported* and the
+conflict is recorded in `note`. A contradicting sentence about one atom
+("no Caterpillar equipment") must not sink unrelated sub-facts on the same
+page; D3 makes the contradiction call at field level (stage 5).
 
 ---
 
@@ -338,7 +352,7 @@ stored source text at the offset.
 | company role¹ | company named | yes | "{company} is associated with the {name} mine site." |
 | company role¹ | role stated | yes | "{company} is the {role} of the {name} mine site." |
 | machine | manufacturer | yes | "The {name} mine site operates {manufacturer} machines." |
-| machine | machine type | yes | "The {name} mine site operates {manufacturer} {machine_type}s." |
+| machine | machine type | yes | "The {name} mine site operates {machine_type}s." |
 | machine | model name | no | "The {name} mine site operates {manufacturer} {model} machines." |
 | technology | supplier named | yes | "The {name} mine site uses automation technology supplied by {supplier}." |
 | technology | product name | no | "The {name} mine site uses the product {product}." |
@@ -349,6 +363,13 @@ stored source text at the offset.
 
 ¹ Once per (company, role) pair in the submission; the pair is the claim's
 subject.
+
+Each required sub-fact asserts one atom. The machine-type hypothesis names
+no manufacturer: with the maker bundled in, a source that confirms haul
+trucks but names a different maker could only be judged contradicted on the
+whole sentence, and the two sub-facts were not separable. The manufacturer
+stays in the retrieval terms. (`model name` keeps the maker — "Caterpillar
+794AC" is the natural surface form of a model claim.)
 
 Fourteen sub-facts, nine required. There is no separate "at this site"
 sub-fact because it is structural: every quantity hypothesis names the site,
@@ -401,6 +422,9 @@ make that export trivial.
 | Small local LLM is weak | NLI carries most sub-facts; LLM is optional; interface lets it be swapped or removed |
 | Hosting has no outbound internet | Stage 1 cannot run; the feature degrades to "no report". Decision depends on SRS A.4.6 / 4.9 / 4.10 |
 | Reproducibility | Defined as same (submission, text hash, model version, prompt version) → same report; temperature 0 on the LLM path |
+| Padded batching corrupts the DeBERTa-v3 ONNX export: an identical pair scores differently beside a shorter row | `NliScorer` scores one pair per call; the live test asserts single-pair scores |
+| JS-rendered vendor pages extract thin (Epiroc: ~500 characters of server-rendered text) | A JS-heavy page in the smoke set so the number is visible; headless fetch as a later option |
+| URL is blocked to automated fetch and has no archive copy (cat.com) | Gate rule 2 fails with the reason shown to the reviewer, who opens it by hand |
 | Report mistaken for a decision | Separate tables, separate actors, verdicts in words, "recommendation" never labelled "result" |
 
 ---
