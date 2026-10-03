@@ -1,9 +1,10 @@
 # FR-55 verification module
 
 The automated evidence checker specified in `docs/verification/fr55-design.md`
-(branch `docs/83-fr55-design`). Stages 1–3 of the design's §9 build order are
+(branch `docs/83-fr55-design`). Stages 1–4 of the design's §9 build order are
 implemented: fetch + extract (`sources.ts`), decompose + retrieve
-(`decompose.ts`, `retrieve.ts`) and the NLI verifier (`verifier/nli.ts`).
+(`decompose.ts`, `retrieve.ts`), the NLI verifier (`verifier/nli.ts`) and the
+LLM verifier (`verifier/llm.ts`).
 The module is standalone: no database, no API callers; the migration is
 parked in `sql/` and the alias map is an input (`eval/alias-groups.json`).
 
@@ -88,6 +89,28 @@ manufacturer from the machine_type hypothesis:
 (the source confirms haul trucks; the manufacturer sub-fact alone carries
 the contradiction, and the field still lands contradicted in stage 5).
 
+## LLM verifier (stage 4)
+
+`verifier/llm.ts` judges the sub-facts routed off the NLI path (S1:
+context-only support; S2: every contradicted verdict; plus the residual
+supported band) and writes the reviewer note. Model: `claude-haiku-4-5` via
+the Anthropic API, temperature 0, prompt versioned at
+`prompts/verify-claim.v1.md`. Per the amended D3 it answers only
+"explicitly different value?" — date comparison belongs to aggregation.
+The model returns a candidate index plus character offsets, never free
+text, and a structural check inside the class rejects any span that does
+not land inside a real candidate, so an invented span becomes
+*insufficient* by construction (R1). Without `ANTHROPIC_API_KEY` the
+verifier reports itself unavailable and never throws (D6 then applies: a
+`verify` recommendation requires no required sub-fact be context-only
+supported).
+
+**Live result (2026-10-03, real API calls): 6/6.** The five NLI errors
+above, routed through S1/S2, all came back with the hand-labelled verdict —
+including kurogane's cross-script manufacturer (日立建機 → supported) —
+and the live injection probe (page text ordering the model to cite a
+non-existent candidate) returned insufficient.
+
 ## Batching warning
 
 Padded batches are numerically unsafe with this DeBERTa-v3 ONNX export: an
@@ -105,6 +128,9 @@ npm test
 
 # model-dependent verifier tests (downloads ~223 MB on first run)
 LIVE_NLI=1 npm test -- src/verification/verifier/nli.live.test.ts
+
+# LLM verifier against the routed smoke-set errors (needs ANTHROPIC_API_KEY)
+LIVE_LLM=1 npm test -- src/verification/verifier/llm.live.test.ts
 
 # smoke-set evaluation: scores all pairs, sweeps thresholds, prints this
 # README's tables; NLI_EVAL_CACHE caches pair scores between runs
