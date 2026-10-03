@@ -39,10 +39,10 @@ describe('smoke set shape', () => {
     expect(item?.evidenceUrl).toMatch(/^https:\/\/www\.epiroc\.com\//)
   })
 
-  it('ships with every verdict unlabelled', () => {
+  it('has a hand label on every verdict', () => {
     for (const item of items) {
       for (const expectation of item.expectations) {
-        expect(expectation.verdict).toBeNull()
+        expect(expectation.verdict, `${item.key}: ${expectation.field}.${expectation.subFact}`).not.toBeNull()
       }
     }
   })

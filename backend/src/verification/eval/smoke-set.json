@@ -199,7 +199,7 @@
       { "field": "site", "subject": "", "subFact": "name", "sentence": "copper mine in the Atacama", "verdict": "supported" },
       { "field": "site", "subject": "", "subFact": "country", "sentence": "northern Chile", "verdict": "supported" },
       { "field": "machine", "subject": "", "subFact": "manufacturer", "sentence": "No Caterpillar equipment operates", "verdict": "contradicted" },
-      { "field": "machine", "subject": "", "subFact": "machine_type", "sentence": "Komatsu 930E haul trucks", "verdict": "contradicted" },
+      { "field": "machine", "subject": "", "subFact": "machine_type", "sentence": "Komatsu 930E haul trucks", "verdict": "supported" },
       { "field": "machine", "subject": "", "subFact": "model_name", "sentence": "No Caterpillar equipment operates", "verdict": "contradicted" }
     ]
   },

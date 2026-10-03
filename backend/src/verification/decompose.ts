@@ -115,11 +115,14 @@ function one(instance: SubFactInstance | null): SubFactInstance[] {
 }
 
 /**
- * The §6.1 table. Two readings differ from the doc's wording, both
+ * The §6.1 table. Three readings differ from the doc's wording, all
  * deliberate: "at this site" is structural (every quantity hypothesis names
- * the site) rather than a separate sub-fact, and site name/country are
+ * the site) rather than a separate sub-fact; site name/country are
  * separate hypotheses so a source that names the site without placing it
- * still supports something (design R2).
+ * still supports something (design R2); and the machine_type hypothesis
+ * omits the manufacturer (the doc's template bundles it), so each required
+ * machine sub-fact asserts one atom and can be judged on its own —
+ * proposed §6.1 amendment, pending client confirmation (design §10).
  */
 export const SUB_FACT_TABLE: readonly SubFactSpec[] = [
   {
@@ -204,10 +207,11 @@ export const SUB_FACT_TABLE: readonly SubFactSpec[] = [
           ? null
           : {
               subject: '',
-              hypothesis:
-                machine.manufacturer === null
-                  ? `The ${site.name} mine site operates ${TYPE_NAMES[machine.machineType]}s.`
-                  : `The ${site.name} mine site operates ${machine.manufacturer} ${TYPE_NAMES[machine.machineType]}s.`,
+              // The manufacturer stays a query term (sources write "Komatsu
+              // haul trucks") but is out of the hypothesis: the maker is the
+              // manufacturer sub-fact's claim, and a wrong maker must not
+              // drag the type verdict down with it.
+              hypothesis: `The ${site.name} mine site operates ${TYPE_NAMES[machine.machineType]}s.`,
               terms: [...(machine.manufacturer === null ? [] : [machine.manufacturer]), ...TYPE_TERMS[machine.machineType]],
             },
       ),

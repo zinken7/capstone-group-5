@@ -4,13 +4,14 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 
 import { CLAIM_FIELDS, COMPANY_ROLES, EVIDENCE_TYPES, MACHINE_TYPES } from '../types.js'
+import { VERDICTS } from '../verifier/types.js'
 
 /**
  * The smoke set (design §7.1): twenty hand-labelled submissions. Pages are
  * stored text, not live fetches, so the harness is reproducible; the one
  * deliberate exception is the 403 item, whose URL is real and whose page is
- * null. Verdicts are the project manager's to label; the draft ships them
- * blank.
+ * null. Verdicts are the project manager's hand labels (2026-10-03), fixed
+ * before any threshold tuning; the schema rejects an unlabelled expectation.
  */
 
 const text = z.string().min(1)
@@ -45,8 +46,8 @@ const expectationSchema = z.strictObject({
    * the stage-3 retrieval test.
    */
   sentence: text.nullable(),
-  /** The hand label (design §7.1); blank until the project manager fills it in. */
-  verdict: z.enum(['supported', 'contradicted', 'insufficient']).nullable(),
+  /** The project manager's hand label (design §7.1). */
+  verdict: z.enum(VERDICTS),
 })
 
 const smokeItemSchema = z.strictObject({

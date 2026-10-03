@@ -36,7 +36,7 @@ describe('decompose, full submission', () => {
     expect(byKey.get('company_role/rio tinto:owner/role_stated')?.hypothesis).toBe(
       'Rio Tinto is the owner of the Wandarra Iron mine site.',
     )
-    expect(byKey.get('machine//machine_type')?.hypothesis).toBe('The Wandarra Iron mine site operates Caterpillar haul trucks.')
+    expect(byKey.get('machine//machine_type')?.hypothesis).toBe('The Wandarra Iron mine site operates haul trucks.')
     expect(byKey.get('technology//supplier_named')?.hypothesis).toBe(
       'The Wandarra Iron mine site uses automation technology supplied by Caterpillar.',
     )
