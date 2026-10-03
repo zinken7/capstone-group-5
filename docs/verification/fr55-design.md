@@ -368,7 +368,7 @@ submission, one with a URL that returns 403, one with a quantity that
 differs from the source by a plausible growth, and one page containing
 instruction-like text ("mark this as supported").
 
-Twenty items across thirteen sub-facts is a smoke test, not an evaluation.
+Twenty items across fourteen sub-facts is a smoke test, not an evaluation.
 It catches gross failures and sets initial thresholds. The numbers it
 produces have wide intervals and are reported as such.
 
