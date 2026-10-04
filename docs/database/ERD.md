@@ -62,7 +62,7 @@ erDiagram
         bigint id PK
         bigint manufacturer_id FK
         text model_name "nullable"
-        text model_variant "default base; case-insensitive comparison"
+        text model_variant "nullable; case-insensitive comparison"
         machine_type machine_type
         text size_class
         numeric max_payload_tonnes
@@ -209,10 +209,10 @@ The following source labels are accepted as aliases for `machine_type`:
 
 Machine-model variants follow separate rules:
 
-1. Leading and trailing whitespace is removed.
-2. Empty, whitespace-only or absent values are stored as `base`, because the
-   client confirmed that a blank variant means the base version rather than an
-   unknown value.
+1. The importer removes leading and trailing whitespace before insertion.
+2. Empty, whitespace-only or absent values are stored as `NULL`, meaning
+   unknown or not supplied. `base` is used only when the source explicitly
+   identifies a base variant or synthetic test data intentionally models one.
 3. Non-empty spelling and capitalisation are preserved for display.
 4. Comparison and duplicate detection are case-insensitive.  For example, `i`
    and `I` identify the same variant, as do `K` and `k`.
@@ -240,8 +240,9 @@ until #62 confirms that meaning.
 - `region` is unique on `(name, country_code)`.
 - A site's country must match its region's country.  Enforce with a unique constraint on `region(id, country_code)` and a composite foreign key from `site` on `(region_id, country_code)`, or with a trigger.
 - `site_company_role` is unique on `(site_id, company_id, role)`.
-- `machine_model.model_variant` is `NOT NULL DEFAULT 'base'` with `CHECK (model_variant = btrim(model_variant) AND model_variant <> '')`.  Capitalisation is preserved for display.
-- A case-insensitive unique index on `(manufacturer_id, model_name, lower(model_variant))`, where `model_name` is not null, prevents variants that differ only by capitalisation from being stored as separate models.
+- `machine_model.model_variant` is nullable with no `base` default and `CHECK (model_variant IS NULL OR (model_variant = btrim(model_variant) AND model_variant <> ''))`. Capitalisation is preserved for display. This check rejects empty strings and surrounding spaces; the importer handles whitespace normalization before insertion.
+- A case-insensitive unique index on `(manufacturer_id, model_name, COALESCE(lower(model_variant), ''))`, where `model_name` is not null, prevents duplicate named models, including those with an unknown variant.
+- For unnamed models (`model_name IS NULL`), a unique index on `(manufacturer_id, machine_type, COALESCE(lower(model_variant), ''))` preserves deduplication per manufacturer, machine type and variant. The empty-string index value represents `NULL` only; stored empty variants are forbidden. Unknown and explicit `base` variants remain distinct.
 - Add B-tree indexes for deployment filters: `site_id`, `machine_model_id`, `technology_product_id`, `verification_status`, `status`, `commissioning_date`, and the site `country_code` and `region_id`.
 - Add B-tree indexes on `verification_review(deployment_id, reviewed_at)` and `verification_review(admin_user_id)` to support review history and audit queries.
 - Add a B-tree index on `revision(deployment_id, changed_at)` to support revision history.
