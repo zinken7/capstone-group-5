@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { postContribution } from '../../../lib/api/contributions'
+import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import {
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
@@ -22,6 +23,7 @@ export interface ContributePageProps {
   submitContribution?: ContributionSubmitter
   referenceData?: ContributionReferenceData
   referenceDataLoading?: boolean
+  loadReferenceData?: () => Promise<ContributionReferenceData>
 }
 
 function submissionMessage(status: ContributionVerificationStatus): string {
@@ -44,15 +46,45 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 function ContributePage({
   submitContribution = postContribution,
-  referenceData = DEFAULT_CONTRIBUTION_REFERENCE_DATA,
+  referenceData: providedReferenceData,
   referenceDataLoading = false,
+  loadReferenceData = getContributionReferenceData,
 }: ContributePageProps) {
   const [values, setValues] = useState<ContributionFormValues>({ ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
   const [errors, setErrors] = useState<ContributionErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [submitMessage, setSubmitMessage] = useState('')
-  const referenceDataAvailable = Object.values(referenceData).every((options) => options.length > 0)
+  const [loadedReferenceData, setLoadedReferenceData] = useState<ContributionReferenceData | undefined>(providedReferenceData)
+  const [loadingReferenceData, setLoadingReferenceData] = useState(!providedReferenceData && !referenceDataLoading)
+  const [referenceDataError, setReferenceDataError] = useState(false)
+
+  useEffect(() => {
+    if (providedReferenceData || referenceDataLoading) return
+
+    let cancelled = false
+
+    loadReferenceData()
+      .then((data) => {
+        if (cancelled) return
+        setLoadedReferenceData(data)
+        setLoadingReferenceData(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLoadedReferenceData(undefined)
+        setLoadingReferenceData(false)
+        setReferenceDataError(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadReferenceData, providedReferenceData, referenceDataLoading])
+
+  const referenceData = providedReferenceData ?? loadedReferenceData ?? DEFAULT_CONTRIBUTION_REFERENCE_DATA
+  const referenceDataIsLoading = referenceDataLoading || loadingReferenceData
+  const referenceDataAvailable = !referenceDataError && Object.values(referenceData).every((options) => options.length > 0)
 
   const showError = (field: keyof ContributionErrors) => {
     if (touched.has(field) || Object.keys(errors).length > 0) return validateContribution(values)[field]
@@ -144,7 +176,7 @@ function ContributePage({
     )
   }
 
-  if (referenceDataLoading) {
+  if (referenceDataIsLoading) {
     return (
       <section className="product-page contribute-page" aria-labelledby="contribute-heading">
         <header className="page-heading">

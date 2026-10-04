@@ -7,6 +7,14 @@ export const MACHINE_TYPES = [
   ['drill', 'Drill'],
   ['scaler', 'Scaler'],
   ['shotcrete_machine', 'Shotcrete machine'],
+  ['underground_haul_truck', 'Underground haul truck'],
+  ['water_truck', 'Water truck'],
+  ['wheel_loader', 'Wheel loader'],
+  ['crawler_loader', 'Crawler loader'],
+  ['rock_breaker', 'Rock breaker'],
+  ['skid_steer', 'Skid steer'],
+  ['strut_handler', 'Strut handler'],
+  ['shovel', 'Shovel'],
   ['other', 'Other'],
 ] as const
 
@@ -24,7 +32,7 @@ export const ENVIRONMENTS = [
 ] as const
 
 export const AUTOMATION_LEVELS = [
-  ['line_of_sight_remote', 'Line-of-sight remote'],
+  ['operator_assistance', 'Operator assistance'],
   ['teleremote', 'Teleremote'],
   ['semi_autonomous', 'Semi-autonomous'],
   ['autonomous', 'Autonomous'],

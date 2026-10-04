@@ -22,7 +22,7 @@ async function fillMinimumForm() {
 
 describe('ContributePage', () => {
   test('renders the contribution form instead of the Sprint 3 placeholder', () => {
-    render(<ContributePage />)
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     expect(screen.getByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /submit deployment/i })).toBeInTheDocument()
@@ -31,7 +31,7 @@ describe('ContributePage', () => {
 
   test('shows required field errors when submitted incomplete', async () => {
     const user = userEvent.setup()
-    render(<ContributePage />)
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
@@ -45,7 +45,7 @@ describe('ContributePage', () => {
 
   test('validates optional email and evidence URLs', async () => {
     const user = userEvent.setup()
-    render(<ContributePage />)
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     await user.type(screen.getByLabelText(/mine site name/i), 'Roy Hill')
     await user.type(screen.getByLabelText(/country code/i), 'AU')
@@ -63,7 +63,10 @@ describe('ContributePage', () => {
 
   test('rejects impossible calendar dates while accepting year-only dates', async () => {
     const user = userEvent.setup()
-    render(<ContributePage submitContribution={vi.fn().mockResolvedValue(undefined)} />)
+    render(<ContributePage
+      submitContribution={vi.fn().mockResolvedValue(undefined)}
+      referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA}
+    />)
 
     await user.type(screen.getByLabelText(/mine site name/i), 'Roy Hill')
     await user.type(screen.getByLabelText(/country code/i), 'AU')
@@ -84,7 +87,10 @@ describe('ContributePage', () => {
 
   test('submits valid values and shows the success state', async () => {
     const submitContribution = vi.fn().mockResolvedValue(undefined)
-    render(<ContributePage submitContribution={submitContribution} />)
+    render(<ContributePage
+      submitContribution={submitContribution}
+      referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA}
+    />)
 
     const user = await fillMinimumForm()
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
@@ -102,7 +108,7 @@ describe('ContributePage', () => {
       json: async () => ({ verification_status: 'pending_review' }),
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<ContributePage />)
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     const user = await fillMinimumForm()
     await user.type(screen.getByLabelText(/machine model variant/i), 'XDE')
@@ -137,6 +143,23 @@ describe('ContributePage', () => {
     expect(screen.queryByRole('button', { name: /submit deployment/i })).not.toBeInTheDocument()
   })
 
+  test('loads controlled values from the reference-data API', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      machine_types: ['haul_truck'],
+      automation_levels: ['autonomous'],
+      environments: ['surface'],
+      deployment_statuses: ['operational'],
+      installation_types: ['unknown'],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<ContributePage />)
+
+    expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Autonomous' })).toBeInTheDocument()
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')
+  })
+
   test('shows a loading state while reference data is being fetched', () => {
     render(<ContributePage referenceDataLoading />)
 
@@ -146,7 +169,10 @@ describe('ContributePage', () => {
 
   test('shows an API error without losing the form', async () => {
     const submitContribution = vi.fn().mockRejectedValue(new Error('Server rejected submission'))
-    render(<ContributePage submitContribution={submitContribution} />)
+    render(<ContributePage
+      submitContribution={submitContribution}
+      referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA}
+    />)
 
     const user = await fillMinimumForm()
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
