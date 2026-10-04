@@ -45,6 +45,12 @@ describe('POST /api/contributions', () => {
     expect(response.status).toBe(201)
     expect(response.body).toEqual({ id: expect.any(Number), verification_status: 'pending_review' })
 
+    expect(await query(
+      `SELECT m.model_variant FROM deployment d
+       JOIN machine_model m ON m.id = d.machine_model_id WHERE d.id = $1`,
+      [response.body.id],
+    )).toEqual([{ model_variant: null }])
+
     const evidence = await query<{ url: string }>('SELECT url FROM evidence WHERE deployment_id = $1', [response.body.id])
     expect(evidence).toEqual([{ url: 'https://example.com/jimblebar' }])
   })

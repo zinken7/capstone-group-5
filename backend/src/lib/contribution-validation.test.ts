@@ -23,7 +23,7 @@ describe('validateContribution', () => {
         machineType: 'haul_truck',
         machineManufacturer: 'Caterpillar',
         machineModel: null,
-        machineModelVariant: 'base',
+        machineModelVariant: null,
         quantity: 12,
         environment: null,
         deploymentStatus: null,
@@ -44,6 +44,16 @@ describe('validateContribution', () => {
     expect(result.ok && result.value.region).toBeNull()
     expect(result.ok && result.value.machineModel).toBeNull()
     expect(result.ok && result.value.contributorEmail).toBeNull()
+  })
+
+  it.each([undefined, null, '', ' ', '\t\n'])('normalises absent or blank variant %j to null', (variant) => {
+    const result = validateContribution({ ...minimal, machine_model_variant: variant })
+    expect(result.ok && result.value.machineModelVariant).toBeNull()
+  })
+
+  it.each(['base', 'I'])('trims explicit variant %s without changing its spelling', (variant) => {
+    const result = validateContribution({ ...minimal, machine_model_variant: ` \t${variant}\n ` })
+    expect(result.ok && result.value.machineModelVariant).toBe(variant)
   })
 
   it('keeps year-only commissioning without inventing a date', () => {

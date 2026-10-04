@@ -51,7 +51,7 @@ describe('createContribution', () => {
       site: 'Jimblebar',
       manufacturer: 'Epiroc',
       model_name: null,
-      model_variant: 'base',
+      model_variant: null,
       machine_type: 'drill',
       quantity: 4,
       technology_product_id: null,
@@ -59,6 +59,52 @@ describe('createContribution', () => {
       verification_status: 'pending_review',
     })
     expect(await count('contributor')).toBe(0)
+  })
+
+  it.each([null, 'Pit Viper 271'])('reuses unknown variants for model %j and records null in revisions', async (modelName) => {
+    const before = await count('machine_model')
+    const modelIds = new Set<number>()
+    for (const variant of [undefined, null, '', ' ', '\t\n']) {
+      const result = await createContribution(input({
+        ...newSite, machine_model: modelName, machine_model_variant: variant,
+      }))
+      const [row] = await query<{ model_id: number; model_variant: string | null; snapshot: Record<string, unknown> }>(
+        `SELECT m.id::int AS model_id, m.model_variant, r.previous_values AS snapshot
+         FROM deployment d JOIN machine_model m ON m.id = d.machine_model_id
+         JOIN revision r ON r.deployment_id = d.id WHERE d.id = $1`,
+        [result.id],
+      )
+      expect(row).toBeDefined()
+      expect(row?.model_variant).toBeNull()
+      expect(row?.snapshot).toHaveProperty('machine_model_variant', null)
+      modelIds.add(row!.model_id)
+    }
+    expect(modelIds.size).toBe(1)
+    expect(await count('machine_model')).toBe(before + 1)
+  })
+
+  it.each([null, 'Pit Viper 271'])('keeps unknown and base distinct and reuses case variants for model %j', async (modelName) => {
+    async function submit(variant: string | null) {
+      const result = await createContribution(input({
+        ...newSite, machine_model: modelName, machine_model_variant: variant,
+      }))
+      const [row] = await query<{ model_id: number; model_variant: string | null }>(
+        `SELECT m.id::int AS model_id, m.model_variant FROM deployment d
+         JOIN machine_model m ON m.id = d.machine_model_id WHERE d.id = $1`,
+        [result.id],
+      )
+      expect(row).toBeDefined()
+      return row!
+    }
+    const unknown = await submit(null)
+    const base = await submit('base')
+    expect(base.model_id).not.toBe(unknown.model_id)
+    expect(base.model_variant).toBe('base')
+    expect(await submit('BASE')).toEqual(base)
+    expect(await submit(null)).toEqual(unknown)
+    const upper = await submit('I')
+    expect(upper.model_variant).toBe('I')
+    expect(await submit(' i ')).toEqual(upper)
   })
 
   it('records a create revision holding the submission without contact details', async () => {

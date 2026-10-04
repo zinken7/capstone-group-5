@@ -67,20 +67,20 @@ export async function findOrCreateSite(
 /** Matches on manufacturer, model name (or machine type when unnamed) and variant, as the unique indexes do. */
 export async function findOrCreateMachineModel(
   tx: Queryable,
-  model: { manufacturerId: number; modelName: string | null; variant: string; machineType: string },
+  model: { manufacturerId: number; modelName: string | null; variant: string | null; machineType: string },
 ): Promise<number> {
   const existing = model.modelName === null
     ? await firstId(
       tx,
       `SELECT id::int AS id FROM machine_model
-       WHERE manufacturer_id = $1 AND model_name IS NULL AND machine_type::text = $2 AND lower(model_variant) = lower($3)
+       WHERE manufacturer_id = $1 AND model_name IS NULL AND machine_type::text = $2 AND lower(model_variant) IS NOT DISTINCT FROM lower($3::text)
        ORDER BY id LIMIT 1`,
       [model.manufacturerId, model.machineType, model.variant],
     )
     : await firstId(
       tx,
       `SELECT id::int AS id FROM machine_model
-       WHERE manufacturer_id = $1 AND lower(model_name) = lower($2) AND lower(model_variant) = lower($3)
+       WHERE manufacturer_id = $1 AND lower(model_name) = lower($2) AND lower(model_variant) IS NOT DISTINCT FROM lower($3::text)
        ORDER BY id LIMIT 1`,
       [model.manufacturerId, model.modelName, model.variant],
     )

@@ -22,7 +22,7 @@ export interface ContributionInput {
   machineType: string
   machineManufacturer: string
   machineModel: string | null
-  machineModelVariant: string
+  machineModelVariant: string | null
   quantity: number
   environment: string | null
   deploymentStatus: string | null
@@ -184,7 +184,7 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
     machineType: read.choice('machine_type', MACHINE_TYPES, true) ?? '',
     machineManufacturer: read.text('machine_manufacturer', 200, true) ?? '',
     machineModel: read.text('machine_model', 200),
-    machineModelVariant: read.text('machine_model_variant', 100) ?? 'base',
+    machineModelVariant: read.text('machine_model_variant', 100),
     quantity: read.quantity('quantity', true) ?? 0,
     environment: read.choice('environment', MINING_ENVIRONMENTS),
     deploymentStatus: read.choice('deployment_status', DEPLOYMENT_STATUSES),

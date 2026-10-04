@@ -181,7 +181,7 @@ Submits one deployment record. No account is required.
 | `machine_type` | string | Yes | One of `machine_types` |
 | `machine_manufacturer` | string | Yes | ≤ 200 characters |
 | `machine_model` | string | No | ≤ 200 characters |
-| `machine_model_variant` | string | No | ≤ 100 characters; defaults to `base` |
+| `machine_model_variant` | string or null | No | ≤ 100 characters; omitted, null or blank becomes `null` (unknown/not supplied). Explicit `base` remains distinct; comparison is case-insensitive. |
 | `quantity` | number | Yes | Whole number 1–100000 (a JSON number, not a string) |
 | `environment` | string | No | One of `environments` |
 | `deployment_status` | string | No | One of `deployment_statuses` |
