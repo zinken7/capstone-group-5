@@ -72,3 +72,40 @@ describe('GET /api/register', () => {
     }
   })
 })
+
+describe('GET /api/register/export', () => {
+  it('downloads every matching verified deployment as CSV', async () => {
+    const response = await request(app).get('/api/register/export?supplier=Caterpillar&sort=quantity&order=desc')
+
+    expect(response.status).toBe(200)
+    expect(response.headers['content-type']).toBe('text/csv; charset=utf-8')
+    expect(response.headers['content-disposition']).toContain('autonomous-mining-equipment.csv')
+
+    const lines = response.text.trimEnd().split('\r\n')
+    expect(lines[0]).toBe(
+      'id,site_id,site_name,country_code,region,commodity,machine_manufacturer,machine_model,model_variant,' +
+      'machine_type,quantity,technology_supplier,technology_product,automation_level,environment,' +
+      'installation_type,status,commissioning_date,commissioning_year,valid_from,valid_to',
+    )
+    expect(lines).toHaveLength(3)
+    expect(lines[1]).toBe(
+      '10,1,Roy Hill,AU,Pilbara,iron_ore,Caterpillar,Caterpillar 793F,base,haul_truck,96,' +
+      'Caterpillar,Cat MineStar Command for hauling,autonomous,surface,unknown,operational,2021-01-01,2021,2021-01-01,',
+    )
+    expect(lines[2]?.startsWith('14,')).toBe(true)
+  })
+
+  it('is not paged', async () => {
+    const response = await request(app).get('/api/register/export?limit=1')
+
+    expect(response.status).toBe(200)
+    expect(response.text.trimEnd().split('\r\n')).toHaveLength(4)
+  })
+
+  it('rejects an invalid sort parameter', async () => {
+    const response = await request(app).get('/api/register/export?sort=price')
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid sort parameter' })
+  })
+})

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { toCsv } from '../lib/csv.js'
 import { parseDeploymentFilters } from '../lib/deployment-filters.js'
 import type { ParseResult } from '../lib/deployment-filters.js'
 import { REGISTER_SORTS, countRegisterRows, findRegisterRows } from '../repositories/deployments.js'
@@ -56,6 +57,14 @@ export function toRegisterDto(row: RegisterRow) {
   }
 }
 
+/** Export columns, in order; the same field names as the JSON register. */
+const EXPORT_COLUMNS = [
+  'id', 'site_id', 'site_name', 'country_code', 'region', 'commodity',
+  'machine_manufacturer', 'machine_model', 'model_variant', 'machine_type', 'quantity',
+  'technology_supplier', 'technology_product', 'automation_level', 'environment', 'installation_type',
+  'status', 'commissioning_date', 'commissioning_year', 'valid_from', 'valid_to',
+] as const satisfies ReadonlyArray<keyof ReturnType<typeof toRegisterDto>>
+
 router.get('/register', async (req, res, next) => {
   const filters = parseDeploymentFilters(req.query)
   if (!filters.ok) {
@@ -87,6 +96,34 @@ router.get('/register', async (req, res, next) => {
     ])
 
     res.status(200).json({ total, limit, offset, items: rows.map(toRegisterDto) })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/register/export', async (req, res, next) => {
+  const filters = parseDeploymentFilters(req.query)
+  if (!filters.ok) {
+    res.status(400).json({ error: filters.error })
+    return
+  }
+
+  const sort = parseSort(req.query)
+  if (!sort.ok) {
+    res.status(400).json({ error: sort.error })
+    return
+  }
+
+  try {
+    const items = (await findRegisterRows(filters.value, sort.value)).map(toRegisterDto)
+    const headers = EXPORT_COLUMNS
+    const csv = toCsv(headers, items.map((item) => headers.map((column) => item[column])))
+
+    res
+      .status(200)
+      .type('text/csv; charset=utf-8')
+      .attachment('autonomous-mining-equipment.csv')
+      .send(csv)
   } catch (error) {
     next(error)
   }
