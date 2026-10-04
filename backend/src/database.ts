@@ -25,6 +25,34 @@ export async function query<Row extends QueryResultRow>(
   return result.rows
 }
 
+/** Minimal query interface shared by the pool helper and a transaction client. */
+export interface Queryable {
+  query<Row extends QueryResultRow>(text: string, params?: readonly unknown[]): Promise<Row[]>
+}
+
+/** Runs fn inside BEGIN/COMMIT on one pooled connection; any error rolls the whole transaction back. */
+export async function withTransaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
+  const client = await pool.connect()
+  const tx: Queryable = {
+    async query<Row extends QueryResultRow>(text: string, params: readonly unknown[] = []) {
+      const result = await client.query<Row>(text, [...params])
+      return result.rows
+    },
+  }
+
+  try {
+    await client.query('BEGIN')
+    const result = await fn(tx)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
 /**
  * Close the pool; called when tests finish or the process shuts down.
  */
