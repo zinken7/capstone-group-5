@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
-const { closeDatabase } = await import('../database.js')
+const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 const { findMapSites, findSiteById, findVerifiedDeploymentsBySite } = await import('./sites.js')
 
@@ -123,5 +123,16 @@ describe('findVerifiedDeploymentsBySite', () => {
 
   it('returns an empty list when the only deployment is not verified', async () => {
     expect(await findVerifiedDeploymentsBySite(3)).toEqual([])
+  })
+
+  it('prefers the deployment automation level over the product level', async () => {
+    await query(`UPDATE deployment SET automation_level = 'teleremote' WHERE id = 14`)
+
+    const deployments = await findVerifiedDeploymentsBySite(1)
+    expect(deployments.find((deployment) => deployment.id === 14)?.automationLevel).toBe('teleremote')
+    expect(deployments.find((deployment) => deployment.id === 10)?.automationLevel).toBe('autonomous')
+
+    const teleremote = await findMapSites({ ...noFilters, automationLevel: 'teleremote' })
+    expect(teleremote.sites.map((site) => site.id)).toEqual([1, 2])
   })
 })

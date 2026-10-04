@@ -17,9 +17,15 @@ export function assertTestDatabase(connectionString: string): void {
  */
 export async function resetDatabase(): Promise<void> {
   assertTestDatabase(config.databaseUrl)
+  // History tables reject TRUNCATE; replica mode skips those triggers for this transaction only
   await query(`
-    TRUNCATE deployment, technology_product, machine_model, site_company_role, site, region, company
-    RESTART IDENTITY CASCADE
+    BEGIN;
+    SET LOCAL session_replication_role = replica;
+    TRUNCATE
+      revision, verification_review, evidence, admin_user, contributor,
+      deployment, technology_product, machine_model, site_company_role, site, region, company
+    RESTART IDENTITY CASCADE;
+    COMMIT;
   `)
 }
 
@@ -60,14 +66,30 @@ export async function seedMapFixtures(): Promise<void> {
       (3, 2, 'Sandvik AutoMine', 'semi_autonomous'),
       (4, 1, 'Cat MineStar (unclassified)', NULL)
   `)
+  // Verified deployments need evidence by commit time, so both inserts share one transaction
   await query(`
+    BEGIN;
     INSERT INTO deployment (
       id, site_id, machine_model_id, technology_product_id, quantity, environment,
-      commissioning_date, status, verification_status, valid_from, valid_to
+      commissioning_date, commissioning_year, status, verification_status, valid_from, valid_to
     ) VALUES
-      (10, 1, 1, 1, 96, 'surface', '2021-01-01', 'operational', 'verified', '2021-01-01', NULL),
-      (11, 2, 2, 2, 5, 'surface', NULL, 'commissioning', 'verified', '2023-06-01', NULL),
-      (12, 3, 3, 3, 8, 'underground', NULL, 'announced', 'pending_review', '2024-01-01', NULL),
-      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 'decommissioned', 'verified', '2015-03-01', '2020-12-31')
+      (10, 1, 1, 1, 96, 'surface', '2021-01-01', 2021, 'operational', 'verified', '2021-01-01', NULL),
+      (11, 2, 2, 2, 5, 'surface', NULL, NULL, 'commissioning', 'verified', '2023-06-01', NULL),
+      (12, 3, 3, 3, 8, 'underground', NULL, NULL, 'announced', 'pending_review', '2024-01-01', NULL),
+      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31');
+    INSERT INTO evidence (deployment_id, url, source_type) VALUES
+      (10, 'https://example.com/evidence/10', 'company_release'),
+      (11, 'https://example.com/evidence/11', 'news'),
+      (14, 'https://example.com/evidence/14', 'report');
+    COMMIT;
+  `)
+  // Explicit ids do not advance identity sequences; move them past the seeded rows
+  await query(`
+    SELECT setval(pg_get_serial_sequence('company', 'id'), (SELECT MAX(id) FROM company));
+    SELECT setval(pg_get_serial_sequence('region', 'id'), (SELECT MAX(id) FROM region));
+    SELECT setval(pg_get_serial_sequence('site', 'id'), (SELECT MAX(id) FROM site));
+    SELECT setval(pg_get_serial_sequence('machine_model', 'id'), (SELECT MAX(id) FROM machine_model));
+    SELECT setval(pg_get_serial_sequence('technology_product', 'id'), (SELECT MAX(id) FROM technology_product));
+    SELECT setval(pg_get_serial_sequence('deployment', 'id'), (SELECT MAX(id) FROM deployment));
   `)
 }
