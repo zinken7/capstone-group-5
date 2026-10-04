@@ -45,24 +45,47 @@ variable prefix empty: the backend reads exactly `DATABASE_URL`.
 **Frontend.** None. `VITE_API_BASE_URL` defaults to `/api`. `VITE_*` values are
 embedded in the browser bundle and must never hold secrets.
 
-Both projects use Node.js 22.x, matching `engines` in each `package.json`, and
-skip builds when a commit does not change their root directory.
+Both projects use Node.js 22.x, matching `engines` in each `package.json`. For
+branch previews, Vercel skips a project when a commit does not change its root
+directory.
 
 ## Deploying
 
-Both projects are connected to the GitHub repository:
+Production deployments run from GitHub Actions, not from Vercel's Git
+integration:
 
-- A merge to `main` deploys the affected project(s) to production.
-- Any other pushed branch gets preview deployments, and Vercel links them on the
-  pull request. Previews use the staging database and are protected by Vercel
-  Authentication, so only members of the owning Vercel account can open them.
+- On every push to `main`, `.github/workflows/lint.yml` runs CI, then
+  **Migrate staging database**, then **Deploy staging frontend** and
+  **Deploy staging backend**. Each deploy job runs `vercel deploy --prod` from
+  the repository root, and Vercel builds the project's root directory. A failed
+  check or migration stops both deploys, so new code never runs against an old
+  schema.
+- `git.deploymentEnabled` in each `vercel.json` turns the Git integration off
+  for `main`. It still builds preview deployments for other branches and links
+  them on the pull request. Previews use the staging database and are protected
+  by Vercel Authentication, so only members of the owning Vercel account can
+  open them.
 
-Vercel deployments do not run migrations. After CI passes on `main`, the
-**Migrate staging database** job applies any pending migrations (see
-[Migrations and seed data](#migrations-and-seed-data)). Vercel does not wait for
-that job, so after a merge that adds a migration the new backend runs against
-the old schema for a few minutes. If the job fails, staging keeps the old
-schema until a fix is merged.
+The deploy jobs use M1's Vercel token because the Hobby account blocks Git
+deployments of commits by anyone who is not on it; this is what stopped #74
+from deploying. They read their configuration from the `staging` GitHub
+environment, which only `main` can use (see
+[Migrations and seed data](#migrations-and-seed-data)):
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `VERCEL_TOKEN` | Secret | Vercel access token created by M1 |
+| `VERCEL_ORG_ID` | Variable | Vercel account ID |
+| `VERCEL_FRONTEND_PROJECT_ID` | Variable | ID of `capstone-group-5` |
+| `VERCEL_BACKEND_PROJECT_ID` | Variable | ID of `capstone-group-5-api` |
+
+The IDs are in `.vercel/repo.json` after `npx vercel link --repo`. Before the
+token expires, create a new one under Vercel → Account Settings → Tokens, scoped
+to M1's projects, and store it:
+
+```sh
+gh secret set VERCEL_TOKEN --env staging   # paste the token at the prompt
+```
 
 To deploy from a local checkout instead, for example to try a configuration
 change before opening a pull request:
@@ -75,7 +98,8 @@ npx vercel deploy --prod
 ```
 
 A CLI deployment uploads the working tree, including uncommitted changes, and
-replaces the current production deployment of that project.
+replaces the current production deployment of that project until the next push
+to `main` deploys again.
 
 ## Migrations and seed data
 
@@ -93,13 +117,14 @@ advisory lock, which Neon's pooled endpoint does not preserve between
 statements. The two jobs share a concurrency group, so they never run at the
 same time.
 
-The environment is the access boundary. The secret is not defined at
-repository level, so a job without `environment: staging` cannot read it, and
-the environment's deployment branch policy (Settings → Environments →
-`staging`) admits only `main`: GitHub rejects a job from any other branch
-before its first step. Both jobs also check `github.ref` in their `if`
-conditions, but that only documents the intent, because a branch can edit its
-own copy of a workflow. Keep the branch policy when changing the environment.
+The environment is the access boundary for both the database and the Vercel
+token. Its secrets are not defined at repository level, so a job without
+`environment: staging` cannot read them, and the environment's deployment branch
+policy (Settings → Environments → `staging`) admits only `main`: GitHub rejects
+a job from any other branch before its first step. Every job that uses the
+environment also checks `github.ref` in its `if` condition, but that only
+documents the intent, because a branch can edit its own copy of a workflow.
+Keep the branch policy when changing the environment.
 
 The seed loads the synthetic dataset in `backend/seeds/seed_global.sql` in one
 transaction and can be re-run: rows that already exist are skipped, and an
@@ -167,4 +192,6 @@ migration.
   a quiet period is slightly slower.
 - The Vercel projects belong to M1's Hobby account, which is limited to
   non-commercial use and does not support team members. Other members cannot
-  open the dashboard or preview deployments; ask M1 for deployment changes.
+  open the dashboard or preview deployments, and Vercel blocks Git deployments
+  of their commits, including branch previews; `main` is deployed from GitHub
+  Actions for this reason. Ask M1 for deployment changes.

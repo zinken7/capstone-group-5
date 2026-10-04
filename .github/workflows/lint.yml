@@ -167,8 +167,7 @@ jobs:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: node .github/scripts/ci/results.mjs
 
-  # Vercel deploys main without waiting for this job, so a new migration
-  # reaches staging a few minutes after the code that needs it.
+  # Runs before deploy-staging, so new code never meets an old schema.
   migrate-staging:
     name: Migrate staging database
     needs: backend-checks
@@ -198,3 +197,40 @@ jobs:
             exit 1
           fi
           npm run db:migrate
+
+  # Vercel's Git integration does not deploy main (git.deploymentEnabled in each
+  # vercel.json). The Hobby account blocks Git deployments of commits by anyone
+  # not on it, so production deploys run here with M1's token instead.
+  deploy-staging:
+    name: Deploy staging ${{ matrix.project }}
+    needs: [backend-lint, migrate-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [frontend, backend]
+    concurrency:
+      group: staging-deploy-${{ matrix.project }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Run from the repository root: each Vercel project sets its own Root
+      # Directory, and Vercel builds it on its own infrastructure.
+      - name: Deploy to the Vercel production environment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ matrix.project == 'frontend' && vars.VERCEL_FRONTEND_PROJECT_ID || vars.VERCEL_BACKEND_PROJECT_ID }}
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set in the staging environment"
+              exit 1
+            fi
+          done
+          npx --yes vercel@62.2.0 deploy --prod --yes --token "$VERCEL_TOKEN"
