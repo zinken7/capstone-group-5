@@ -40,8 +40,6 @@ function getDensityRadius(quantity: number): number {
 }
 
 function MiningMap({ sites, showDensity = false }: MiningMapProps) {
-  const quantities = sites.map(getSiteQuantity)
-
   return (
     <div
       className="mining-map-region"
@@ -60,8 +58,8 @@ function MiningMap({ sites, showDensity = false }: MiningMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {sites.map((site, index) => {
-          const quantity = quantities[index] ?? 0
+        {sites.map((site) => {
+          const quantity = getSiteQuantity(site)
           const densityColour = getDensityColour(quantity)
 
           return (
