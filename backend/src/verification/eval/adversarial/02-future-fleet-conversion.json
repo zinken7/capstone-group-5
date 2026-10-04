@@ -1,0 +1,103 @@
+{
+  "key": "south-flank-future-fleet-conversion",
+  "exercises": "future phased fleet conversion: the source gives a final fleet quantity of 41 trucks but states that autonomous conversion will be completed in the future",
+  "submission": {
+    "site": {
+      "name": "South Flank",
+      "countryCode": "AU",
+      "region": "Pilbara"
+    },
+    "companyRoles": [
+      {
+        "company": "BHP",
+        "role": "owner"
+      }
+    ],
+    "machine": {
+      "manufacturer": "Komatsu",
+      "machineType": "haul_truck",
+      "modelName": "930E"
+    },
+    "technology": null,
+    "quantity": 41,
+    "commissioning": null
+  },
+  "evidenceUrl": "https://www.bhp.com/news/articles/2022/01/south-flank-autonomous-haulage-rolls-out",
+  "page": {
+    "storedText": "Less than a year after first ore was produced at South Flank, BHP has now approved moving the US$3.6 billion mine to autonomous haulage. Autonomous haulage will be phased in across five Autonomous Operation Zones (AOZs), beginning in June 2022. By September 2023, the entire fleet of 41 Komatsu 930e haul trucks at South Flank will have been converted for autonomous operation, along with about 180 other pieces of equipment that support mining operations including excavators, dozers, front-end loaders, water trucks and site vehicles. The introduction of autonomous haulage is expected to deliver far-reaching safety, production and equipment utilisation and reliability benefits, and new skills and opportunities for the mining and maintenance teams. “South Flank is already a great place to work – this is going to make it even better,” says Mining Supervisor Rangimaria Winiata – better known as Bubba to her colleagues at BHP’s newest mine. She is already a veteran of autonomous operations, having worked in a fully autonomous mine in the Pilbara for six years before moving to South Flank. “I’m really excited – I love my job, but I love the concept of autonomous even more,” she explained. “Most people just don’t realise what a game-changer it is. It seems quite daunting (at first) but it doesn’t take long to get your head around it. Bottom line is it will help us to produce more tonnes, more safely.” The introduction of autonomous haulage will also open up a new set of career options within BHP, with up to 60 specialist roles being created to ensure the pits are able to run autonomously, and the machines are kept operational. These roles include autonomous haulage system controllers, field officers and service technicians. Everyone working in the mining team is being invited to apply for these new roles. No job losses are anticipated. “Anyone who is interested in the future of mining should put their hand up for this,” says Bubba. “I can’t wait to get started!”",
+    "publishedDate": null,
+    "sourceClass": "company_release"
+  },
+  "expectations": [
+    {
+      "field": "site",
+      "subject": "",
+      "subFact": "name",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "site",
+      "subject": "",
+      "subFact": "country",
+      "sentence": null,
+      "verdict": "insufficient"
+    },
+    {
+      "field": "site",
+      "subject": "",
+      "subFact": "region",
+      "sentence": null,
+      "verdict": "insufficient"
+    },
+    {
+      "field": "company_role",
+      "subject": "bhp:owner",
+      "subFact": "company_named",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "company_role",
+      "subject": "bhp:owner",
+      "subFact": "role_stated",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "manufacturer",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "machine_type",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "model_name",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "quantity",
+      "subject": "",
+      "subFact": "count",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "quantity",
+      "subject": "",
+      "subFact": "machine_type_matches",
+      "sentence": null,
+      "verdict": "supported"
+    }
+  ]
+}

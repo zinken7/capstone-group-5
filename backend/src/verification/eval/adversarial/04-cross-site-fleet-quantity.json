@@ -1,0 +1,113 @@
+{
+    "key":  "solomon-cross-site-fleet-quantity",
+    "exercises":  "cross-site fleet quantity and approximate count: over 180 autonomous trucks operate across Solomon and Chichester Hub mines, not Solomon alone",
+    "submission":  {
+                       "site":  {
+                                    "name":  "Solomon",
+                                    "countryCode":  "AU",
+                                    "region":  "Pilbara"
+                                },
+                       "companyRoles":  [
+                                            {
+                                                "company":  "Fortescue",
+                                                "role":  "owner"
+                                            }
+                                        ],
+                       "machine":  {
+                                       "manufacturer":  "Caterpillar",
+                                       "machineType":  "haul_truck",
+                                       "modelName":  null
+                                   },
+                       "technology":  null,
+                       "quantity":  180,
+                       "commissioning":  {
+                                             "year":  2020,
+                                             "month":  10
+                                         }
+                   },
+    "evidenceUrl":  "https://www.fortescue.com/en/articles/australian-first-demonstration-of-remote-dozing-on-display-at-resources-technology-showcas",
+    "page":  {
+                 "storedText":  "Fortescue Metals Group (Fortescue) will this week be joined by students across Western Australia to participate in a demonstration of the company successfully operating a dozer at its Pilbara operations from 1,500 kilometres away in Perth, Western Australia. In an Australian-first demonstration of CatÂ® MineStarTM Command for dozingâ€™s long range remote operational capability, team members are able to control the dozer located at Fortescueâ€™s Christmas Creek operations from an operator station at the 2021 Resources Technology Showcase in Perth. In collaboration with Caterpillar Inc, Fortescue has been trialling the dozing technology since October 2019 as part of an expansion of the companyâ€™s autonomous capability which is delivering significant productivity and efficiency benefits for the business. In October 2020, Fortescue completed one of the largest fleet conversions to autonomous haulage in the industry, expanding its autonomous fleet to over 180 trucks operating across Fortescueâ€™s Solomon and Chichester Hub mines. Fortescue Chief Executive Officer Elizabeth Gaines said, â€œWestern Australiaâ€™s mining sector is the most innovative in the world, and Fortescue is pleased to be able to showcase some of the cutting-edge technology that is utilised in the sector to students and members of the public at the Resources Technology Showcase. â€œUnderpinned by our value of generating ideas, Fortescue has been at the forefront of innovation in the mining industry. We were the first in WA to control a railway from outside a region of operation and the first company in the world to deploy Caterpillar autonomous haulage on a commercial scale. â€œThis demonstration of remote dozing capability builds on our reputation as a leader in autonomous solutions, which not only improves productivity but importantly will continue to improve safety for our team members,â€ Ms Gaines said. Caterpillar Incâ€™s SATS Sr Product Service Engineer, Steve Dougherty, said, â€œCat is excited to witness our long-time customer putting our remotely operated dozing technology to work. We look forward to helping Fortescue expand their remote operations to achieve an improved work environment for operators, create a safer work area on site and enhance machine utilisation by leveraging the efficiencies made possible by Command for dozing.â€",
+                 "publishedDate":  null,
+                 "sourceClass":  "company_release"
+             },
+    "expectations":  [
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "name",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "country",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "region",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "fortescue:owner",
+                             "subFact":  "company_named",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "fortescue:owner",
+                             "subFact":  "role_stated",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "manufacturer",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "machine_type",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "count",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "machine_type_matches",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "commissioning",
+                             "subject":  "",
+                             "subFact":  "year",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "commissioning",
+                             "subject":  "",
+                             "subFact":  "month",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         }
+                     ]
+}
