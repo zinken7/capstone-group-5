@@ -38,6 +38,26 @@ Make sure PostgreSQL/PostGIS is running and `DATABASE_URL` is configured, then r
 npm run db:migrate
 ```
 
+## Seed data
+
+`seeds/seed_global.sql` loads a synthetic dataset of 200 deployments (133
+verified) into a migrated database. Every record is invented. Load it with
+`psql` after the migrations:
+
+```sh
+psql "$DATABASE_URL" -X -f seeds/seed_global.sql
+```
+
+With Docker Compose, use the database container's `psql` from the repository
+root:
+
+```sh
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X' < backend/seeds/seed_global.sql
+```
+
+The load runs in one transaction and can be repeated without creating
+duplicates.
+
 
 ## Health check
 

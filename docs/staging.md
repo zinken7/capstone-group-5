@@ -84,7 +84,7 @@ preserve between statements.
 cd backend
 npx vercel env pull /tmp/staging.env --environment=production --yes
 (set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run db:migrate)
-(set -a; . /tmp/staging.env; set +a; psql "$DATABASE_URL_UNPOOLED" -X -f ../docs/database/seeds/seed_global.sql)
+(set -a; . /tmp/staging.env; set +a; psql "$DATABASE_URL_UNPOOLED" -X -f seeds/seed_global.sql)
 rm /tmp/staging.env
 ```
 
