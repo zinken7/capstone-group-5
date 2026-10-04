@@ -1,6 +1,7 @@
 import express from 'express'
 
 import mapRouter from './routes/map.js'
+import referenceDataRouter from './routes/reference-data.js'
 import sitesRouter from './routes/sites.js'
 import { checkDatabaseHealth } from './database.js'
 
@@ -14,6 +15,7 @@ app.get('/health', (_request, response) => {
 
 app.use('/api', mapRouter)
 app.use('/api', sitesRouter)
+app.use('/api', referenceDataRouter)
 app.get('/health/database', async (_request, response) => {
   try {
     const versions = await checkDatabaseHealth()
