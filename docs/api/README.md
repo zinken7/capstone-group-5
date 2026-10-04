@@ -201,7 +201,7 @@ The shared filters above, plus:
       "commodity": "iron_ore",
       "machine_manufacturer": "Caterpillar",
       "machine_model": "Caterpillar 793F",
-      "model_variant": "base",
+      "model_variant": null,
       "machine_type": "haul_truck",
       "quantity": 96,
       "technology_supplier": "Caterpillar",
@@ -223,6 +223,7 @@ The shared filters above, plus:
 |---|---|
 | `total` | Number of matching verified deployments across all pages |
 | `items[]` | One row per deployment, flattened so the register needs no further joins |
+| `items[].model_variant` | `null` when unknown or not supplied; `base` only when explicitly identified |
 | `items[].commissioning_date` / `commissioning_year` | A full date when known; `commissioning_year` alone when only the year is known |
 | `items[].technology_supplier` / `technology_product` / `automation_level` / `environment` / `status` / `region` / `commodity` | May be `null` |
 

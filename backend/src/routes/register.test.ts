@@ -2,7 +2,7 @@ import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
-const { closeDatabase } = await import('../database.js')
+const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 
 beforeEach(async () => {
@@ -29,10 +29,25 @@ describe('GET /api/register', () => {
       id: 10,
       site_name: 'Roy Hill',
       machine_manufacturer: 'Caterpillar',
+      model_variant: null,
       technology_supplier: 'Caterpillar',
       automation_level: 'autonomous',
       commissioning_year: 2021,
     })
+  })
+
+  it('preserves an explicit base variant in JSON and CSV alongside unknown variants', async () => {
+    await query("UPDATE machine_model SET model_variant = 'base' WHERE id = 1")
+
+    const response = await request(app).get('/api/register')
+    expect(response.status).toBe(200)
+    expect(response.body.items[1]).toMatchObject({ id: 10, model_variant: 'base' })
+    expect(response.body.items[0]).toMatchObject({ id: 11, model_variant: null })
+
+    const exported = await request(app).get('/api/register/export')
+    expect(exported.status).toBe(200)
+    expect(exported.text).toContain('Caterpillar 793F,base,haul_truck')
+    expect(exported.text).toContain('Sandvik,,,drill')
   })
 
   it('filters, searches and sorts', async () => {
@@ -89,7 +104,7 @@ describe('GET /api/register/export', () => {
     )
     expect(lines).toHaveLength(3)
     expect(lines[1]).toBe(
-      '10,1,Roy Hill,AU,Pilbara,iron_ore,Caterpillar,Caterpillar 793F,base,haul_truck,96,' +
+      '10,1,Roy Hill,AU,Pilbara,iron_ore,Caterpillar,Caterpillar 793F,,haul_truck,96,' +
       'Caterpillar,Cat MineStar Command for hauling,autonomous,surface,unknown,operational,2021-01-01,2021,2021-01-01,',
     )
     expect(lines[2]?.startsWith('14,')).toBe(true)

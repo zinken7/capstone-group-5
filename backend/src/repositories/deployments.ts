@@ -31,7 +31,7 @@ export interface RegisterRow {
   commodity: string | null
   machineManufacturer: string
   machineModel: string | null
-  modelVariant: string
+  modelVariant: string | null
   machineType: string
   quantity: number
   technologySupplier: string | null
@@ -103,7 +103,7 @@ interface RegisterDbRow {
   commodity: string | null
   machine_manufacturer: string
   machine_model: string | null
-  model_variant: string
+  model_variant: string | null
   machine_type: string
   quantity: number
   technology_supplier: string | null

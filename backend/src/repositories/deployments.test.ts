@@ -34,7 +34,7 @@ describe('findRegisterRows', () => {
       commodity: 'iron_ore',
       machineManufacturer: 'Caterpillar',
       machineModel: 'Caterpillar 793F',
-      modelVariant: 'base',
+      modelVariant: null,
       machineType: 'haul_truck',
       quantity: 96,
       technologySupplier: 'Caterpillar',
