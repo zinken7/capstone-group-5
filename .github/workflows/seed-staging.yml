@@ -1,0 +1,49 @@
+name: Seed staging database
+
+# Manual only: the seed populates an empty staging database and is never part
+# of a deployment.
+#
+# The staging secret exists only in the staging environment, whose deployment
+# branch policy admits main alone, so GitHub rejects a job from any other branch
+# before it starts. The job's if condition makes that intent visible here, but a
+# branch can edit its own copy of this file; the environment policy is the
+# boundary. See docs/staging.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed-staging:
+    name: Migrate and seed staging database
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    # Shared with the migrate-staging job in lint.yml.
+    concurrency:
+      group: staging-database
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Check the database secret
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo '::error::STAGING_DATABASE_URL is not set in the staging environment'
+            exit 1
+          fi
+      - name: Apply pending migrations
+        run: npm run db:migrate
+      - name: Load the seed dataset
+        run: npm run db:seed

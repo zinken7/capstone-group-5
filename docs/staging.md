@@ -57,9 +57,12 @@ Both projects are connected to the GitHub repository:
   pull request. Previews use the staging database and are protected by Vercel
   Authentication, so only members of the owning Vercel account can open them.
 
-Deployments do not run migrations. Apply a pull request's new migrations to
-staging before merging it, so that the deployed code finds the schema it
-expects.
+Vercel deployments do not run migrations. After CI passes on `main`, the
+**Migrate staging database** job applies any pending migrations (see
+[Migrations and seed data](#migrations-and-seed-data)). Vercel does not wait for
+that job, so after a merge that adds a migration the new backend runs against
+the old schema for a few minutes. If the job fails, staging keeps the old
+schema until a fix is merged.
 
 To deploy from a local checkout instead, for example to try a configuration
 change before opening a pull request:
@@ -76,27 +79,55 @@ replaces the current production deployment of that project.
 
 ## Migrations and seed data
 
-Run database commands through the direct connection. `backend/src/migrate.ts`
-holds a session-level advisory lock, which Neon's pooled endpoint does not
-preserve between statements.
+Migrations run automatically; the seed never does.
+
+| What | When | Where |
+| --- | --- | --- |
+| `npm run db:migrate` | Every push to `main`, after `Backend checks and database tests` passes | **Migrate staging database** job in `.github/workflows/lint.yml` |
+| `npm run db:migrate`, then `npm run db:seed` | On demand: Actions → **Seed staging database** → Run workflow on `main` | `.github/workflows/seed-staging.yml` |
+
+Both connect through `STAGING_DATABASE_URL`, a secret of the `staging` GitHub
+environment, which only `main` can deploy to. It holds Neon's direct
+(unpooled) connection string: `backend/src/migrate.ts` holds a session-level
+advisory lock, which Neon's pooled endpoint does not preserve between
+statements. The two jobs share a concurrency group, so they never run at the
+same time.
+
+The environment is the access boundary. The secret is not defined at
+repository level, so a job without `environment: staging` cannot read it, and
+the environment's deployment branch policy (Settings → Environments →
+`staging`) admits only `main`: GitHub rejects a job from any other branch
+before its first step. Both jobs also check `github.ref` in their `if`
+conditions, but that only documents the intent, because a branch can edit its
+own copy of a workflow. Keep the branch policy when changing the environment.
+
+The seed loads the synthetic dataset in `backend/seeds/seed_global.sql` in one
+transaction and can be re-run: rows that already exist are skipped, and an
+existing ID with different content aborts the whole load rather than
+overwriting it. Do not re-run it once staging holds data that should replace
+the synthetic records, because it re-inserts any seed rows that were deleted.
+
+If the Neon integration is reconnected, update the secret from a local
+checkout:
 
 ```sh
 cd backend
 npx vercel env pull /tmp/staging.env --environment=production --yes
-(set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run db:migrate)
-(set -a; . /tmp/staging.env; set +a; psql "$DATABASE_URL_UNPOOLED" -X -f seeds/seed_global.sql)
+(set -a; . /tmp/staging.env; set +a; printf %s "$DATABASE_URL_UNPOOLED" | gh secret set STAGING_DATABASE_URL --env staging)
 rm /tmp/staging.env
 ```
 
-Variables set this way take precedence over a local root `.env`, so the command
-cannot fall back to the Docker Compose database. `pg` prints a warning about
-`sslmode=require` semantics changing in a future major version; it does not
-affect the connection.
+To run the same commands by hand, replace the `gh secret set` line with:
 
-The `psql` line loads the synthetic seed dataset and needs a local `psql`
-client. It runs in one transaction and can be re-run: rows that already exist
-are skipped, and an existing ID with different content aborts the whole load
-rather than overwriting it.
+```sh
+(set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run db:migrate)
+(set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run db:seed)
+```
+
+Variables set this way take precedence over a local root `.env`, so the command
+cannot fall back to the Docker Compose database. `npm run db:seed` needs a local
+`psql` client. `pg` prints a warning about `sslmode=require` semantics changing
+in a future major version; it does not affect the connection.
 
 Verify afterwards:
 
