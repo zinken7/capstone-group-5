@@ -87,7 +87,7 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
       AND ($7::text IS NULL OR s.commodity = $7)
       AND ($8::text IS NULL OR sc.name = $8)
       AND ($10::text IS NULL OR m.machine_type::text = $10)
-      AND ($11::text IS NULL OR p.automation_level::text = $11)
+      AND ($11::text IS NULL OR COALESCE(d.automation_level, p.automation_level)::text = $11)
       AND ($12::text IS NULL OR d.environment::text = $12)
     ORDER BY s.id, d.id
     `,
@@ -234,7 +234,8 @@ export async function findVerifiedDeploymentsBySite(siteId: number): Promise<Sit
       m.machine_type::text AS machine_type,
       d.quantity,
       sc.name AS technology_supplier,
-      p.automation_level::text AS automation_level,
+      -- The deployment's own level wins; the product level is the fallback
+      COALESCE(d.automation_level, p.automation_level)::text AS automation_level,
       d.environment::text AS environment,
       d.status::text AS status,
       d.commissioning_date::text AS commissioning_date,
