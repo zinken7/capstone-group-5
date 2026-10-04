@@ -84,6 +84,16 @@ jobs:
       - run: npm run build
       - name: Apply migrations to the isolated CI database
         run: npm run db:migrate
+      # A separate database, so the seed's fixed IDs never meet test fixtures.
+      # The second load checks that re-running the seed is a no-op.
+      - name: Load the seed dataset twice into a fresh database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/seed_check
+        run: |
+          psql postgresql://test:test@localhost:5432/test --no-psqlrc --command 'CREATE DATABASE seed_check'
+          npm run db:migrate
+          npm run db:seed
+          npm run db:seed
       - name: Run all backend tests (including database tests when present)
         run: npm test
 
@@ -156,3 +166,35 @@ jobs:
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: node .github/scripts/ci/results.mjs
+
+  # Vercel deploys main without waiting for this job, so a new migration
+  # reaches staging a few minutes after the code that needs it.
+  migrate-staging:
+    name: Migrate staging database
+    needs: backend-checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: staging-database
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Apply pending migrations to Neon staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo '::error::STAGING_DATABASE_URL is not set in the staging environment'
+            exit 1
+          fi
+          npm run db:migrate
