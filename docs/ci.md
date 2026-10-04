@@ -51,17 +51,26 @@ from individual source filenames. This deliberately includes migrations,
 seed data, configuration and dependency changes. Frontend-, service-, infra-
 and documentation-only PRs do not start PostGIS.
 
-## Staging database
+## Staging deployment
 
-On pushes to `main` only, the **Migrate staging database** job runs after
-`Backend checks and database tests` succeeds and applies pending migrations to
-Neon staging. It uses the `staging` GitHub environment, whose
-`STAGING_DATABASE_URL` secret is available only to `main`. It is not part of the
-`Backend Lint` gate, because it runs after the checks rather than as one, and it
-is skipped on pull requests.
+On pushes to `main` only, two more jobs run after the checks, in order:
+
+1. **Migrate staging database** runs after the `Backend Lint` gate succeeds and
+   applies pending migrations to Neon staging. It depends on the gate rather
+   than on a path-selected job, so it runs after every push, including
+   frontend- or documentation-only ones.
+2. **Deploy staging frontend** and **Deploy staging backend** run after the
+   migration succeeds and deploy each Vercel project to production with
+   `vercel deploy --prod`.
+
+Both use the `staging` GitHub environment, whose secrets
+(`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`. They are
+not part of the `Backend Lint` gate, because they run after the checks rather
+than as checks, and they are skipped on pull requests.
 
 `.github/workflows/seed-staging.yml` migrates and seeds staging when run by hand.
-[`staging.md`](staging.md) covers both jobs and the secret.
+[`staging.md`](staging.md) covers these jobs, the environment and its
+configuration.
 
 ## Services and infrastructure
 
