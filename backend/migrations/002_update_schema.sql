@@ -53,19 +53,24 @@ CREATE TYPE verification_decision AS ENUM ('approved', 'rejected', 'needs_change
 CREATE TYPE revision_action AS ENUM ('create', 'update', 'verification_change');
 
 ALTER TABLE machine_model
-  ADD COLUMN model_variant TEXT NOT NULL DEFAULT 'base',
+  ADD COLUMN model_variant TEXT,
   ADD CONSTRAINT machine_model_variant_normalised CHECK (
-    model_variant = btrim(model_variant) AND model_variant <> ''
+    model_variant IS NULL OR (
+      model_variant = btrim(model_variant) AND model_variant <> ''
+    )
   );
 DROP INDEX machine_model_manufacturer_model_unique;
 CREATE UNIQUE INDEX machine_model_manufacturer_model_variant_unique
-  ON machine_model(manufacturer_id, model_name, lower(model_variant))
+  ON machine_model(manufacturer_id, model_name, COALESCE(lower(model_variant), ''))
   WHERE model_name IS NOT NULL;
 -- Preserve the old unnamed-model deduplication rule, now per variant.
 DROP INDEX machine_model_manufacturer_type_unnamed_unique;
 CREATE UNIQUE INDEX machine_model_manufacturer_type_variant_unnamed_unique
-  ON machine_model(manufacturer_id, machine_type, lower(model_variant))
+  ON machine_model(manufacturer_id, machine_type, COALESCE(lower(model_variant), ''))
   WHERE model_name IS NULL;
+
+COMMENT ON COLUMN machine_model.model_variant IS
+  'NULL means unknown or not supplied. Use base only for an explicitly identified base variant or intentional synthetic data. Normalize blank source values to NULL before insertion.';
 
 ALTER TABLE deployment
   ADD COLUMN automation_level automation_level,
