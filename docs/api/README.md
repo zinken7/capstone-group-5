@@ -9,12 +9,15 @@
 | `GET` | `/api/register` | Returns a page of the equipment register: searchable, filterable, sortable (FR-36) |
 | `GET` | `/api/register/export` | Downloads every matching register row as CSV (FR-37) |
 | `GET` | `/api/analytics/summary` | Returns total machines, sites and countries (FR-21) |
+| `GET` | `/api/reference-data` | Returns the controlled values for the contribution form |
+| `POST` | `/api/contributions` | Submits a new deployment record with evidence (FR-40, FR-44) |
+| `PATCH` | `/api/deployments/{id}` | Corrects an existing deployment record (FR-46 to FR-48) |
 
-All endpoints only return deployments with `verification_status = verified` by default (FR-43).
+The public read endpoints only return deployments with `verification_status = verified` by default (FR-43).
 
 ## Design principle: contract first
 
-Fields and enum values are aligned with the controlled-values table in `docs/database/ERD.md`; functional behaviour is aligned with section 4.2 of `docs/SRS/SRS.md`. Both endpoints read from PostGIS through the repository in `backend/src/repositories/sites.ts`; every filter is executed in SQL with parameterised queries (NFR-05).
+Fields and enum values are aligned with the controlled-values table in `docs/database/ERD.md`; functional behaviour is aligned with section 4.2 of `docs/SRS/SRS.md`. Database access uses parameterised queries (NFR-05).
 
 ---
 
@@ -57,41 +60,19 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 
 | Field | Description |
 |---|---|
-| `type`/`features[].type`/`geometry` | Standard GeoJSON structure |
 | `geometry.coordinates` | `[longitude, latitude]` |
 | `excluded_count` | Number of deployments excluded by the date filter (FR-19) |
 | `properties.id`/`name` | Site identifier and name |
-| `properties.status` | Derived field: the highest-precedence status among the site's deployments (FR-16) |
-| `properties.technology_suppliers` | Array — a site may have multiple suppliers (FR-18) |
+| `properties.status` | Highest-precedence deployment status for the site (FR-16) |
+| `properties.technology_suppliers` | Array because a site may have multiple suppliers (FR-18) |
 
-### Error responses
-
-| Status | Trigger condition |
-|---|---|
-| `400 Bad Request` | `bbox` or `date` is malformed, `{"error": "invalid bbox parameter"}` / `{"error": "invalid date parameter"}` |
-
-### Design rationale
-
-- **GeoJSON format**: matches Leaflet (`prototype/docs/ARCHITECTURE.md`) and the earlier prototype's `/api/map` in `prototype/app/api.py`, so the frontend needs no conversion.
-- **`status` is a runtime-derived field**: a site may have multiple deployments in different states, so the highest-precedence one is taken (`operational > commissioning > announced > decommissioned`). Storing it as a fixed field would let it drift out of sync with the deployment data, so it's computed at runtime (`deriveSiteStatus`) and can be reused by other pages.
-- **`excluded_count`**: FR-19 requires stating how many records were excluded when filtering by date, so users don't mistake a "filtered-down empty result" for "this site never had a deployment."
-- **Tiered filtering**: site-level conditions (`bbox`/`country`/`region`/`commodity`) are applied first to filter sites, then deployment-level conditions (`supplier`/`machine_type`/`automation_level`/`environment`) filter deployments, with `date` handled separately. This is because the `date` filter must also compute `excluded_count`, and mixing it into the same pass as the other conditions would make the count inaccurate. All of this runs in one SQL statement: `bbox` is a PostGIS envelope test on `site.point_4326` (GiST-indexed), and `date` is evaluated as two boolean columns (`excluded`, `in_window`) so the count and the filter come from the same row set. Sites without coordinates cannot be placed on the map and are omitted.
-- **`automation_level`/`environment` filter only, not displayed**: the map marker only needs `status` and `technology_suppliers`.
-- **`bbox`/`date` malformed input returns 400**: silently ignoring an invalid parameter would make the user think filtering was applied, so it errors explicitly instead.
+Malformed `bbox` or `date` parameters return `400` rather than being silently ignored. Sites without coordinates cannot be placed on the map and are omitted. Filtering runs in SQL and `date` is handled so `excluded_count` remains accurate.
 
 ---
 
 ## `GET /api/sites/{id}`
 
-### Request parameters
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `id` | Path | integer | Site identifier |
-
-No query parameters.
-
-### Response — `200 OK`
+Returns one site's base attributes and its verified deployments. An unknown id returns `404 {"error":"site not found"}`.
 
 ```json
 {
@@ -122,65 +103,39 @@ No query parameters.
 }
 ```
 
-| Field | Description |
-|---|---|
-| `id`/`name`/`country_code`/`region`/`commodity` | Site base attributes |
-| `mine_status` | The mine's own operating status: `operating`\|`commissioning` (`site_status` enum), or `null` when not recorded |
-| `latitude`/`longitude` | Split from `SITE.point_4326` with `ST_Y`/`ST_X`; `null` when the site has no coordinates |
-| `deployments[]` | The site's verified deployment records (FR-17) |
-| `deployments[].machine_manufacturer` | Base machine manufacturer; separate from the technology supplier |
-| `deployments[].machine_model` | May be `null`; the frontend should fall back to displaying `machine_type` |
-| `deployments[].automation_level` | Four-level classification when known: the deployment's own level, otherwise its technology product's level; may be `null` for an unclassified record |
-| `deployments[].environment` | `surface`, `underground` or `both` |
-| `deployments[].technology_supplier` | Derived field, obtained via the `technology_product → company` relationship |
-| `deployments[].valid_from`/`valid_to` | Deployment validity window used by historical map views |
-
-### Error responses
-
-| Status | Trigger condition |
-|---|---|
-| `404 Not Found` | No site with the given `id`, `{"error": "site not found"}` |
-
-### Design rationale
-
-- **No query parameters**: the detail panel needs the complete data in one shot, with no secondary filtering scenario.
-- **`deployments[].machine_model` may be `null`**: crowdsourced data isn't always precise down to the model, and FR-17 requires falling back to the machine type when there's no model, with the fallback logic left to the frontend.
-- **`technology_supplier` is a derived field**: per the ERD it requires two hops — `deployment.technology_product_id → technology_product.supplier_id → company.name` — to obtain, which the backend resolves in one pass, reducing round trips for the frontend.
-- **`mine_status` follows the `site_status` enum** defined in `backend/migrations/001_initial_schema.sql` (`operating`/`commissioning`).
+`machine_model` may be `null`; the frontend should fall back to `machine_type`. `automation_level` uses the deployment's own value when present, otherwise the technology product's level, and may be `null`. `technology_supplier` is derived through the technology-product relationship. Latitude/longitude are `null` for sites without coordinates.
 
 ---
 
 ## Shared deployment filters
 
-`GET /api/register`, `GET /api/register/export` and `GET /api/analytics/summary` accept the same optional query parameters, so a filtered register, its export and its headline numbers always describe the same set of verified deployments. Blank values are ignored; a parameter given more than once returns `400` (`{"error": "invalid <name> parameter"}`).
+`GET /api/register`, `GET /api/register/export` and `GET /api/analytics/summary` accept the same optional filters. Blank values are ignored; a parameter supplied more than once returns `400`.
 
 | Parameter | Matches |
 |---|---|
-| `q` | Case-insensitive text search across site name, machine model, manufacturer, technology supplier and technology product |
-| `country` | Site country code, e.g. `AU` |
+| `q` | Case-insensitive text search across site, machine model, manufacturer, supplier and product |
+| `country` | Site country code |
 | `region` | Region name |
 | `commodity` | Site commodity |
 | `supplier` | Technology supplier name |
 | `manufacturer` | Machine manufacturer name |
-| `machine_type` | `machine_type` enum value, e.g. `haul_truck` |
-| `automation_level` | Deployment automation level, falling back to the technology product's level |
+| `machine_type` | Machine type enum value |
+| `automation_level` | Deployment level, falling back to the product level |
 | `environment` | `surface`, `underground` or `both` |
 | `status` | `announced`, `commissioning`, `operational` or `decommissioned` |
 
-As with `/api/map`, an enum value outside the controlled list matches nothing rather than returning an error.
+An enum value outside the controlled list matches nothing rather than raising a database error.
 
 ---
 
 ## `GET /api/register`
 
-### Request parameters
-
-The shared filters above, plus:
+Accepts the shared filters plus:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `sort` | `site`\|`country`\|`manufacturer`\|`machine_type`\|`supplier`\|`status`\|`quantity`\|`commissioning` | `site` | Sort column |
-| `order` | `asc`\|`desc` | `asc` | Sort direction; missing values always sort last, ties break on `id` |
+| `order` | `asc`\|`desc` | `asc` | Sort direction; missing values sort last and ties break on `id` |
 | `limit` | integer 1–500 | `50` | Page size |
 | `offset` | integer ≥ 0 | `0` | Rows to skip |
 
@@ -219,72 +174,146 @@ The shared filters above, plus:
 }
 ```
 
-| Field | Description |
-|---|---|
-| `total` | Number of matching verified deployments across all pages |
-| `items[]` | One row per deployment, flattened so the register needs no further joins |
-| `items[].model_variant` | `null` when unknown or not supplied; `base` only when explicitly identified |
-| `items[].commissioning_date` / `commissioning_year` | A full date when known; `commissioning_year` alone when only the year is known |
-| `items[].technology_supplier` / `technology_product` / `automation_level` / `environment` / `status` / `region` / `commodity` | May be `null` |
-
-### Error responses
-
-| Status | Trigger condition |
-|---|---|
-| `400 Bad Request` | Invalid `sort`, `order`, `limit` or `offset`, or a repeated filter parameter |
+`model_variant` is `null` when unknown or not supplied; `base` is used only when explicitly identified. `commissioning_year` supports year-only precision. Invalid sort/paging parameters or repeated filters return `400`.
 
 ---
 
 ## `GET /api/register/export`
 
-Accepts the shared filters, `sort` and `order`; `limit` and `offset` are ignored, so the file holds every matching row. Responds with `text/csv; charset=utf-8` as the attachment `autonomous-mining-equipment.csv`.
+Accepts the shared filters, `sort` and `order`. `limit` and `offset` are ignored so every matching row is exported. The response is `text/csv; charset=utf-8` with filename `autonomous-mining-equipment.csv`.
 
-- Columns and their order match the `items[]` fields of `GET /api/register`.
-- RFC 4180 quoting with CRLF line endings; `null` is an empty cell.
-- Text beginning with `=`, `+`, `-`, `@`, tab or carriage return is prefixed with `'` so a spreadsheet does not run contributed text as a formula.
-
-Errors are the same as `GET /api/register`.
+The column order matches `GET /api/register`. CSV uses RFC 4180 quoting with CRLF line endings; `null` is an empty cell. Text beginning with `=`, `+`, `-`, `@`, tab or carriage return is prefixed with `'` to prevent spreadsheet formula execution.
 
 ---
 
 ## `GET /api/analytics/summary`
 
-Accepts the shared filters.
-
-### Response — `200 OK`
+Accepts the shared filters and returns headline totals over matching verified deployments:
 
 ```json
 { "machine_count": 121, "site_count": 2, "country_count": 1 }
 ```
 
-| Field | Description |
-|---|---|
-| `machine_count` | Sum of `quantity` over matching deployments (records are fleets) |
-| `site_count` | Distinct sites with at least one matching deployment, including sites without coordinates |
-| `country_count` | Distinct site countries |
+`machine_count` is the sum of `quantity`; `site_count` and `country_count` are distinct counts. Repeated filter parameters return `400`.
 
-### Error responses
+---
 
-| Status | Trigger condition |
+## `GET /api/reference-data`
+
+Returns the controlled values accepted by the contribution and correction endpoints. A backend test compares them with `pg_enum` so the API cannot silently drift from migration 002.
+
+```json
+{
+  "machine_types": ["haul_truck", "lhd", "loader", "dozer", "excavator", "drill", "scaler", "shotcrete_machine", "underground_haul_truck", "water_truck", "wheel_loader", "crawler_loader", "rock_breaker", "skid_steer", "strut_handler", "shovel", "other"],
+  "automation_levels": ["operator_assistance", "teleremote", "semi_autonomous", "autonomous"],
+  "environments": ["surface", "underground", "both"],
+  "deployment_statuses": ["announced", "commissioning", "operational", "decommissioned"],
+  "installation_types": ["factory_installed", "retrofit", "unknown"]
+}
+```
+
+---
+
+## `POST /api/contributions`
+
+Submits one deployment record. No account is required.
+
+### Request body (JSON)
+
+| Field | Type | Required | Rule |
+|---|---|---|---|
+| `site_name` | string | Yes | ≤ 200 characters |
+| `country_code` | string | Yes | Two letters; stored upper-case |
+| `region` | string | No | ≤ 100 characters |
+| `commodity` | string | No | ≤ 100 characters |
+| `machine_type` | string | Yes | One of `machine_types` |
+| `machine_manufacturer` | string | Yes | ≤ 200 characters |
+| `machine_model` | string | No | ≤ 200 characters |
+| `machine_model_variant` | string or null | No | ≤ 100 characters; omitted, null or blank becomes `null`. Explicit `base` remains distinct; comparison is case-insensitive |
+| `quantity` | number | Yes | Whole number 1–100000 |
+| `environment` | string | No | One of `environments` |
+| `deployment_status` | string | No | One of `deployment_statuses` |
+| `automation_level` | string | No | One of `automation_levels`; stored even without a product |
+| `installation_type` | string | No | One of `installation_types`; defaults to `unknown` |
+| `technology_supplier` | string | No | ≤ 200 characters |
+| `technology_product` | string | No | ≤ 200 characters; requires `technology_supplier` |
+| `commissioning_date` | string | No | `YYYY` or a real `YYYY-MM-DD` date |
+| `evidence_urls` | string[] | No | Up to 10 `http`/`https` URLs; blanks and duplicates are dropped |
+| `contributor_email` | string | No | Valid email address |
+| `organisation` | string | No | ≤ 200 characters |
+| `disclosure_accepted` | boolean | Yes | Must be `true` (FR-41) |
+
+`null` or a blank string counts as not supplied. Unknown fields are ignored.
+
+### Response — `201 Created`
+
+```json
+{ "id": 42, "verification_status": "pending_review" }
+```
+
+The record stays out of public map, site detail, register and analytics responses until an administrator verifies it.
+
+### Errors
+
+- Invalid fields: `400 {"error":"invalid contribution","fields":{...}}` with all invalid fields listed.
+- Malformed JSON: `400 {"error":"invalid JSON body"}`.
+- Oversized JSON: `413 {"error":"request body too large"}`; request limit is 100 kB.
+
+### Behaviour
+
+- All writes occur in one transaction; any failure rolls everything back.
+- Companies, regions, sites, machine models and technology products are reused case-insensitively when they match; otherwise they are created.
+- A supplier without a product does not create a placeholder product.
+- `commissioning_date: "YYYY"` stores only `commissioning_year`; a full date stores both and sets `valid_from`.
+- A contributor row is created only when email or organisation is supplied.
+- A `create` revision stores the submission snapshot without contact details.
+
+---
+
+## `PATCH /api/deployments/{id}`
+
+Corrects an existing deployment. Site, company and model details remain administrator-managed.
+
+| Field | Rule |
 |---|---|
-| `400 Bad Request` | A repeated filter parameter |
+| `quantity`, `environment`, `deployment_status`, `automation_level`, `installation_type`, `commissioning_date` | Same rules as contribution submission; omitted or `null` leaves the value unchanged |
+| `evidence_urls` | URLs to add; existing ones are ignored |
+| `contributor_email`, `organisation` | Optional contact details |
+| `change_note` | Optional, ≤ 1000 characters |
+| `disclosure_accepted` | Must be `true` |
+
+At least one correctable field or evidence URL must be supplied.
+
+### Response — `200 OK`
+
+```json
+{ "id": 10, "verification_status": "pending_review" }
+```
+
+Invalid corrections return `400`, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`.
+
+The deployment row is locked for the transaction. An `update` revision stores each previous changed value, the previous verification status and, when evidence is added, the previous evidence list. The record returns to `pending_review` (FR-48) and is hidden from public read endpoints until reviewed again.
 
 ---
 
 ## Common implementation trade-offs
 
-- **camelCase (internal) → snake_case (response)**: the type definitions (`types.ts`) and the repository layer use TypeScript's conventional camelCase; routes map to snake_case at the boundary.
-- **The test fixtures deliberately include one unverified record**: in `backend/src/test/fixtures.ts` the deployment for Kalgoorlie Super Pit is `pending_review`, so the FR-43 filter is exercised by the tests.
-- **Filtering runs in SQL, not in the application layer**: the repository builds one parameterised statement per endpoint; optional filters use the `$n IS NULL OR column = $n` pattern so the SQL text is fixed. Enum columns are compared as text, so an unknown value matches nothing rather than raising an error. Site status (FR-16) is still derived in `lib/site-status.ts` so the precedence rule lives in one place.
+- Internal TypeScript/repository fields use camelCase; API responses use snake_case.
+- Test fixtures deliberately include an unverified deployment so FR-43 filtering is exercised.
+- Filtering runs in SQL with parameterised values. Enum columns are compared as text so unknown filter values match nothing instead of raising a database error.
+- Site status remains derived in `lib/site-status.ts` so the precedence rule has one implementation.
 
 ## Tests
 
-Route tests (`backend/src/routes/*.test.ts`) and repository tests (`backend/src/repositories/*.test.ts`) run against a real PostGIS database, seeding fixtures from `backend/src/test/fixtures.ts` before each case. The suite uses a dedicated test database derived from `DATABASE_URL` (`<name>_test`), created and migrated automatically on first run, and `resetDatabase()` refuses any database not named for testing. Locally, start the database with `docker compose up -d db`, then `npm test`. See `backend/README.md` for details.
+Route tests, repository tests and contribution/correction service tests run against a real PostGIS database. Fixtures are seeded before each case. The suite uses a dedicated test database derived from `DATABASE_URL` (`<name>_test`), creates and migrates it automatically on first run, and `resetDatabase()` refuses a non-test database. Locally, start PostgreSQL with `docker compose up -d db`, then run `npm test` from `backend/`.
 
 ## Outstanding
 
-- Sites without coordinates are omitted from `/api/map`; `/api/sites/{id}` returns `null` latitude/longitude for them.
-- `valid_from` may be null in the database; the date filter treats that as no lower bound.
-- Visibility parameters such as `include_unverified` for moderation.
-- The register and summary filters do not include the map's `date` and `bbox` parameters yet.
-- The remaining analytics measures (FR-22 to FR-27 breakdowns) are tracked in #67.
+- Sites without coordinates are omitted from `/api/map`; `/api/sites/{id}` returns `null` coordinates for them.
+- `valid_from` may be null; the map date filter treats that as no lower bound.
+- Moderation still needs visibility parameters such as `include_unverified`.
+- Register and summary filters do not yet include the map's `date` and `bbox` parameters.
+- Remaining analytics measures (FR-22 to FR-27 breakdowns) are tracked in #67.
+- New submissions start as `pending_review`, and public corrections return records to review under FR-48; #62 still needs to confirm the final moderation behaviour and FR-51 anti-spam controls matter before public launch.
+- Administrator revision/review history endpoints belong to #66.
+- Persistence currently uses the shared parameterised `query()`/`withTransaction()` layer and is planned to move to Drizzle with #71.

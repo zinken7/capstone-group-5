@@ -83,4 +83,13 @@ export async function seedMapFixtures(): Promise<void> {
       (14, 'https://example.com/evidence/14', 'report');
     COMMIT;
   `)
+  // Explicit ids do not advance identity sequences; move them past the seeded rows
+  await query(`
+    SELECT setval(pg_get_serial_sequence('company', 'id'), (SELECT MAX(id) FROM company));
+    SELECT setval(pg_get_serial_sequence('region', 'id'), (SELECT MAX(id) FROM region));
+    SELECT setval(pg_get_serial_sequence('site', 'id'), (SELECT MAX(id) FROM site));
+    SELECT setval(pg_get_serial_sequence('machine_model', 'id'), (SELECT MAX(id) FROM machine_model));
+    SELECT setval(pg_get_serial_sequence('technology_product', 'id'), (SELECT MAX(id) FROM technology_product));
+    SELECT setval(pg_get_serial_sequence('deployment', 'id'), (SELECT MAX(id) FROM deployment));
+  `)
 }
