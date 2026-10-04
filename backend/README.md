@@ -28,6 +28,7 @@ runs in Docker Compose, its database host is the `db` service.
 - `npm run lint` runs ESLint with zero warnings allowed.
 - `npm run typecheck` checks TypeScript without producing build output.
 - `npm run db:migrate` applies any database migrations that have not already been run.
+- `npm run db:seed` loads the synthetic seed dataset; it needs a local `psql` client.
 ## Database migrations
 
 Database migrations are stored in `migrations/` and are applied in filename order.
@@ -41,22 +42,23 @@ npm run db:migrate
 ## Seed data
 
 `seeds/seed_global.sql` loads a synthetic dataset of 200 deployments (133
-verified) into a migrated database. Every record is invented. Load it with
-`psql` after the migrations:
+verified) into a migrated database. Every record is invented. Load it after
+the migrations, with `DATABASE_URL` configured as for `db:migrate`:
 
 ```sh
-psql "$DATABASE_URL" -X -f seeds/seed_global.sql
+npm run db:seed
 ```
 
-With Docker Compose, use the database container's `psql` from the repository
-root:
+Without a local `psql`, run it through the Docker Compose database container
+from the repository root:
 
 ```sh
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X' < backend/seeds/seed_global.sql
 ```
 
 The load runs in one transaction and can be repeated without creating
-duplicates.
+duplicates. CI loads it twice into a fresh database on every backend change, and
+[`docs/staging.md`](../docs/staging.md) describes loading it into staging.
 
 
 ## Health check
