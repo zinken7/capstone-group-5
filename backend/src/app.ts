@@ -2,6 +2,7 @@ import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 
 import contributionsRouter from './routes/contributions.js'
+import deploymentsRouter from './routes/deployments.js'
 import mapRouter from './routes/map.js'
 import referenceDataRouter from './routes/reference-data.js'
 import sitesRouter from './routes/sites.js'
@@ -19,6 +20,7 @@ app.use('/api', mapRouter)
 app.use('/api', sitesRouter)
 app.use('/api', referenceDataRouter)
 app.use('/api', contributionsRouter)
+app.use('/api', deploymentsRouter)
 app.get('/health/database', async (_request, response) => {
   try {
     const versions = await checkDatabaseHealth()

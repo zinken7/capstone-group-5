@@ -194,3 +194,97 @@ export async function insertRevision(
     [revision.deploymentId, revision.contributorId, revision.action, JSON.stringify(revision.previousValues), revision.changeNote],
   )
 }
+
+export interface CurrentDeployment {
+  id: number
+  quantity: number
+  environment: string | null
+  status: string | null
+  automationLevel: string | null
+  installationType: string
+  commissioningDate: string | null
+  commissioningYear: number | null
+  verificationStatus: string
+}
+
+/** Reads a deployment and locks its row until the transaction ends, so concurrent corrections queue up. */
+export async function lockDeployment(tx: Queryable, id: number): Promise<CurrentDeployment | null> {
+  const rows = await tx.query<{
+    id: number
+    quantity: number
+    environment: string | null
+    status: string | null
+    automation_level: string | null
+    installation_type: string
+    commissioning_date: string | null
+    commissioning_year: number | null
+    verification_status: string
+  }>(
+    `
+    SELECT
+      id::int AS id, quantity, environment::text AS environment, status::text AS status,
+      automation_level::text AS automation_level, installation_type::text AS installation_type,
+      commissioning_date::text AS commissioning_date, commissioning_year::int AS commissioning_year,
+      verification_status::text AS verification_status
+    FROM deployment
+    WHERE id = $1
+    FOR UPDATE
+    `,
+    [id],
+  )
+  const row = rows[0]
+  if (!row) return null
+
+  return {
+    id: row.id,
+    quantity: row.quantity,
+    environment: row.environment,
+    status: row.status,
+    automationLevel: row.automation_level,
+    installationType: row.installation_type,
+    commissioningDate: row.commissioning_date,
+    commissioningYear: row.commissioning_year,
+    verificationStatus: row.verification_status,
+  }
+}
+
+export async function findEvidenceUrls(tx: Queryable, deploymentId: number): Promise<string[]> {
+  const rows = await tx.query<{ url: string }>('SELECT url FROM evidence WHERE deployment_id = $1 ORDER BY id', [deploymentId])
+  return rows.map((row) => row.url)
+}
+
+/** Column name to SQL cast for every column a correction may write. */
+const CORRECTABLE_COLUMNS = {
+  quantity: '',
+  environment: '::mining_environment',
+  status: '::deployment_status',
+  automation_level: '::automation_level',
+  installation_type: '::installation_type',
+  commissioning_date: '::date',
+  commissioning_year: '',
+} as const
+
+export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
+
+/** Applies the corrected columns and returns the record to pending review (FR-48). */
+export async function updateDeploymentForReview(
+  tx: Queryable,
+  id: number,
+  updates: Partial<Record<CorrectableColumn, unknown>>,
+): Promise<string> {
+  const params: unknown[] = [id]
+  // Column names come from CORRECTABLE_COLUMNS, never from the request
+  const assignments = Object.entries(updates).map(([column, value]) => {
+    params.push(value)
+    return `${column} = $${params.length}${CORRECTABLE_COLUMNS[column as CorrectableColumn]}`
+  })
+  assignments.push(`verification_status = 'pending_review'`)
+
+  const rows = await tx.query<{ verification_status: string }>(
+    `UPDATE deployment SET ${assignments.join(', ')} WHERE id = $1 RETURNING verification_status::text AS verification_status`,
+    params,
+  )
+  const row = rows[0]
+  if (!row) throw new Error('Update matched no deployment')
+  return row.verification_status
+}
