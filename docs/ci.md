@@ -39,16 +39,38 @@ deployment credentials. After the health check, CI runs `npm ci`, lint,
 typecheck, build, `npm run db:migrate`, then `npm test` with `NODE_ENV=test` and
 `DATABASE_URL` pointing to that service.
 
+Between migrations and tests, CI creates a second database, `seed_check`,
+migrates it and runs `npm run db:seed` twice. A migration that breaks
+`backend/seeds/seed_global.sql`, or a seed that is not safe to re-run, therefore
+fails the pull request. The separate database keeps the seed's fixed IDs away
+from the test fixtures.
+
 All backend changes currently run this one complete test suite. There is no
 unit/database test split in the repository, so CI does not infer dependencies
 from individual source filenames. This deliberately includes migrations,
 seed data, configuration and dependency changes. Frontend-, service-, infra-
 and documentation-only PRs do not start PostGIS.
 
-This workflow is independent of PR #54. On current `main`, it applies existing
-migrations and runs the existing backend tests. Once #54 merges, its colocated
-database tests will be picked up by the same `npm test` command. CI does not
-copy seed code from that branch or run production reference seeding.
+## Staging deployment
+
+On pushes to `main` only, two more jobs run after the checks, in order:
+
+1. **Migrate staging database** runs after the `Backend Lint` gate succeeds and
+   applies pending migrations to Neon staging. It depends on the gate rather
+   than on a path-selected job, so it runs after every push, including
+   frontend- or documentation-only ones.
+2. **Deploy staging frontend** and **Deploy staging backend** run after the
+   migration succeeds and deploy each Vercel project to production with
+   `vercel deploy --prod`.
+
+Both use the `staging` GitHub environment, whose secrets
+(`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`. They are
+not part of the `Backend Lint` gate, because they run after the checks rather
+than as checks, and they are skipped on pull requests.
+
+`.github/workflows/seed-staging.yml` migrates and seeds staging when run by hand.
+[`staging.md`](staging.md) covers these jobs, the environment and its
+configuration.
 
 ## Services and infrastructure
 
@@ -109,7 +131,7 @@ node --test .github/scripts/ci/*.test.mjs
 bash -n .github/scripts/ci/services.sh
 bash -n .github/scripts/ci/infra.sh
 docker compose --env-file .env.example config --quiet
-actionlint .github/workflows/lint.yml .github/workflows/pr-conventions.yml
+actionlint .github/workflows/*.yml
 git diff --check
 ```
 

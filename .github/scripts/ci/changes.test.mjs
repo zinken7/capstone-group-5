@@ -44,6 +44,11 @@ test('push to main always selects the full suite', () => {
   assert.deepEqual(affectedAreas(['docs/README.md'], 'push'), all)
 })
 
+// The staging migrate and deploy jobs run after every push to main.
+test('a frontend-only push to main still selects the backend checks', () => {
+  assert.deepEqual(affectedAreas(['frontend/src/App.tsx'], 'push'), all)
+})
+
 test('unknown events fail instead of skipping coverage', () => {
   assert.throws(() => affectedAreas([], 'unknown'))
 })
