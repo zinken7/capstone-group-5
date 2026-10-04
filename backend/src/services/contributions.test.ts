@@ -154,7 +154,7 @@ describe('createContribution', () => {
     const before = { site: await count('site'), company: await count('company'), deployment: await count('deployment') }
 
     // Bypasses validation so the deployment CHECK (quantity > 0) fails after the site and company inserts
-    await expect(createContribution({ ...input(newSite), quantity: 0 })).rejects.toThrow()
+    await expect(createContribution({ ...input(newSite), quantity: 0 })).rejects.toThrow('deployment_quantity_check')
 
     expect({ site: await count('site'), company: await count('company'), deployment: await count('deployment') }).toEqual(before)
   })
