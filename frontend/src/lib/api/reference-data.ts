@@ -13,10 +13,13 @@ interface ReferenceDataResponseDto {
 }
 
 function displayLabel(value: string): string {
-  return value
-    .split('_')
-    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
-    .join(' ')
+  const words = value.toLowerCase().split('_')
+  const firstWord = words.shift() ?? ''
+
+  return [
+    firstWord ? firstWord[0].toUpperCase() + firstWord.slice(1) : firstWord,
+    ...words,
+  ].join(' ')
 }
 
 function toOptions(value: unknown, fieldName: string): readonly ReferenceOption[] {
