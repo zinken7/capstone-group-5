@@ -1,4 +1,5 @@
 import express from 'express'
+import type { NextFunction, Request, Response } from 'express'
 
 import contributionsRouter from './routes/contributions.js'
 import mapRouter from './routes/map.js'
@@ -38,6 +39,16 @@ app.get('/health/database', async (_request, response) => {
       database: { status: 'unavailable' },
     })
   }
+})
+
+// Body parser errors carry a 4xx status; answer them as JSON instead of the default HTML page
+app.use((error: unknown, _request: Request, response: Response, next: NextFunction) => {
+  const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined
+  if (status === 400 || status === 413) {
+    response.status(status).json({ error: status === 413 ? 'request body too large' : 'invalid JSON body' })
+    return
+  }
+  next(error)
 })
 
 export default app
