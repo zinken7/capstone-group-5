@@ -8,13 +8,16 @@ export interface LiveSitesResult {
   excludedCount: number
 }
 
-const COUNTRY_NAMES: Record<string, string> = {
-  AU: 'Australia',
-  CA: 'Canada',
-  CN: 'China',
-  ES: 'Spain',
-  KZ: 'Kazakhstan',
-  US: 'United States',
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+
+/** English name for an ISO 3166-1 alpha-2 code; anything else is returned unchanged. */
+export function countryName(countryCode: string): string {
+  try {
+    return regionNames.of(countryCode) ?? countryCode
+  } catch {
+    // Intl throws a RangeError for values that are not region codes.
+    return countryCode
+  }
 }
 
 const MACHINE_TYPE_LABELS: Record<string, string> = {
@@ -29,8 +32,10 @@ const MACHINE_TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-function machineTypeLabel(machineType: string): string {
-  return MACHINE_TYPE_LABELS[machineType] ?? machineType.replaceAll('_', ' ')
+/** Unlisted types use the same sentence case, e.g. underground_haul_truck → "Underground haul truck". */
+export function machineTypeLabel(machineType: string): string {
+  const label = machineType.replaceAll('_', ' ')
+  return MACHINE_TYPE_LABELS[machineType] ?? label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 function environmentLabel(environment: string): MapDeployment['environment'] {
@@ -74,7 +79,7 @@ function mapSite(detail: SiteDetail, query: MapQuery): MapSite {
     id: String(detail.id),
     name: detail.name,
     region: detail.region ?? 'Region not recorded',
-    country: COUNTRY_NAMES[detail.countryCode] ?? detail.countryCode,
+    country: countryName(detail.countryCode),
     latitude: detail.latitude,
     longitude: detail.longitude,
     deployments,
