@@ -81,11 +81,15 @@ environment, which only `main` can use (see
 
 The IDs are in `.vercel/repo.json` after `npx vercel link --repo`. Before the
 token expires, create a new one under Vercel → Account Settings → Tokens, scoped
-to M1's projects, and store it:
+to M1's projects, copy it and store it with any whitespace removed:
 
 ```sh
-gh secret set VERCEL_TOKEN --env staging   # paste the token at the prompt
+pbpaste | tr -d '[:space:]' | gh secret set VERCEL_TOKEN --env staging
 ```
+
+A trailing newline or space in the secret makes the Vercel CLI reject it with
+`You defined "--token", but its contents are invalid`. After updating the
+secret, re-run the failed deploy jobs with `gh run rerun <run-id> --failed`.
 
 To deploy from a local checkout instead, for example to try a configuration
 change before opening a pull request:
