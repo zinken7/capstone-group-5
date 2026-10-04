@@ -145,16 +145,17 @@
 }
 
 .density-swatch {
-  width: 0.65rem;
-  height: 0.65rem;
   border: 2px solid currentColor;
   border-radius: 50%;
   background: currentColor;
 }
 
-.density-swatch--low { color: #356ca5; }
-.density-swatch--medium { color: #b4a35a; }
-.density-swatch--high { color: #f1d44d; }
+.density-swatch--low { width: 0.55rem; height: 0.55rem; }
+.density-swatch--medium { width: 0.8rem; height: 0.8rem; }
+.density-swatch--high { width: 1.1rem; height: 1.1rem; }
+.density-swatch--low { color: #2563eb; }
+.density-swatch--medium { color: #ea580c; }
+.density-swatch--high { color: #7c3aed; }
 
 .site-summary {
   display: grid;

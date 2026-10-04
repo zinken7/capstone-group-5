@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, test } from 'vitest'
 import MapPage from './MapPage'
-import { fixtureSites } from '../data/fixtureSites'
+import { densityFixtureSites, fixtureSites } from '../data/fixtureSites'
 
 describe('MapPage supplier filtering', () => {
   test('shows all sites before filtering', () => {
@@ -55,6 +55,13 @@ describe('MapPage supplier filtering', () => {
     await user.click(screen.getByRole('checkbox', { name: /show decommissioned records/i }))
 
     expect(screen.getByText('2 sites shown')).toBeInTheDocument()
+  })
+
+  test('includes a 51+ fixture for the high-density state', () => {
+    render(<MapPage sites={densityFixtureSites} />)
+
+    expect(screen.getByText('Pilbara High Density Demo Site').closest('li')).toHaveTextContent('60 verified machines')
+    expect(document.querySelector('path[fill="#7c3aed"]')).toBeInTheDocument()
   })
 
   test('shows an empty state when no machine type matches', async () => {

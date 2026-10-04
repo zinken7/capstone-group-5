@@ -151,7 +151,7 @@ function MapPage({ sites: suppliedSites }: MapPageProps = {}) {
       {showDensity && (
         <section className="density-guide" aria-label="Machine quantity density guide">
           <strong>Machine quantity density</strong>
-          <p>Brighter halos indicate more verified machines at a site. Colour does not represent operating status.</p>
+          <p>Larger, more prominent halos indicate more verified machines at a site. Colour and size show quantity bands, not operating status.</p>
           <ul>
             <li><span className="density-swatch density-swatch--low" />1–10 machines</li>
             <li><span className="density-swatch density-swatch--medium" />11–50 machines</li>

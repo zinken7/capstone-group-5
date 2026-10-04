@@ -18,9 +18,9 @@ interface MiningMapProps {
 const AUSTRALIA_CENTRE: [number, number] = [-25.2744, 133.7751]
 
 const DENSITY_COLOURS = {
-  low: '#356ca5',
-  medium: '#b4a35a',
-  high: '#f1d44d',
+  low: '#2563eb',
+  medium: '#ea580c',
+  high: '#7c3aed',
 } as const
 
 function getSiteQuantity(site: MapSite): number {
@@ -33,14 +33,13 @@ function getDensityColour(quantity: number): string {
   return DENSITY_COLOURS.high
 }
 
-function getDensityRadius(quantity: number, maximumQuantity: number): number {
-  return 18 + Math.sqrt(quantity / maximumQuantity) * 34
+function getDensityRadius(quantity: number): number {
+  if (quantity <= 10) return 14 + quantity * 1.1
+  if (quantity <= 50) return 25 + (quantity - 10) * 0.7
+  return Math.min(65, 55 + Math.sqrt(quantity - 50) * 2)
 }
 
 function MiningMap({ sites, showDensity = false }: MiningMapProps) {
-  const quantities = sites.map(getSiteQuantity)
-  const maximumQuantity = Math.max(...quantities, 1)
-
   return (
     <div
       className="mining-map-region"
@@ -59,8 +58,8 @@ function MiningMap({ sites, showDensity = false }: MiningMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {sites.map((site, index) => {
-          const quantity = quantities[index] ?? 0
+        {sites.map((site) => {
+          const quantity = getSiteQuantity(site)
           const densityColour = getDensityColour(quantity)
 
           return (
@@ -68,14 +67,12 @@ function MiningMap({ sites, showDensity = false }: MiningMapProps) {
               {showDensity && (
                 <CircleMarker
                   center={[site.latitude, site.longitude]}
-                  radius={getDensityRadius(quantity, maximumQuantity)}
+                  radius={getDensityRadius(quantity)}
                   interactive={false}
                   pathOptions={{
-                    color: densityColour,
+                    stroke: false,
                     fillColor: densityColour,
-                    fillOpacity: 0.2,
-                    opacity: 0.5,
-                    weight: 1,
+                    fillOpacity: 0.28,
                   }}
                 />
               )}
