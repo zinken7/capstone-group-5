@@ -55,11 +55,13 @@ and documentation-only PRs do not start PostGIS.
 
 On pushes to `main` only, two more jobs run after the checks, in order:
 
-1. **Migrate staging database** runs after `Backend checks and database tests`
-   succeeds and applies pending migrations to Neon staging.
-2. **Deploy staging frontend** and **Deploy staging backend** run after both
-   the `Backend Lint` gate and the migration succeed, and deploy each Vercel
-   project to production with `vercel deploy --prod`.
+1. **Migrate staging database** runs after the `Backend Lint` gate succeeds and
+   applies pending migrations to Neon staging. It depends on the gate rather
+   than on a path-selected job, so it runs after every push, including
+   frontend- or documentation-only ones.
+2. **Deploy staging frontend** and **Deploy staging backend** run after the
+   migration succeeds and deploy each Vercel project to production with
+   `vercel deploy --prod`.
 
 Both use the `staging` GitHub environment, whose secrets
 (`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`. They are

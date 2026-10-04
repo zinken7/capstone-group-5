@@ -167,10 +167,12 @@ jobs:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: node .github/scripts/ci/results.mjs
 
-  # Runs before deploy-staging, so new code never meets an old schema.
+  # Gated on the always-running result gate, not on a path-selected job, so
+  # migrate and deploy never depend on change routing. Runs before
+  # deploy-staging, so new code never meets an old schema.
   migrate-staging:
     name: Migrate staging database
-    needs: backend-checks
+    needs: backend-lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: staging

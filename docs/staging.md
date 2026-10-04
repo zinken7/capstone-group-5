@@ -107,7 +107,7 @@ Migrations run automatically; the seed never does.
 
 | What | When | Where |
 | --- | --- | --- |
-| `npm run db:migrate` | Every push to `main`, after `Backend checks and database tests` passes | **Migrate staging database** job in `.github/workflows/lint.yml` |
+| `npm run db:migrate` | Every push to `main`, after CI (the `Backend Lint` gate) passes | **Migrate staging database** job in `.github/workflows/lint.yml` |
 | `npm run db:migrate`, then `npm run db:seed` | On demand: Actions → **Seed staging database** → Run workflow on `main` | `.github/workflows/seed-staging.yml` |
 
 Both connect through `STAGING_DATABASE_URL`, a secret of the `staging` GitHub
