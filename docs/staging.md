@@ -84,6 +84,7 @@ preserve between statements.
 cd backend
 npx vercel env pull /tmp/staging.env --environment=production --yes
 (set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run db:migrate)
+(set -a; . /tmp/staging.env; set +a; psql "$DATABASE_URL_UNPOOLED" -X -f ../docs/database/seeds/seed_global.sql)
 rm /tmp/staging.env
 ```
 
@@ -92,8 +93,10 @@ cannot fall back to the Docker Compose database. `pg` prints a warning about
 `sslmode=require` semantics changing in a future major version; it does not
 affect the connection.
 
-Seed data is loaded the same way, replacing `npm run db:migrate` with the seed
-command documented by #26.
+The `psql` line loads the synthetic seed dataset and needs a local `psql`
+client. It runs in one transaction and can be re-run: rows that already exist
+are skipped, and an existing ID with different content aborts the whole load
+rather than overwriting it.
 
 Verify afterwards:
 
@@ -119,8 +122,9 @@ migration.
 
 ## Known limitations
 
-- The staging database stays empty until the seed dataset (#26) is merged and
-  loaded, so the map, register and analytics show their empty states.
+- Staging holds only the synthetic seed dataset. Its companies, sites and
+  evidence are invented, evidence URLs use the reserved `evidence.invalid`
+  domain, and its verification states are test fixtures.
 - Neon runs PostgreSQL 18.6 with PostGIS 3.6, whereas Docker Compose and CI use
   `postgis/postgis:17-3.5`. Migrations run on both; avoid SQL that needs a
   version-specific feature.
