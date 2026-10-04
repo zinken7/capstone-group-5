@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { countryName } from './live'
+import { countryName, machineTypeLabel } from './live'
 
 describe('countryName', () => {
   it.each([
@@ -17,5 +17,24 @@ describe('countryName', () => {
 
   it.each(['', 'not-a-code'])('returns %j unchanged when it is not a region code', (value) => {
     expect(countryName(value)).toBe(value)
+  })
+})
+
+describe('machineTypeLabel', () => {
+  it.each([
+    ['haul_truck', 'Haul truck'],
+    ['lhd', 'LHD'],
+    ['underground_haul_truck', 'Underground haul truck'],
+    ['water_truck', 'Water truck'],
+    ['rock_breaker', 'Rock breaker'],
+  ])('labels %s as %s', (machineType, label) => {
+    expect(machineTypeLabel(machineType)).toBe(label)
+  })
+
+  // MapPage filters by turning the label back into the API value.
+  it('keeps labels reversible to the API value', () => {
+    for (const machineType of ['haul_truck', 'underground_haul_truck', 'strut_handler']) {
+      expect(machineTypeLabel(machineType).toLowerCase().replaceAll(' ', '_')).toBe(machineType)
+    }
   })
 })

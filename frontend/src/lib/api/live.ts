@@ -32,8 +32,10 @@ const MACHINE_TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-function machineTypeLabel(machineType: string): string {
-  return MACHINE_TYPE_LABELS[machineType] ?? machineType.replaceAll('_', ' ')
+/** Unlisted types use the same sentence case, e.g. underground_haul_truck → "Underground haul truck". */
+export function machineTypeLabel(machineType: string): string {
+  const label = machineType.replaceAll('_', ' ')
+  return MACHINE_TYPE_LABELS[machineType] ?? label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 function environmentLabel(environment: string): MapDeployment['environment'] {
