@@ -30,9 +30,7 @@ export interface Queryable {
   query<Row extends QueryResultRow>(text: string, params?: readonly unknown[]): Promise<Row[]>
 }
 
-/**
- * Runs fn inside BEGIN/COMMIT on one pooled connection; any error rolls the whole transaction back.
- */
+/** Runs fn inside BEGIN/COMMIT on one pooled connection; any error rolls the whole transaction back. */
 export async function withTransaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
   const client = await pool.connect()
   const tx: Queryable = {

@@ -15,10 +15,7 @@ export type CorrectionOutcome =
   | { kind: 'unchanged' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
-/**
- * Applies a public correction: previous values go into an update revision first (FR-47),
- * then the deployment changes and returns to pending review (FR-48).
- */
+/** Saves previous values in an update revision (FR-47), then applies the change and returns to pending review (FR-48). */
 export async function correctDeployment(id: number, input: CorrectionInput): Promise<CorrectionOutcome> {
   return withTransaction(async (tx) => {
     const current = await lockDeployment(tx, id)
