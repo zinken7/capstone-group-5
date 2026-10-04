@@ -93,6 +93,14 @@ advisory lock, which Neon's pooled endpoint does not preserve between
 statements. The two jobs share a concurrency group, so they never run at the
 same time.
 
+The environment is the access boundary. The secret is not defined at
+repository level, so a job without `environment: staging` cannot read it, and
+the environment's deployment branch policy (Settings → Environments →
+`staging`) admits only `main`: GitHub rejects a job from any other branch
+before its first step. Both jobs also check `github.ref` in their `if`
+conditions, but that only documents the intent, because a branch can edit its
+own copy of a workflow. Keep the branch policy when changing the environment.
+
 The seed loads the synthetic dataset in `backend/seeds/seed_global.sql` in one
 transaction and can be re-run: rows that already exist are skipped, and an
 existing ID with different content aborts the whole load rather than

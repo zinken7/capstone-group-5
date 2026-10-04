@@ -1,7 +1,13 @@
 name: Seed staging database
 
 # Manual only: the seed populates an empty staging database and is never part
-# of a deployment. Only main can use the staging environment.
+# of a deployment.
+#
+# The staging secret exists only in the staging environment, whose deployment
+# branch policy admits main alone, so GitHub rejects a job from any other branch
+# before it starts. The job's if condition makes that intent visible here, but a
+# branch can edit its own copy of this file; the environment policy is the
+# boundary. See docs/staging.md.
 on:
   workflow_dispatch:
 
@@ -11,6 +17,7 @@ permissions:
 jobs:
   seed-staging:
     name: Migrate and seed staging database
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: staging
     # Shared with the migrate-staging job in lint.yml.
