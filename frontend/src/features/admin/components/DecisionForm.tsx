@@ -44,7 +44,7 @@ function DecisionForm({ recordId, onDecided }: DecisionFormProps) {
   }
 
   return (
-    <form className="admin-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby="decision-heading">
+    <form className="admin-panel decision-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby="decision-heading">
       <h2 id="decision-heading">Decision</h2>
       {error && <p className="form-summary-error" role="alert">{error}</p>}
       <fieldset className="decision-options">

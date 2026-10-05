@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
+import { formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
 import { useLiveRegister } from '../../../hooks/useLiveRegister'
 import StateMessage from '../../../shared/components/StateMessage'
+import StatusBadge from '../../../shared/components/StatusBadge'
 import type { EquipmentRecord, EquipmentSort, SortDirection } from '../types'
 import '../equipment.css'
 
@@ -14,17 +16,6 @@ const CSV_HEADERS = ['Site', 'Country', 'Machine', 'Type', 'Manufacturer', 'Supp
 function escapeCsv(value: string | number): string {
   const text = String(value)
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
-}
-
-function formatCommissioningDate(date: string | undefined): string {
-  if (date === undefined) return 'Not recorded'
-  if (/^\d{4}$/.test(date)) return date
-  const [year, month, day] = date.split('-')
-  return `${day}/${month}/${year}`
-}
-
-function displayStatus(status: EquipmentRecord['status']): string {
-  return status === 'unknown' ? 'Not recorded' : status
 }
 
 function sortDirectionFor(key: EquipmentSort): SortDirection {
@@ -183,7 +174,7 @@ function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
         </label>
       </div>}
 
-      {!loading && !error && <p className="result-summary" aria-live="polite">{visibleRecords.length} records shown</p>}
+      {!loading && !error && <p className="result-summary" aria-live="polite">{formatNumber(visibleRecords.length)} records shown</p>}
 
       {!loading && !error && visibleRecords.length === 0 ? (
         <StateMessage title="No matching equipment" message="Change or clear one of the filters to see more records." />
@@ -226,13 +217,13 @@ function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
               {visibleRecords.map((record) => (
                 <tr key={record.id}>
                   <td><strong>{record.siteName}</strong><small>{record.region}, {record.country}</small></td>
-                  <td>{record.machineModel ?? record.machineType}<small>{record.automationLevel}</small></td>
+                  <td>{record.machineModel ?? formatEnumLabel(record.machineType)}<small>{formatEnumLabel(record.automationLevel)}</small></td>
                   <td>{record.manufacturer}</td>
                   <td>{record.supplier}</td>
-                  <td><span className={`status-badge status-badge--${record.status}`}>{displayStatus(record.status)}</span></td>
-                  <td>{record.environment}</td>
-                  <td>{formatCommissioningDate(record.commissioningDate)}</td>
-                  <td className="numeric">{record.quantity}</td>
+                  <td><StatusBadge status={record.status} /></td>
+                  <td>{formatEnumLabel(record.environment)}</td>
+                  <td>{formatDate(record.commissioningDate)}</td>
+                  <td className="numeric">{formatNumber(record.quantity)}</td>
                 </tr>
               ))}
             </tbody>

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { getReviewQueue } from '../../../lib/api/admin'
 import StateMessage from '../../../shared/components/StateMessage'
 import AdminBar from '../components/AdminBar'
-import { formatDateTime, humanise } from '../format'
+import { formatDateTime, formatEnumLabel, formatNumber } from '../../../lib/format'
 import { useAdminSession } from '../session'
 import type { ReviewQueueItem } from '../types'
 import '../admin.css'
@@ -48,6 +48,7 @@ function AdminQueuePage() {
             <thead>
               <tr>
                 <th scope="col">Site</th>
+                <th scope="col">Kind</th>
                 <th scope="col">Machine</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Technology</th>
@@ -60,8 +61,13 @@ function AdminQueuePage() {
               {queue.items.map((item) => (
                 <tr key={item.id}>
                   <td><strong>{item.siteName}</strong><small>{[item.region, item.countryCode].filter(Boolean).join(', ')}</small></td>
-                  <td>{[item.machineManufacturer, item.machineModel].filter(Boolean).join(' ')}<small>{humanise(item.machineType)}</small></td>
-                  <td>{item.quantity}</td>
+                  <td>
+                    <strong>{formatEnumLabel(item.kind ?? 'submission')}</strong>
+                    {item.kind === 'correction' && item.changedFields && item.changedFields.length > 0 && <small>{item.changedFields.map(formatEnumLabel).join(', ')}</small>}
+                    {(item.contributorEmail || item.contributorOrganisation) && <small>{[item.contributorEmail, item.contributorOrganisation].filter(Boolean).join(' · ')}</small>}
+                  </td>
+                  <td>{[item.machineManufacturer, item.machineModel].filter(Boolean).join(' ')}<small>{formatEnumLabel(item.machineType)}</small></td>
+                  <td>{formatNumber(item.quantity)}</td>
                   <td>{item.technologyProduct ? `${item.technologySupplier ?? ''} ${item.technologyProduct}`.trim() : <span className="admin-warning">Not recorded</span>}</td>
                   <td>{item.evidenceCount > 0 ? item.evidenceCount : <span className="admin-warning">None</span>}</td>
                   <td>{formatDateTime(item.submittedAt)}</td>

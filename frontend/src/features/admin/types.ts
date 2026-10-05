@@ -19,6 +19,10 @@ export interface ReviewQueueItem {
   technologyProduct: string | null
   evidenceCount: number
   submittedAt: string
+  kind?: 'submission' | 'correction' | string
+  changedFields?: string[]
+  contributorEmail?: string | null
+  contributorOrganisation?: string | null
 }
 
 export interface EvidenceItem {

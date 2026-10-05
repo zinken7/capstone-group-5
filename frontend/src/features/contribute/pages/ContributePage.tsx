@@ -55,6 +55,7 @@ function ContributePage({
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [submitMessage, setSubmitMessage] = useState('')
+  const [showMoreDetails, setShowMoreDetails] = useState(false)
   const [loadedReferenceData, setLoadedReferenceData] = useState<ContributionReferenceData | undefined>(providedReferenceData)
   const [loadingReferenceData, setLoadingReferenceData] = useState(!providedReferenceData && !referenceDataLoading)
   const [referenceDataError, setReferenceDataError] = useState(false)
@@ -156,6 +157,7 @@ function ContributePage({
     setTouched(new Set())
     setSubmitState('idle')
     setSubmitMessage('')
+    setShowMoreDetails(false)
   }
 
   if (submitState === 'success') {
@@ -229,6 +231,16 @@ function ContributePage({
         <p>Only submit information you are authorised to disclose. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
+      <button
+        className="detail-toggle"
+        type="button"
+        aria-expanded={showMoreDetails}
+        aria-controls="additional-contribution-details"
+        onClick={() => setShowMoreDetails((current) => !current)}
+      >
+        {showMoreDetails ? 'Hide additional details' : 'Add more detail'}
+      </button>
+
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>
         <fieldset>
           <legend>Deployment details</legend>
@@ -243,13 +255,6 @@ function ContributePage({
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
-            <label className="form-field" htmlFor="region">State or region
-              <input id="region" name="region" value={values.region} onChange={(event) => updateTextField('region', event.target.value)} />
-            </label>
-            <label className="form-field" htmlFor="commodity">Commodity
-              <input id="commodity" name="commodity" placeholder="Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
-            </label>
-
             <label className="form-field" htmlFor="machine-type">Machine type <span aria-hidden="true">*</span>
               <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{referenceData.machineTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <FieldError id="machine-type-error" message={showError('machineType')} />
@@ -261,18 +266,9 @@ function ContributePage({
             <label className="form-field" htmlFor="machine-model">Machine model
               <input id="machine-model" name="machineModel" placeholder="793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
             </label>
-            <label className="form-field" htmlFor="machine-model-variant">Machine model variant
-              <input id="machine-model-variant" name="machineModelVariant" placeholder="Optional" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
-            </label>
             <label className="form-field" htmlFor="quantity">Quantity <span aria-hidden="true">*</span>
               <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
               <FieldError id="quantity-error" message={showError('quantity')} />
-            </label>
-            <label className="form-field" htmlFor="environment">Mining environment
-              <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{referenceData.environments.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-            </label>
-            <label className="form-field" htmlFor="deployment-status">Deployment status
-              <select id="deployment-status" name="deploymentStatus" value={values.deploymentStatus} onChange={(event) => updateTextField('deploymentStatus', event.target.value)}><option value="">Select a status</option>{referenceData.deploymentStatuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             </label>
             <label className="form-field" htmlFor="commissioning-date">Commissioning date or year
               <input id="commissioning-date" name="commissioningDate" placeholder="2025 or 2025-06-30" value={values.commissioningDate} onChange={(event) => updateTextField('commissioningDate', event.target.value)} aria-invalid={Boolean(showError('commissioningDate'))} aria-describedby={showError('commissioningDate') ? 'commissioning-date-error' : undefined} />
@@ -280,6 +276,30 @@ function ContributePage({
             </label>
           </div>
         </fieldset>
+
+        {showMoreDetails && <fieldset id="additional-contribution-details">
+          <legend>Additional details</legend>
+          <div className="form-grid">
+            <label className="form-field" htmlFor="region">State or region
+              <input id="region" name="region" value={values.region} onChange={(event) => updateTextField('region', event.target.value)} />
+            </label>
+            <label className="form-field" htmlFor="commodity">Commodity
+              <input id="commodity" name="commodity" placeholder="Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
+            </label>
+            <label className="form-field" htmlFor="machine-model-variant">Machine model variant
+              <input id="machine-model-variant" name="machineModelVariant" placeholder="Optional" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
+            </label>
+            <label className="form-field" htmlFor="environment">Mining environment
+              <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{referenceData.environments.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            </label>
+            <label className="form-field" htmlFor="deployment-status">Deployment status
+              <select id="deployment-status" name="deploymentStatus" value={values.deploymentStatus} onChange={(event) => updateTextField('deploymentStatus', event.target.value)}><option value="">Select a status</option>{referenceData.deploymentStatuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            </label>
+            <label className="form-field" htmlFor="installation-type">Installation type
+              <select id="installation-type" name="installationType" value={values.installationType} onChange={(event) => updateTextField('installationType', event.target.value)}><option value="">Select an installation type</option>{referenceData.installationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            </label>
+          </div>
+        </fieldset>}
 
         <fieldset>
           <legend>Technology details</legend>
@@ -290,12 +310,21 @@ function ContributePage({
             <label className="form-field" htmlFor="technology-product">Technology product
               <input id="technology-product" name="technologyProduct" placeholder="Optional until verified" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
-            <label className="form-field" htmlFor="automation-level">Automation level
-              <select id="automation-level" name="automationLevel" value={values.automationLevel} onChange={(event) => updateTextField('automationLevel', event.target.value)}><option value="">Select an automation level</option>{referenceData.automationLevels.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-            </label>
-            <label className="form-field" htmlFor="installation-type">Installation type
-              <select id="installation-type" name="installationType" value={values.installationType} onChange={(event) => updateTextField('installationType', event.target.value)}><option value="">Select an installation type</option>{referenceData.installationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-            </label>
+            <fieldset className="chip-field form-field form-field--wide">
+              <legend>Automation level</legend>
+              <div className="chip-group" role="radiogroup" aria-label="Automation level">
+                <label className="choice-chip">
+                  <input type="radio" name="automationLevel" value="" checked={values.automationLevel === ''} onChange={() => updateTextField('automationLevel', '')} />
+                  <span>Not recorded</span>
+                </label>
+                {referenceData.automationLevels.map(([value, label]) => (
+                  <label className="choice-chip" key={value}>
+                    <input type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
         </fieldset>
 
@@ -313,7 +342,7 @@ function ContributePage({
               <FieldError id="evidence-url-error" message={showError('evidenceUrls')} />
               <button className="button button--secondary" type="button" onClick={addEvidence}>Add another source</button>
             </div>
-            <div className="form-grid">
+            {showMoreDetails && <div className="form-grid">
               <label className="form-field" htmlFor="email">Contact email <span className="form-help">(optional)</span>
                 <input id="email" name="email" type="email" placeholder="you@example.com" value={values.email} onChange={(event) => updateTextField('email', event.target.value)} aria-invalid={Boolean(showError('email'))} aria-describedby={showError('email') ? 'email-error' : undefined} />
                 <FieldError id="email-error" message={showError('email')} />
@@ -321,7 +350,7 @@ function ContributePage({
               <label className="form-field" htmlFor="organisation">Organisation <span className="form-help">(optional)</span>
                 <input id="organisation" name="organisation" value={values.organisation} onChange={(event) => updateTextField('organisation', event.target.value)} />
               </label>
-            </div>
+            </div>}
             <label className={`disclosure-check ${showError('disclosureAccepted') ? 'disclosure-check--error' : ''}`} htmlFor="disclosure-accepted">
               <input id="disclosure-accepted" name="disclosureAccepted" type="checkbox" checked={values.disclosureAccepted} onChange={(event) => updateDisclosure(event.target.checked)} required aria-required="true" aria-invalid={Boolean(showError('disclosureAccepted'))} aria-describedby={showError('disclosureAccepted') ? 'disclosure-error' : undefined} />
               <span>I confirm that I am authorised to disclose this information and understand it may be published after verification. <span aria-hidden="true">*</span></span>
@@ -329,6 +358,11 @@ function ContributePage({
             <FieldError id="disclosure-error" message={showError('disclosureAccepted')} />
           </div>
         </fieldset>
+
+        <aside className="contribution-notice contribution-notice--next" aria-labelledby="contribution-next-heading">
+          <h2 id="contribution-next-heading">What happens next</h2>
+          <p>We review the submission and its sources before publishing it. You can provide contact details in the additional fields if the team needs clarification.</p>
+        </aside>
 
         {submitMessage && submitState === 'idle' && <p className="form-summary-error" role="alert">{submitMessage}</p>}
         {submitState === 'error' && <StateMessage variant="error" title="Submission failed" message={submitMessage} />}
