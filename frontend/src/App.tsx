@@ -9,6 +9,7 @@ import AnalyticsPage from './features/analytics/pages/AnalyticsPage'
 import ContributePage from './features/contribute/pages/ContributePage'
 import EquipmentPage from './features/equipment/pages/EquipmentPage'
 import MapPage from './features/map/pages/MapPage'
+import NotFoundPage from './features/not-found/pages/NotFoundPage'
 import AppLayout from './layouts/AppLayout'
 
 function App() {
@@ -27,7 +28,7 @@ function App() {
           <Route path="/admin/deployments/:id" element={<RequireAdminSession><AdminRecordPage /></RequireAdminSession>} />
           <Route path="/admin/users" element={<RequireAdminSession><AdminUsersPage /></RequireAdminSession>} />
           <Route path="/" element={<Navigate replace to="/map" />} />
-          <Route path="*" element={<Navigate replace to="/map" />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AdminSessionProvider>
     </AppLayout>
