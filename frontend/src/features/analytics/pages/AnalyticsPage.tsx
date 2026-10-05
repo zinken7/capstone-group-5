@@ -194,20 +194,37 @@ function HorizontalBars({ rows, color = '#27348b', onFilter, chartName }: { rows
     const key = rows[index]?.key
     if (onFilter && key) onFilter(key)
   }
+
   return (
-    <div className="chart-visual" role="img" aria-label={`${chartName} bar chart showing ${data.map((row) => `${row.label}: ${formatNumber(row.value)} machines, ${Math.round(row.share * 100)} percent`).join('; ')}`}>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 92, left: 12, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d8dee9" />
-          <XAxis type="number" tickCount={5} allowDecimals={false} domain={[0, 'auto']} tickFormatter={(value: number) => formatNumber(value)} />
-          <YAxis dataKey="label" type="category" width={132} tick={{ fontSize: 12 }} />
-          <Tooltip formatter={(value: unknown) => [formatTooltipValue(value), 'Machines']} />
-          <Bar dataKey="value" fill={color} radius={[0, 5, 5, 0]} onClick={onFilter ? handleBarClick : undefined}>
-            {rows.map((row, index) => <Cell key={`${row.label}-${index}`} fill={row.key ? (AUTOMATION_COLORS[row.key] ?? color) : color} />)}
-            <LabelList dataKey="display" position="right" />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="chart-visual-wrapper" style={{ minHeight: height }}>
+      {onFilter && <div className="chart-category-controls" aria-label={`${chartName} filters`}>
+        {rows.map((row, index) => row.key ? (
+          <button
+            className="chart-category-control"
+            key={`${row.label}-${index}`}
+            type="button"
+            style={{ height: 38 }}
+            aria-label={`Filter by ${row.label}`}
+            onClick={() => onFilter(row.key as string)}
+          >
+            {row.label}
+          </button>
+        ) : <span className="chart-category-label" key={`${row.label}-${index}`}>{row.label}</span>)}
+      </div>}
+      <div className="chart-visual" role="img" aria-label={`${chartName} bar chart showing ${data.map((row) => `${row.label}: ${formatNumber(row.value)} machines, ${Math.round(row.share * 100)} percent`).join('; ')}`}>
+        <ResponsiveContainer width="100%" height={height}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 92, left: 12, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d8dee9" />
+            <XAxis type="number" tickCount={5} allowDecimals={false} domain={[0, 'auto']} tickFormatter={(value: number) => formatNumber(value)} />
+            <YAxis dataKey="label" type="category" width={132} tick={onFilter ? false : { fontSize: 12 }} />
+            <Tooltip formatter={(value: unknown) => [formatTooltipValue(value), 'Machines']} />
+            <Bar dataKey="value" fill={color} radius={[0, 5, 5, 0]} onClick={onFilter ? handleBarClick : undefined}>
+              {rows.map((row, index) => <Cell key={`${row.label}-${index}`} fill={row.key ? (AUTOMATION_COLORS[row.key] ?? color) : color} />)}
+              <LabelList dataKey="display" position="right" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
