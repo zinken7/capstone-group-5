@@ -90,4 +90,50 @@ describe('getRegister', () => {
       environment: 'Not recorded',
     })])
   })
+
+  test('loads subsequent pages when the register exceeds the API page size', async () => {
+    const item = (id: number) => ({
+      id,
+      site_name: `Site ${id}`,
+      country_code: 'AU',
+      region: 'Pilbara',
+      machine_manufacturer: 'Caterpillar',
+      machine_model: '789D',
+      model_variant: null,
+      machine_type: 'haul_truck',
+      quantity: 1,
+      technology_supplier: 'Caterpillar',
+      technology_product: 'Command for Hauling',
+      automation_level: 'autonomous',
+      environment: 'surface',
+      installation_type: 'factory_installed',
+      status: 'operational',
+      commissioning_date: null,
+      commissioning_year: 2024,
+      valid_from: null,
+      valid_to: null,
+    })
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({
+        total: 501,
+        limit: 500,
+        offset: 0,
+        items: Array.from({ length: 500 }, (_, index) => item(index + 1)),
+      }))
+      .mockResolvedValueOnce(Response.json({
+        total: 501,
+        limit: 500,
+        offset: 500,
+        items: [item(501)],
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const records = await getRegister()
+
+    expect(records).toHaveLength(501)
+    expect(records.at(-1)).toEqual(expect.objectContaining({ id: '501', siteName: 'Site 501' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/register?limit=500&offset=500', expect.objectContaining({
+      headers: expect.any(Headers),
+    }))
+  })
 })

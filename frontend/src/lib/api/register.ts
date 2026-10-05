@@ -64,6 +64,19 @@ function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
 
 /** Load every matching verified register row so incomplete records are not lost in site-detail data. */
 export async function getRegister(): Promise<EquipmentRecord[]> {
-  const response = await requestJson<RegisterResponseDto>('register?limit=500')
-  return response.items.map(toEquipmentRecord)
+  const pageSize = 500
+  const firstPage = await requestJson<RegisterResponseDto>(`register?limit=${pageSize}`)
+  const items = [...firstPage.items]
+  let nextOffset = firstPage.offset + firstPage.items.length
+
+  while (nextOffset < firstPage.total && firstPage.items.length > 0) {
+    const page = await requestJson<RegisterResponseDto>(`register?limit=${pageSize}&offset=${nextOffset}`)
+    items.push(...page.items)
+
+    const pageEnd = page.offset + page.items.length
+    if (page.items.length === 0 || pageEnd <= nextOffset) break
+    nextOffset = pageEnd
+  }
+
+  return items.map(toEquipmentRecord)
 }
