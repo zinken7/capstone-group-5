@@ -28,6 +28,16 @@ function AppLayout({ children }: PropsWithChildren) {
     document.title = page ? `${page} · Mining Market Map` : 'Page not found · Mining Market Map'
   }, [location.pathname])
 
+  // Administration pages bring their own header (AdminBar) and need no public footer
+  if (inAdmin) {
+    return (
+      <div className="app-shell app-shell--admin">
+        <a className="skip-link" href="#main-content">Skip to main content</a>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -51,7 +61,7 @@ function AppLayout({ children }: PropsWithChildren) {
       <footer className="site-footer">
         <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
         {/* The way in for administrators; the pages behind it still require a sign-in */}
-        {!inAdmin && <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>}
+        <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>
       </footer>
     </div>
   )

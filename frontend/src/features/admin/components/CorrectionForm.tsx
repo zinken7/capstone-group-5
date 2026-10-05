@@ -11,6 +11,8 @@ import type { AdminCorrection, ReviewRecord } from '../types'
 interface CorrectionFormProps {
   record: ReviewRecord
   onCorrected: () => void
+  /** Shows a Cancel button that closes the form without saving */
+  onCancel?: () => void
 }
 
 function initialValues(record: ReviewRecord) {
@@ -82,7 +84,7 @@ function Select({ id, label, value, options, onChange }: {
   )
 }
 
-function CorrectionForm({ record, onCorrected }: CorrectionFormProps) {
+function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) {
   const { handleError } = useAdminSession()
   const [values, setValues] = useState(() => initialValues(record))
   const [referenceData, setReferenceData] = useState<ContributionReferenceData>(DEFAULT_CONTRIBUTION_REFERENCE_DATA)
@@ -120,7 +122,7 @@ function CorrectionForm({ record, onCorrected }: CorrectionFormProps) {
   }
 
   return (
-    <form className="admin-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby="correction-heading">
+    <form className="admin-panel admin-edit" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby="correction-heading">
       <h2 id="correction-heading">Correct this record</h2>
       <p className="form-help">The previous values are kept in the revision history. The verification status does not change.</p>
       {error && <p className="form-summary-error" role="alert">{error}</p>}
@@ -155,9 +157,10 @@ function CorrectionForm({ record, onCorrected }: CorrectionFormProps) {
         </div>
       </div>
       <div className="form-actions">
-        <button className="button button--secondary" type="submit" disabled={submitting}>
+        <button className="button button--primary" type="submit" disabled={submitting}>
           {submitting ? 'Saving…' : 'Save correction'}
         </button>
+        {onCancel && <button className="button button--secondary" type="button" onClick={onCancel} disabled={submitting}>Cancel</button>}
       </div>
     </form>
   )

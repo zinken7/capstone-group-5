@@ -70,6 +70,23 @@ describe('administration access', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password.')
   })
 
+  test('ticks off the password rules while the new password is typed', async () => {
+    stubApi({ 'GET /api/admin/session': () => profile(true) })
+    const user = userEvent.setup()
+    renderAt('/admin/password')
+
+    const rules = await screen.findByRole('list', { name: 'Password requirements' })
+    expect(within(rules).getByText(/At least 12 characters/)).toHaveTextContent('(not yet)')
+
+    await user.type(screen.getByLabelText('Temporary password'), 'temporary-pass')
+    await user.type(screen.getByLabelText('New password'), 'a-much-longer-password')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a-much-longer-password')
+
+    expect(within(rules).getAllByText(/\(done\)/)).toHaveLength(3)
+    await user.click(screen.getByLabelText('Show passwords'))
+    expect(screen.getByLabelText('New password')).toHaveAttribute('type', 'text')
+  })
+
   test('makes a new administrator replace the temporary password before reaching the queue', async () => {
     const calls = stubApi({
       'POST /api/admin/session': () => profile(true),
@@ -309,6 +326,9 @@ describe('record review', () => {
     const user = userEvent.setup()
     renderAt('/admin/deployments/12')
 
+    // Editing is folded away until asked for
+    expect(screen.queryByLabelText('Quantity')).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Edit record' }))
     const quantity = await screen.findByLabelText('Quantity')
     await user.clear(quantity)
     await user.type(quantity, '9')
