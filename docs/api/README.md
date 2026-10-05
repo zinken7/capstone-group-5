@@ -16,6 +16,10 @@
 | `GET` | `/api/admin/session` | Returns the signed-in administrator |
 | `DELETE` | `/api/admin/session` | Signs out |
 | `POST` | `/api/admin/password` | Changes the signed-in administrator's password |
+| `GET` | `/api/admin/reviews` | Lists records pending review (FR-45) |
+| `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
+| `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
+| `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
 
 The public read endpoints only return deployments with `verification_status = verified` by default (FR-43).
 
@@ -343,6 +347,68 @@ session cookie; other sessions of the account end. Errors are `400` with one
 of: `current password is incorrect`, `new password must be at least 12
 characters`, `new password must differ from the current password`,
 `current_password and new_password are required`.
+
+## Moderation
+
+All moderation routes need a signed-in administrator whose temporary password
+has been changed (see [Administrator sign-in](#administrator-sign-in)).
+
+### `GET /api/admin/reviews`
+
+`200 {"items": [...]}`: every deployment with `verification_status =
+pending_review`, least recently changed first. Each item has `id`, `site_name`,
+`country_code`, `region`, `machine_manufacturer`, `machine_model`,
+`machine_type`, `quantity`, `technology_supplier`, `technology_product`,
+`evidence_count` and `submitted_at` (when the record last changed).
+
+### `GET /api/admin/deployments/{id}`
+
+`200` with the record in any verification status: `verification_status`, site,
+machine, technology, deployment fields (as in the register, plus `valid_from`,
+`valid_to`, `created_at`, `updated_at`), and:
+
+- `evidence`: `url`, `source_type`, `publisher`, `published_date`;
+- `reviews`: `decision`, `note`, `administrator` (email), `reviewed_at`;
+- `revisions`: `action` (`create`, `update`, `verification_change`),
+  `previous_values`, `change_note`, `contributor_email`,
+  `contributor_organisation`, `administrator`, `changed_at`.
+
+`404` for an unknown or malformed id.
+
+### `POST /api/admin/deployments/{id}/reviews`
+
+Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`.
+The note (up to 2,000 characters) is required unless approving.
+
+| Decision | New `verification_status` |
+|---|---|
+| `approved` | `verified` |
+| `rejected` | `rejected` |
+| `needs_changes` | `unverified`; the record leaves the queue until a correction returns it to `pending_review` |
+
+The review row, the new status and a `verification_change` revision holding the
+previous status are written in one transaction.
+
+| Status | Body |
+|---|---|
+| `201` | `{"id": <review id>, "verification_status": "verified"}` |
+| `400` | `{"error": "invalid review", "fields": {...}}` |
+| `404` | `{"error": "deployment not found"}` |
+| `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "a technology product is required before the record can be verified"}` |
+| `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
+
+### `PATCH /api/admin/deployments/{id}`
+
+Takes the fields of the public correction (`quantity`, `environment`,
+`deployment_status`, `automation_level`, `installation_type`,
+`commissioning_date`, `evidence_urls`, `change_note`) plus
+`technology_supplier` and `technology_product`, which must be given together.
+There are no contributor fields and no disclosure. The previous values are kept
+in an `update` revision attributed to the administrator, and the verification
+status does not change. Responses match the public correction: `200 {"id",
+"verification_status"}`, `400` for invalid input or a correction that changes
+nothing, `404` for an unknown record.
 
 ## Common implementation trade-offs
 
