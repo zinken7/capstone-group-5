@@ -80,6 +80,11 @@ feature-specific components, hooks, and presentation types inside their feature.
 All transport and endpoint functions belong in the single shared `src/lib/api/`
 boundary; later register, export and analytics clients should extend it.
 
+The analytics page uses [Recharts](https://recharts.org/) for the area, bar and
+donut visualisations. It keeps chart rendering declarative and composable with
+React, while the page also provides accessible table views for users who need
+the exact values or cannot use the visual charts.
+
 Import `getMap`, `getSite`, `ApiError` and their types from `src/lib/api/index.ts`.
 `getMap(query?)` returns `MapResult` containing marker summaries and an
 `excludedCount`; it preserves the backend-derived marker status. Its optional

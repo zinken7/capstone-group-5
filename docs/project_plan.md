@@ -60,13 +60,13 @@ gantt
 |---|---|---|---|
 | Project Spec and Plans | Submission PDF (group, 15%) | 25 Aug 2026 | Done |
 | Sprint 1 increment | Map serving live data on staging | 31 Aug 2026 | Done |
-| In-class test | Individual, 20% | 8 Sep 2026 | Done |
+| In-class test | Individual, 20% | 8 Sep 2026 | Outside project tracker |
 | Sprint 2 increment | Register, filters, export, headline statistics | 21 Sep 2026 | Done |
-| Software Features | Individual, 20% | 29 Sep 2026 | Done |
-| Professional Reflection | Individual, 15% | 29 Sep 2026 | Done |
-| Sprint 3 increment | Contribution and verification on the public staging host | 5 Oct 2026 | In progress |
+| Software Features | Individual, 20% | 29 Sep 2026 | Outside project tracker |
+| Professional Reflection | Individual, 15% | 29 Sep 2026 | Outside project tracker |
+| Sprint 3 increment | Contribution and verification; deployed to staging | 5 Oct 2026 | In review |
 | Demonstration video | Individual, 15% | 6 Oct 2026 | In progress |
-| Final Project Report | Group, 15%, plus showcase | 13 Oct 2026 | Not started |
+| Final Project Report | Group, 15%, plus showcase | 13 Oct 2026 | In progress |
 | Peer feedback | Feedback Fruits | 19 Oct 2026 | Not started |
 
 ---
@@ -83,12 +83,13 @@ done, rather than waiting on a later layer.
 | F0 | Foundation | Schema, seed data, CI/CD and staging working together, shown by one mine site from the database appearing on the map | 1 | Done |
 | F1 | Map | A visitor browses mine sites, sees deployment status, opens site detail, filters the map, and uses the time slider to view a past date | 1–2 | Done |
 | F2 | Equipment register and export | A user searches, filters and sorts every record, and exports the dataset | 2 | Done |
-| F3 | Analytics | A user reads headline statistics and market-level charts, with filters applying to every measure | 2–3 | In progress |
-| F4 | Contribute and verification | A contributor submits a record with evidence; an administrator verifies, rejects or requests more | 3 | In progress |
+| F3 | Analytics | A user reads headline statistics and market-level charts, with filters applying to every measure | 2–3 | Done |
+| F4 | Contribute and verification | A contributor submits a record with evidence; an administrator verifies, rejects or requests more | 3 | Done |
 | F5 | Deployment and handover | The system runs on the public staging host and is handed over with documentation and a UWA deployment path (CM3: UWA hosting is a handover objective, not an MVP requirement) | 3–4 | In progress |
 
 Status values: Not started · In progress · In review · Done. Update this table
-at each sprint review; per-task status stays in the issue tracker.
+at each sprint review; per-task status stays in the issue tracker. Individual
+assessed work is submitted by each member and is not tracked in this repository.
 
 ### F0. Foundation (Sprint 1)
 
@@ -161,6 +162,40 @@ API, interface and test tasks at the start of the sprint that carries it, in
 the same shape as F1. The capabilities are what the team analysed from the
 requirements elicitation and the client meetings, and they are still awaiting
 client validation, so they may change.
+
+---
+
+## 4. Sprint 3 planned vs actual
+
+The Sprint 3 target was a deployed contribution-to-verification workflow,
+database-backed public views and enough integration evidence to leave Sprint 4
+for stabilisation, documentation and handover.
+
+By 5 October 2026 the manual MVP loop was complete on `main`: public users can
+submit new records and propose corrections with evidence; administrators can
+review, correct, approve, reject or request changes; and verified records feed
+the Map, Equipment Register, Analytics and CSV export through the shared
+Drizzle data path. The Vercel frontend and backend use a Neon PostGIS database,
+with automated migrations and health checks. The optional FR-55 evidence
+checker remains separate from the manual decision path and does not block the
+MVP.
+
+Two planned assumptions changed during integration:
+
+- The UWA hosting environment was not available, so the team retained the
+  documented Vercel/Neon staging environment for the demonstration and kept a
+  reproducible Docker Compose setup for handover.
+- The runtime dataset is the deterministic synthetic seed. The anonymised
+  client CSV is retained as source evidence rather than loaded directly at
+  runtime; this avoids presenting incomplete or restricted source data as a
+  complete public market dataset.
+
+The remaining Sprint 3 release work is deployed workflow evidence,
+keyboard/accessibility verification and the final demonstration record. Sprint
+4 remains focused on those checks, defect resolution and handover rather than
+new core functionality. Detailed acceptance evidence is recorded in issue #70,
+[`staging.md`](staging.md) and
+[`sprint-2-frontend-qa-checklist.md`](sprint-2-frontend-qa-checklist.md).
 
 ---
 

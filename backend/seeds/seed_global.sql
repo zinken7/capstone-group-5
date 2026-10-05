@@ -758,6 +758,41 @@ SELECT id, deployment_id, url, source_type, publisher, published_date FROM seed_
 ON CONFLICT (id) DO NOTHING;
 SET CONSTRAINTS ALL IMMEDIATE;
 
+-- Fail the transaction if the maintained seed is incomplete after insertion.
+DO $$
+BEGIN
+  IF (SELECT COUNT(*) FROM public.deployment WHERE id BETWEEN 20001 AND 20200) <> 200 THEN
+    RAISE EXCEPTION 'Seed verification failed: expected 200 deployments';
+  END IF;
+
+  IF (
+    SELECT COUNT(*)
+    FROM public.deployment
+    WHERE id BETWEEN 20001 AND 20200
+      AND verification_status = 'verified'
+  ) <> 133 THEN
+    RAISE EXCEPTION 'Seed verification failed: expected 133 verified deployments';
+  END IF;
+
+  IF (SELECT COUNT(*) FROM public.evidence WHERE id BETWEEN 40001 AND 40133) <> 133 THEN
+    RAISE EXCEPTION 'Seed verification failed: expected 133 evidence records';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.deployment deployment
+    WHERE deployment.id BETWEEN 20001 AND 20200
+      AND deployment.verification_status = 'verified'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.evidence evidence
+        WHERE evidence.deployment_id = deployment.id
+      )
+  ) THEN
+    RAISE EXCEPTION 'Seed verification failed: verified deployment has no evidence';
+  END IF;
+END $$;
+
 -- Advance identity sequences without moving an existing sequence backwards.
 -- PostgreSQL sequence changes are not transactional; this runs last.
 DO $$

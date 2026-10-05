@@ -3,11 +3,13 @@ import AdminLoginPage from './features/admin/pages/AdminLoginPage'
 import AdminPasswordPage from './features/admin/pages/AdminPasswordPage'
 import AdminQueuePage from './features/admin/pages/AdminQueuePage'
 import AdminRecordPage from './features/admin/pages/AdminRecordPage'
+import AdminUsersPage from './features/admin/pages/AdminUsersPage'
 import { AdminSessionProvider, RequireAdminSession } from './features/admin/session'
 import AnalyticsPage from './features/analytics/pages/AnalyticsPage'
 import ContributePage from './features/contribute/pages/ContributePage'
 import EquipmentPage from './features/equipment/pages/EquipmentPage'
 import MapPage from './features/map/pages/MapPage'
+import NotFoundPage from './features/not-found/pages/NotFoundPage'
 import AppLayout from './layouts/AppLayout'
 
 function App() {
@@ -24,8 +26,9 @@ function App() {
           <Route path="/admin/password" element={<RequireAdminSession allowPendingPasswordChange><AdminPasswordPage /></RequireAdminSession>} />
           <Route path="/admin" element={<RequireAdminSession><AdminQueuePage /></RequireAdminSession>} />
           <Route path="/admin/deployments/:id" element={<RequireAdminSession><AdminRecordPage /></RequireAdminSession>} />
+          <Route path="/admin/users" element={<RequireAdminSession><AdminUsersPage /></RequireAdminSession>} />
           <Route path="/" element={<Navigate replace to="/map" />} />
-          <Route path="*" element={<Navigate replace to="/map" />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AdminSessionProvider>
     </AppLayout>

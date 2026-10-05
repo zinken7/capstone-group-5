@@ -99,3 +99,15 @@ export function requireAdmin(options: { allowPendingPasswordChange?: boolean } =
 
   return [requireCsrfHeader, authenticate]
 }
+
+/** requireAdmin, plus the root role: for managing administrator accounts (#100). */
+export function requireRoot(): RequestHandler[] {
+  const checkRole: RequestHandler = (_req, res, next) => {
+    if (currentAdmin(res).role !== 'root') {
+      res.status(403).json({ error: 'root administrator required' })
+      return
+    }
+    next()
+  }
+  return [...requireAdmin(), checkRole]
+}

@@ -31,11 +31,15 @@ Western Australia is a global leader in the adoption of autonomous mining techno
 
 ```sh
 cp .env.example .env
-docker compose up --build
+docker compose up --build -d
+docker compose exec backend npm run db:migrate
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X' < backend/seeds/seed_global.sql
 ```
 
-After the first image build, `docker compose up` is sufficient. The services
-are available at:
+The migration command upgrades both fresh and existing databases. The seed
+command loads the deterministic synthetic demonstration dataset and is safe to
+repeat. After the first image build, `docker compose up -d` is sufficient.
+The services are available at:
 
 - Backend API: `http://localhost:3000`
 - PostgreSQL/PostGIS: `localhost:5432`
@@ -49,6 +53,21 @@ curl --fail http://localhost:3000/health/database
 The response includes both the PostgreSQL and PostGIS versions. Stop the stack
 with `docker compose down`. The named database volume is retained between
 starts; `docker compose down --volumes` also deletes all local database data.
+
+### Start the frontend
+
+In a second terminal:
+
+```sh
+cd frontend
+npm ci
+cp .env.example .env
+npm run dev
+```
+
+Vite prints the local URL, normally `http://localhost:5173`. The checked-in
+frontend environment example sends `/api` requests to the backend at
+`http://localhost:3000` through the development proxy.
 
 ### Environment variables
 

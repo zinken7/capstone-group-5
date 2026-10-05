@@ -4,27 +4,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import App from '../../App'
+import { stubApi } from '../../test/stub-api'
 import { buildCorrection } from './components/CorrectionForm'
 import type { ReviewRecord } from './types'
-
-type Handler = (body: unknown) => Response
-interface Call { key: string; body: unknown; headers: Headers }
-
-/** Stubs fetch with handlers keyed by "METHOD /path"; unknown requests fail loudly. */
-function stubApi(routes: Record<string, Handler | Handler[]>): Call[] {
-  const calls: Call[] = []
-  const queues = new Map(Object.entries(routes).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]))
-  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input), 'http://localhost')
-    const key = `${init?.method ?? 'GET'} ${url.pathname}`
-    const body: unknown = init?.body ? JSON.parse(String(init.body)) : undefined
-    calls.push({ key, body, headers: new Headers(init?.headers) })
-    const entry = queues.get(key)
-    const handler = Array.isArray(entry) ? (entry.length > 1 ? entry.shift() : entry[0]) : entry
-    return handler ? handler(body) : Response.json({ error: `unexpected request ${key}` }, { status: 500 })
-  }))
-  return calls
-}
 
 const profile = (mustChange = false) => Response.json({ email: 'reviewer@example.com', role: 'admin', must_change_password: mustChange })
 const unauthorised = () => Response.json({ error: 'sign in required' }, { status: 401 })
@@ -57,6 +39,7 @@ const recordDto = (overrides: Record<string, unknown> = {}) => ({
   evidence: [{ url: 'https://example.com/evidence/12', source_type: 'news', publisher: null, published_date: null }],
   reviews: [],
   revisions: [],
+  corrections: [],
   ...overrides,
 })
 
@@ -153,6 +136,7 @@ describe('review queue', () => {
           id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
           machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
           technology_supplier: null, technology_product: null, evidence_count: 0, submitted_at: '2026-10-02T00:00:00Z',
+          kind: 'submission', correction_id: null, changed_fields: [], contributor_email: null, contributor_organisation: null,
         }],
       }),
     })
@@ -167,6 +151,91 @@ describe('review queue', () => {
   })
 })
 
+describe('proposed corrections', () => {
+  const verifiedRecord = (overrides: Record<string, unknown> = {}) => recordDto({
+    id: 10, verification_status: 'verified', site_name: 'Roy Hill', quantity: 96, ...overrides,
+  })
+  const pendingCorrection = {
+    id: 1, status: 'pending', submitted_at: '2026-10-05T03:00:00Z',
+    contributor_email: 'analyst@example.com', contributor_organisation: null, change_note: 'Fleet update',
+    evidence_urls: ['https://example.com/fleet-2026'],
+    changes: [
+      { field: 'quantity', before: 96, proposed: 100, current: 96 },
+      { field: 'deployment_status', before: 'announced', proposed: 'operational', current: 'commissioning' },
+    ],
+  }
+
+  test('the queue shows a correction, the fields it changes and who sent it', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 10, site_name: 'Roy Hill', country_code: 'AU', region: 'Pilbara',
+          machine_manufacturer: 'Caterpillar', machine_model: '793F', machine_type: 'haul_truck', quantity: 96,
+          technology_supplier: 'Caterpillar', technology_product: 'MineStar', evidence_count: 1, submitted_at: '2026-10-05T03:00:00Z',
+          kind: 'correction', correction_id: 1, changed_fields: ['quantity', 'evidence_urls'],
+          contributor_email: 'analyst@example.com', contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Roy Hill')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Correction')).toBeInTheDocument()
+    expect(within(row).getByText('Quantity, Evidence urls')).toBeInTheDocument()
+    expect(within(row).getByText('analyst@example.com')).toBeInTheDocument()
+    expect(within(row).getByRole('link', { name: /review correction 1 to roy hill record 10/i })).toHaveAttribute('href', '/admin/deployments/10')
+  })
+
+  test('a verified record shows the proposal, flags a field that changed since, and approves it', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/10': [
+        () => Response.json(verifiedRecord({ corrections: [pendingCorrection] })),
+        () => Response.json(verifiedRecord({
+          quantity: 100,
+          corrections: [{ ...pendingCorrection, status: 'approved' }],
+          reviews: [{ decision: 'approved', note: null, administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T04:00:00Z', correction_id: 1 }],
+        })),
+      ],
+      'POST /api/admin/corrections/1/reviews': () => Response.json({ id: 5, correction_status: 'approved', verification_status: 'verified' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/10')
+
+    const table = await screen.findByRole('table', { name: 'Proposed changes' })
+    const quantity = within(table).getByRole('row', { name: /Quantity/ })
+    expect(within(quantity).getByText('96')).toBeInTheDocument()
+    expect(within(quantity).getByText('100')).toBeInTheDocument()
+    expect(within(table).getByText(/Now Commissioning: the record changed after this was submitted/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://example.com/fleet-2026' })).toHaveAttribute('rel', 'noopener noreferrer')
+    // A verified record has no decision of its own, only the correction's
+    expect(screen.getAllByRole('button', { name: 'Record decision' })).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+
+    expect(await screen.findByText('Decision on the correction recorded.')).toBeInTheDocument()
+    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null })
+    expect(screen.queryByRole('table', { name: 'Proposed changes' })).not.toBeInTheDocument()
+    expect(screen.getByText('Correction approved')).toBeInTheDocument()
+    expect(screen.getByText('Decided corrections')).toBeInTheDocument()
+  })
+
+  test('a verified record without corrections explains that none are waiting', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/10': () => Response.json(verifiedRecord()),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/10')
+
+    expect(await screen.findByText(/This record is verified/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
+  })
+})
+
 describe('record review', () => {
   test('shows the record, opens evidence safely, and records a rejection with a note', async () => {
     const calls = stubApi({
@@ -175,7 +244,7 @@ describe('record review', () => {
         () => Response.json(recordDto()),
         () => Response.json(recordDto({
           verification_status: 'rejected',
-          reviews: [{ decision: 'rejected', note: 'Duplicate', administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T01:00:00Z' }],
+          reviews: [{ decision: 'rejected', note: 'Duplicate', administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
         })),
       ],
       'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 1, verification_status: 'rejected' }, { status: 201 }),
@@ -252,6 +321,33 @@ describe('record review', () => {
     expect(screen.getByText('Previous quantity')).toBeInTheDocument()
   })
 
+  test('shows proposed values for contributor evidence and verification corrections', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        evidence: [{ url: 'https://example.com/new-evidence', source_type: 'news', publisher: null, published_date: null }],
+        revisions: [{
+          action: 'update',
+          previous_values: {
+            evidence_urls: ['https://example.com/old-evidence'],
+            verification_status: 'verified',
+          },
+          change_note: 'Contributor correction',
+          contributor_email: 'field@example.com',
+          contributor_organisation: 'Example Mining',
+          administrator: null,
+          changed_at: '2026-10-05T02:00:00Z',
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('What changed')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: https://example.com/new-evidence')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: pending_review')).toBeInTheDocument()
+  })
+
   test('says when a record does not exist', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),
@@ -268,7 +364,7 @@ describe('buildCorrection', () => {
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
-    validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [],
+    validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',

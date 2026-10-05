@@ -24,7 +24,8 @@
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: #fff;
+  color: #fff;
+  background: #172554;
 }
 
 .admin-bar nav {
@@ -33,20 +34,20 @@
 }
 
 .admin-bar nav a {
-  color: var(--text-muted);
+  color: #dbeafe;
   font-weight: 650;
   text-decoration: none;
 }
 
 .admin-bar nav a.active {
-  color: var(--brand);
+  color: #fff;
   text-decoration: underline;
   text-underline-offset: 0.3rem;
 }
 
 .admin-bar__user {
   margin-left: auto;
-  color: var(--text-muted);
+  color: #c7d2fe;
   font-size: 0.9rem;
 }
 
@@ -77,7 +78,7 @@
 .form-field textarea {
   min-height: 5rem;
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.5rem;
   font: inherit;
 }
@@ -85,6 +86,12 @@
 .admin-record {
   display: grid;
   gap: 1rem;
+}
+
+.decision-panel {
+  position: sticky;
+  top: 1rem;
+  z-index: 2;
 }
 
 .admin-back {
@@ -140,6 +147,24 @@
   color: var(--text-muted);
 }
 
+.change-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+}
+
+.change-list > div {
+  display: grid;
+  gap: 0.3rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.change-list > div:last-child { padding-bottom: 0; border-bottom: 0; }
+.change-list dt { color: var(--text-muted); font-size: var(--type-sm); font-weight: 700; }
+.change-list dd { display: grid; gap: 0.2rem; margin: 0; }
+.change-list dd span:first-child { color: var(--text-muted); }
+
 .admin-table .button {
   display: inline-block;
   text-decoration: none;
@@ -181,20 +206,6 @@
   color: var(--text-muted);
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  background: var(--surface-muted);
-}
-
-.status-badge--pending_review { color: #92400e; background: #fef3c7; }
-.status-badge--verified { color: #166534; background: #dcfce7; }
-.status-badge--rejected { color: #991b1b; background: #fee2e2; }
-.status-badge--unverified { color: #374151; background: #e5e7eb; }
-
 .decision-options {
   display: grid;
   gap: 0.6rem;
@@ -208,7 +219,7 @@
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.7rem 0.8rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.6rem;
   cursor: pointer;
 }
@@ -230,15 +241,38 @@
   padding-left: 1.1rem;
 }
 
-.history-list blockquote {
+.history-list blockquote,
+.correction-panel blockquote {
   margin: 0.35rem 0 0;
   padding-left: 0.75rem;
   border-left: 3px solid var(--border);
   color: var(--text-muted);
 }
 
+/* Proposed correction: field names are row labels, not column captions */
+.correction-changes tbody th {
+  color: var(--text-strong);
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.admin-table td small.admin-warning {
+  color: #9a3412;
+}
+
 .previous-values {
   display: grid;
   gap: 0.35rem;
   margin: 0.4rem 0 0;
+}
+
+.temporary-password code {
+  display: inline-block;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.4rem;
+  background: var(--surface-muted);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  user-select: all;
 }
