@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { formatCommissioning, formatCountry, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { getAnalyticsBreakdowns, getAnalyticsSummary } from '../../../lib/api/analytics'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
-import { getRegisterAll, getRegisterExport, getRegisterPage } from '../../../lib/api/register'
+import { getRegisterExport, getRegisterPage } from '../../../lib/api/register'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
@@ -117,7 +118,12 @@ function writeView(view: RegisterView) {
 function LiveEquipmentPage() {
   const [view, setView] = useState<RegisterView>(readView)
   const [records, setRecords] = useState<EquipmentRecord[]>([])
-  const [summaryRecords, setSummaryRecords] = useState<EquipmentRecord[]>([])
+  const [summary, setSummary] = useState({ machineCount: 0, siteCount: 0, countryCount: 0 })
+  const [breakdowns, setBreakdowns] = useState({
+    byCountry: [] as Array<{ key: string | null; machineCount: number }>,
+    bySupplier: [] as Array<{ key: string | null; machineCount: number }>,
+    byStatus: [] as Array<{ key: string | null; machineCount: number }>,
+  })
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -138,11 +144,17 @@ function LiveEquipmentPage() {
     const offset = (view.page - 1) * view.pageSize
     Promise.all([
       getRegisterPage({ ...view.filters, sort: view.sort, order: view.order, limit: view.pageSize, offset }),
-      getRegisterAll(view.filters),
-    ]).then(([page, all]) => {
+      getAnalyticsSummary(view.filters),
+      getAnalyticsBreakdowns(view.filters),
+    ]).then(([page, nextSummary, nextBreakdowns]) => {
       if (!active) return
       setRecords(page.records)
-      setSummaryRecords(all)
+      setSummary(nextSummary)
+      setBreakdowns({
+        byCountry: nextBreakdowns.byCountry,
+        bySupplier: nextBreakdowns.bySupplier,
+        byStatus: nextBreakdowns.byStatus,
+      })
       setTotal(page.total)
       setError(null)
       setLoading(false)
@@ -181,11 +193,16 @@ function LiveEquipmentPage() {
     }).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Unable to export the register'))
   }
 
-  const optionValues = (field: keyof EquipmentRecord) => Array.from(new Set(summaryRecords.map((record) => record[field]).filter((value): value is string => typeof value === 'string' && value !== 'Not recorded'))).sort()
-  const statuses = summaryRecords.reduce<Record<string, number>>((counts, record) => { counts[record.status] = (counts[record.status] ?? 0) + record.quantity; return counts }, {})
-  const machineTotal = summaryRecords.reduce((sum, record) => sum + record.quantity, 0)
-  const siteTotal = new Set(summaryRecords.map((record) => record.siteId ?? record.siteName)).size
-  const countryTotal = new Set(summaryRecords.map((record) => record.country)).size
+  const supplierOptions = breakdowns.bySupplier.flatMap(({ key }) => key ? [key] : []).sort()
+  const countryOptions = breakdowns.byCountry.flatMap(({ key }) => key ? [key] : []).sort()
+  const statuses = breakdowns.byStatus.reduce<Record<string, number>>((counts, { key, machineCount }) => {
+    const status = key ?? 'unknown'
+    counts[status] = machineCount
+    return counts
+  }, {})
+  const machineTotal = summary.machineCount
+  const siteTotal = summary.siteCount
+  const countryTotal = summary.countryCount
   const first = total === 0 ? 0 : (view.page - 1) * view.pageSize + 1
   const last = total === 0 ? 0 : Math.min(total, first + records.length - 1)
   const pageCount = Math.max(1, Math.ceil(total / view.pageSize))
@@ -206,8 +223,8 @@ function LiveEquipmentPage() {
       <FilterSelect label="Automation" value={view.filters.automationLevel} options={reference.automationLevels} onChange={(value) => setFilter('automationLevel', value)} />
       <FilterSelect label="Status" value={view.filters.status} options={reference.deploymentStatuses} onChange={(value) => setFilter('status', value)} />
       <FilterSelect label="Environment" value={view.filters.environment} options={reference.environments} onChange={(value) => setFilter('environment', value)} />
-      <label>Technology supplier<select value={view.filters.supplier ?? ''} onChange={(event) => setFilter('supplier', event.target.value)}><option value="">All suppliers</option>{optionValues('supplier').map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-      <label>Country<select value={view.filters.country ?? ''} onChange={(event) => setFilter('country', event.target.value)}><option value="">All countries</option>{optionValues('country').map((value) => <option key={value} value={value}>{formatCountry(value)}</option>)}</select></label>
+      <label>Technology supplier<select value={view.filters.supplier ?? ''} onChange={(event) => setFilter('supplier', event.target.value)}><option value="">All suppliers</option>{supplierOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label>Country<select value={view.filters.country ?? ''} onChange={(event) => setFilter('country', event.target.value)}><option value="">All countries</option>{countryOptions.map((value) => <option key={value} value={value}>{formatCountry(value)}</option>)}</select></label>
       <button className="button button--secondary" type="button" onClick={() => setMoreFilters((current) => !current)}>{moreFilters ? 'Hide more filters' : 'More filters'}</button>
       <button className="button button--secondary" type="button" onClick={clearFilters} disabled={Object.keys(view.filters).length === 0}>Clear all</button>
       {moreFilters && <><label>Manufacturer<input value={view.filters.manufacturer ?? ''} onChange={(event) => setFilter('manufacturer', event.target.value)} /></label><label>Region<input value={view.filters.region ?? ''} onChange={(event) => setFilter('region', event.target.value)} /></label><label>Commodity<input value={view.filters.commodity ?? ''} onChange={(event) => setFilter('commodity', event.target.value)} /></label></>}

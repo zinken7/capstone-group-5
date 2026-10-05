@@ -32,6 +32,10 @@ describe('findBreakdowns', () => {
       { key: 'Caterpillar', machineCount: 116, share: 116 / 121 },
       { key: 'RCT', machineCount: 5, share: 5 / 121 },
     ])
+    expect(result.byStatus).toEqual([
+      { key: 'operational', machineCount: 116, share: 116 / 121 },
+      { key: 'decommissioned', machineCount: 5, share: 5 / 121 },
+    ])
   })
 
   it('lists every automation level in order and keeps unclassified machines separate', async () => {
