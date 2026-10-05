@@ -96,10 +96,7 @@ export interface Timeline {
   excludedMachineCount: number
 }
 
-/**
- * Machines commissioned in each year (FR-30) and in service on 31 December of each year (FR-22),
- * from the first commissioning year to the current year; validity ends are inclusive, as on the map.
- */
+/** Per year to the current year: machines newly commissioned (FR-30) and in service on 31 December (FR-22). */
 export async function findTimeline(filters: DeploymentFilters): Promise<Timeline> {
   const params: unknown[] = []
   const where = buildWhere(filters, params)
