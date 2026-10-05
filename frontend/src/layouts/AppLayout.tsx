@@ -43,7 +43,6 @@ function AppLayout({ children }: PropsWithChildren) {
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment Register</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/analytics">Analytics</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
-          <NavLink className="primary-nav__cta" to="/contribute">Submit a deployment</NavLink>
         </nav>
       </header>
       <main className="page-content" id="main-content">{children}</main>
