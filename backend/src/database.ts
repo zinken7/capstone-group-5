@@ -1,4 +1,4 @@
-import { DrizzleQueryError } from 'drizzle-orm'
+import { DrizzleQueryError, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
@@ -10,7 +10,7 @@ import * as schema from './db/schema.js'
 
 const databaseSchema = { ...schema, ...relations }
 
-interface DatabaseVersionRow {
+type DatabaseVersionRow = {
   postgresVersion: string
   postgisVersion: string
 }
@@ -83,7 +83,7 @@ export async function closeDatabase(): Promise<void> {
 }
 
 export async function checkDatabaseHealth(): Promise<DatabaseVersionRow> {
-  const result = await pool.query<DatabaseVersionRow>(`
+  const result = await db.execute<DatabaseVersionRow>(sql`
     SELECT
       current_setting('server_version') AS "postgresVersion",
       postgis_version() AS "postgisVersion"
