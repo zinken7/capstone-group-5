@@ -52,7 +52,7 @@ export interface DeploymentSummary {
   countryCount: number
 }
 
-const FROM_VERIFIED_DEPLOYMENTS = `
+export const FROM_VERIFIED_DEPLOYMENTS = `
   FROM deployment d
   JOIN site s ON s.id = d.site_id
   LEFT JOIN region r ON r.id = s.region_id
@@ -68,7 +68,7 @@ function likePattern(text: string): string {
 }
 
 /** Builds the WHERE clause; values go into params, never into the SQL text (NFR-05). */
-function buildWhere(filters: DeploymentFilters, params: unknown[]): string {
+export function buildWhere(filters: DeploymentFilters, params: unknown[]): string {
   const conditions = [`d.verification_status = 'verified'`]
   const add = (sql: (placeholder: string) => string, value: unknown) => {
     params.push(value)
