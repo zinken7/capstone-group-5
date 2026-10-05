@@ -183,15 +183,23 @@ export async function insertRevision(
   revision: {
     deploymentId: number
     contributorId: number | null
-    action: 'create' | 'update'
+    adminUserId?: number | null
+    action: 'create' | 'update' | 'verification_change'
     previousValues: Record<string, unknown>
     changeNote: string | null
   },
 ): Promise<void> {
   await tx.query(
-    `INSERT INTO revision (deployment_id, contributor_id, action, previous_values, change_note)
-     VALUES ($1, $2, $3::revision_action, $4::jsonb, $5)`,
-    [revision.deploymentId, revision.contributorId, revision.action, JSON.stringify(revision.previousValues), revision.changeNote],
+    `INSERT INTO revision (deployment_id, contributor_id, admin_user_id, action, previous_values, change_note)
+     VALUES ($1, $2, $3, $4::revision_action, $5::jsonb, $6)`,
+    [
+      revision.deploymentId,
+      revision.contributorId,
+      revision.adminUserId ?? null,
+      revision.action,
+      JSON.stringify(revision.previousValues),
+      revision.changeNote,
+    ],
   )
 }
 
@@ -204,6 +212,7 @@ export interface CurrentDeployment {
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
+  technologyProductId: number | null
   verificationStatus: string
 }
 
@@ -218,6 +227,7 @@ export async function lockDeployment(tx: Queryable, id: number): Promise<Current
     installation_type: string
     commissioning_date: string | null
     commissioning_year: number | null
+    technology_product_id: number | null
     verification_status: string
   }>(
     `
@@ -225,7 +235,7 @@ export async function lockDeployment(tx: Queryable, id: number): Promise<Current
       id::int AS id, quantity, environment::text AS environment, status::text AS status,
       automation_level::text AS automation_level, installation_type::text AS installation_type,
       commissioning_date::text AS commissioning_date, commissioning_year::int AS commissioning_year,
-      verification_status::text AS verification_status
+      technology_product_id::int AS technology_product_id, verification_status::text AS verification_status
     FROM deployment
     WHERE id = $1
     FOR UPDATE
@@ -244,6 +254,7 @@ export async function lockDeployment(tx: Queryable, id: number): Promise<Current
     installationType: row.installation_type,
     commissioningDate: row.commissioning_date,
     commissioningYear: row.commissioning_year,
+    technologyProductId: row.technology_product_id,
     verificationStatus: row.verification_status,
   }
 }
@@ -262,15 +273,20 @@ const CORRECTABLE_COLUMNS = {
   installation_type: '::installation_type',
   commissioning_date: '::date',
   commissioning_year: '',
+  technology_product_id: '',
 } as const
 
 export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
 
-/** Applies the corrected columns and returns the record to pending review (FR-48). */
+/**
+ * Applies the corrected columns. A contributor's correction returns the record
+ * to pending review (FR-48); an administrator's keeps its verification status.
+ */
 export async function updateDeploymentForReview(
   tx: Queryable,
   id: number,
   updates: Partial<Record<CorrectableColumn, unknown>>,
+  { returnToPending = true }: { returnToPending?: boolean } = {},
 ): Promise<string> {
   const params: unknown[] = [id]
   // Column names come from CORRECTABLE_COLUMNS, never from the request
@@ -278,7 +294,9 @@ export async function updateDeploymentForReview(
     params.push(value)
     return `${column} = $${params.length}${CORRECTABLE_COLUMNS[column as CorrectableColumn]}`
   })
-  assignments.push(`verification_status = 'pending_review'`)
+  if (returnToPending) assignments.push(`verification_status = 'pending_review'`)
+  // Keep the statement valid when an administrator only adds evidence
+  if (assignments.length === 0) assignments.push('id = id')
 
   const rows = await tx.query<{ verification_status: string }>(
     `UPDATE deployment SET ${assignments.join(', ')} WHERE id = $1 RETURNING verification_status::text AS verification_status`,

@@ -1,6 +1,7 @@
 import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 
+import adminModerationRouter from './routes/admin-moderation.js'
 import adminSessionRouter from './routes/admin-session.js'
 import analyticsRouter from './routes/analytics.js'
 import contributionsRouter from './routes/contributions.js'
@@ -27,6 +28,7 @@ app.use('/api', referenceDataRouter)
 app.use('/api', contributionsRouter)
 app.use('/api', deploymentsRouter)
 app.use('/api', adminSessionRouter)
+app.use('/api', adminModerationRouter)
 app.get('/health/database', async (_request, response) => {
   try {
     const versions = await checkDatabaseHealth()
