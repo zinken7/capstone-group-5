@@ -62,8 +62,9 @@ describe('GET /api/analytics/breakdowns', () => {
     expect(response.body.by_machine_type.map((item: { key: string }) => item.key)).toEqual(['haul_truck', 'drill'])
     expect(response.body.by_automation_level.at(-1)).toEqual({ key: null, machine_count: 20, share: 20 / 121 })
     expect(response.body.by_status).toEqual([
-      { key: 'operational', machine_count: 116, share: 116 / 121 },
-      { key: 'decommissioned', machine_count: 5, share: 5 / 121 },
+      { key: 'operational', machine_count: 96, share: 96 / 121 },
+      { key: 'decommissioned', machine_count: 20, share: 20 / 121 },
+      { key: 'commissioning', machine_count: 5, share: 5 / 121 },
     ])
   })
 

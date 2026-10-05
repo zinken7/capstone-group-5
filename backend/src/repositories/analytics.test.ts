@@ -33,8 +33,9 @@ describe('findBreakdowns', () => {
       { key: 'RCT', machineCount: 5, share: 5 / 121 },
     ])
     expect(result.byStatus).toEqual([
-      { key: 'operational', machineCount: 116, share: 116 / 121 },
-      { key: 'decommissioned', machineCount: 5, share: 5 / 121 },
+      { key: 'operational', machineCount: 96, share: 96 / 121 },
+      { key: 'decommissioned', machineCount: 20, share: 20 / 121 },
+      { key: 'commissioning', machineCount: 5, share: 5 / 121 },
     ])
   })
 
