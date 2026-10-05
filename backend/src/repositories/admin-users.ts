@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 
 import { db } from '../database.js'
 import * as tables from '../db/schema.js'
+import { isoTimestamp } from '../lib/iso-timestamp.js'
 
 export type AdminRole = 'root' | 'admin'
 
@@ -76,18 +77,25 @@ export interface AdminAccount {
 
 /** Every account, root accounts first. */
 export async function listAdmins(): Promise<AdminAccount[]> {
-  return query<AdminAccount>(`
-    SELECT id::int AS id, email, role::text AS role, active, must_change_password, created_at
-    FROM admin_user
-    ORDER BY role = 'root' DESC, email
-  `)
+  return db
+    .select({
+      id: tables.adminUser.id,
+      email: tables.adminUser.email,
+      role: tables.adminUser.role,
+      active: tables.adminUser.active,
+      must_change_password: tables.adminUser.mustChangePassword,
+      created_at: isoTimestamp(tables.adminUser.createdAt),
+    })
+    .from(tables.adminUser)
+    .orderBy(sql`${tables.adminUser.role} = 'root' DESC`, asc(tables.adminUser.email))
 }
 
 /** Activates or deactivates an administrator; root accounts are never changed here. */
 export async function setAdminActive(id: number, active: boolean): Promise<boolean> {
-  const rows = await query<{ id: number }>(
-    `UPDATE admin_user SET active = $2 WHERE id = $1 AND role = 'admin' RETURNING id::int AS id`,
-    [id, active],
-  )
+  const rows = await db
+    .update(tables.adminUser)
+    .set({ active })
+    .where(and(eq(tables.adminUser.id, id), eq(tables.adminUser.role, 'admin')))
+    .returning({ id: tables.adminUser.id })
   return rows.length > 0
 }

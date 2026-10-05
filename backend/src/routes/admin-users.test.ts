@@ -58,6 +58,12 @@ describe('GET /api/admin/users', () => {
     ])
     expect(JSON.stringify(response.body)).not.toContain('scrypt')
   })
+
+  it('serialises created_at as ISO 8601 UTC with milliseconds, as before the Drizzle port', async () => {
+    const response = await asRoot.get()
+
+    expect(response.body.items[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+  })
 })
 
 describe('POST /api/admin/users', () => {
