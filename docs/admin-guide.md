@@ -5,8 +5,10 @@ contributor submits or corrects appears on the Map, Equipment Register or
 Analytics until an administrator approves it.
 
 The administration pages are at `/admin` (for example
-https://capstone-group-5.vercel.app/admin). They are not linked from the public
-navigation.
+https://capstone-group-5.vercel.app/admin). Every public page links there from
+the **Administrator sign-in** link in the footer; the main navigation does not.
+Following the link opens the review queue when you are signed in, and the
+sign-in page otherwise.
 
 ## Accounts
 
