@@ -1,0 +1,648 @@
+Customer_Name,Mine_Commodity,Category,Technology,Machine_Make,Machine_Model,Machine_Model_Variant,No_of_Machines,Machine_Type,Mine_Type,Country,AU_State,Town,CY
+Dunder Mifflin,,,L4 - Highly Autonomous,CAT,R1700,G,,ROC,,,WA,Nannine,2026
+Globex Corporation,Gold,New,L3 - Semi Autonomous,EPIROC,ST1030,,1,LHD,UG,Ghana,,Prestea,2026
+Initech,Tin,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,TAS,Queenstown,2026
+Umbrella Industries,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,New Zealand,,Roxburgh,2026
+Wayne Enterprises,Gold,New,L3 - Semi Autonomous,ARAMINE,350,D,1,LHD,UG,Australia,WA,Meekatharra,2026
+Stark Industries,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,NSW,Tenterfield,2026
+Dunder Mifflin,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Australia,WA,Nannine,2026
+Acme Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G JLK,1,LHD,UG,Australia,QLD,Jericho,2026
+Initech,Tin,Upgrade,L3 - Semi Autonomous,CAT,R2900,XE,3,LHD,UG,Australia,TAS,Queenstown,2026
+Apex Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH410,,1,LHD,UG,Canada,QLD,Canada-TBD,2026
+Vertex Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Latham,2026
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Nannine,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Basalt Industries,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,PNG,,Madang,2026
+Basalt Industries,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,PNG,,Kimbe,2026
+Cobalt Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,QLD,Barcaldine,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Latham,2026
+Initech,Tin,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,TAS,Queenstown,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Yalgoo,2026
+Aurora Mining,Various,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Bluestone Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Australia,WA,Coongan,2026
+Bluestone Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Australia,WA,Coongan,2026
+Bluestone Holdings,Gold,New,L3 - Semi Autonomous,ARAMINE,350,D,1,LHD,UG,Australia,WA,Coongan,2026
+Granite Group,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2026
+Dunder Mifflin,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Australia,WA,Nannine,2026
+Dunder Mifflin,Gold,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Australia,WA,Nannine,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Redrock Minerals,Coal,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Latham,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Ironclad Mining,Various,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Quartzite Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,United States,,Vancouver suburbs,2026
+Quartzite Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,United States,,Vancouver suburbs,2026
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,A64 GBC,GBC,2,Water Truck,UG,Indonesia,,Timika,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Northgate Minerals,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Silverpeak Mining,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Australia,WA,Coongan,2026
+Goldcrest Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,,2,LHD,UG,Australia,WA,Meekatharra,2026
+Goldcrest Corporation,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Coongan,2026
+Copperline Industries,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Bully Hill,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2026
+Quartzite Mining,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,United States,,Vancouver suburbs,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2026
+Ridgeway Minerals,"Zinc, Lead, Silver",New,L3 - Semi Autonomous,EPIROC,ST18,,1,LHD,UG,Australia,NSW,Boggabilla,2026
+Apex Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Canada,ON,Timmins,2026
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Bully Hill,2026
+Hollowbrook Mining,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,South Africa,,Brits,2026
+Kestrel Resources,,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,TAS,Rosebery,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,i,1,LHD,UG,Australia,WA,Nannine,2026
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,i,1,LHD,UG,Australia,WA,Nannine,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH514,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH514,i,1,LHD,UG,Australia,WA,Meekatharra,2026
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2026
+Badger Minerals,Gold,New,L3 - Semi Autonomous,ARAMINE,L350,D,1,LHD,UG,Australia,NSW,Boggabilla,2026
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Coober Pedy,2026
+Falcon Mining,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2026
+Meridian Industries,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,TAS,Zeehan,2026
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2026
+Cascadia Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Spain,,Ponferrada,2025
+Highland Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,2,LHD,UG,Tanzania,,Shinyanga,2025
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,NSW,Coonabarabran,2025
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Nannine,2025
+Stonebridge Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Ironwood Holdings,COPPER,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Meekatharra,2025
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,AD64,,1,Water Truck,UG,Indonesia,,Timika,2025
+Copperfield Mining,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Australia,WA,Mullowna,2025
+Granite Group,Gold,New,L3 - Semi Autonomous,CAT,R2900,NLK,1,LHD,UG,Australia,NSW,Narrabri,2025
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2025
+Blackrock Minerals,,New,L3 - Semi Autonomous,CAT,R2900,XE,2,LHD,UG,Indonesia,,Merauke,2025
+Meridian Industries,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,TAS,Zeehan,2025
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2025
+Ridgeway Minerals,"Zinc, lead, silver",New,L3 - Semi Autonomous,EPIROC,ST18,,1,LHD,UG,Australia,NSW,Boggabilla,2025
+Greystone Industries,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Australia,WA,Mullowna,2025
+Greystone Industries,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Australia,WA,Mullowna,2025
+Sable Mining,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Cobar,2025
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,CAT,R2900,G NLK,1,LHD,UG,Papua New Guinea,,Arawa,2025
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Papua New Guinea,,Arawa,2025
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Papua New Guinea,,Arawa,2025
+Redrock Minerals,Various,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Yalgoo,2025
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2025
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2025
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2025
+Copperline Industries,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Zenith Holdings,Gold,Upgrade,L3 - Semi Autonomous,CAT,R2900,G,2,LHD,UG,Australia,WA,Bully Hill,2025
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Mullowna,2025
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2025
+Redrock Minerals,Coal,Upgrade,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2025
+Greystone Industries,,New,L3 - Semi Autonomous,CAT,R1300,,3,LHD,UG,Australia,WA,Mullowna,2025
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,WA,Coongan,2025
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2025
+Highland Mining,Gold,Upgrade,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Mullowna,2025
+Fairview Resources,,Upgrade,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,,Emerald,2025
+Zenith Holdings,Gold,Upgrade,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Coongan,2025
+Riverbend Corporation,,Upgrade,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Tanzania,,Shinyanga,2025
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Tanzania,,Shinyanga,2025
+Westgate Minerals,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Peru,,Arequipa,2025
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Coongan,2025
+Eastwood Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,3,LHD,UG,Burkina Faso,,Tougan,2025
+Southcross Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,3,LHD,UG,Australia,,Meekatharra,2025
+Fairview Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,,Emerald,2025
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Tanzania,,Shinyanga,2025
+Lakeshore Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Pinecrest Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Canada,,Edmonton,2025
+Stonebridge Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,,Coober Pedy,2025
+Stonebridge Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,,Coober Pedy,2025
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2025
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2025
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,,Burnie,2025
+Aurora Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,,Burnie,2025
+Cedarpoint Minerals,,New,L3 - Semi Autonomous,CAT,R1700,G,3,LHD,UG,Namibia,,Keetmanshoop outskirts,2025
+Lakeshore Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,4,LHD,UG,Australia,WA,Meekatharra,2025
+Pinecrest Resources,,New,L3 - Semi Autonomous,CAT,R1700,K,2,LHD,UG,Canada,,Edmonton,2025
+Maplewood Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,NLK,1,LHD,UG,Australia,VIC,Kyneton,2025
+Fairview Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2025
+Eastwood Holdings,,New,L3 - Semi Autonomous,CAT,R2900,,2,LHD,UG,Burkina Faso,,Tougan,2025
+Lakeshore Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Copperline Industries,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Copperline Industries,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Oakridge Corporation,,New,L3 - Semi Autonomous,CAT,R2900,G,2,LHD,UG,Australia,QLD,Clermont,2025
+Elmwood Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Willowbrook Minerals,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Australia,VIC,Kyneton,2025
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2025
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Yalgoo,2025
+Juniper Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Lakeshore Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Sagebrush Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,2,LHD,UG,Australia,WA,Latham,2025
+Eastwood Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,3,LHD,UG,Burkina Faso,,Zinare,2025
+Mesquite Resources,COPPER,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,QLD,Alpha,2025
+Meridian Industries,Gold,New,L3 - Semi Autonomous,CAT,R1600,H,1,LHD,UG,Australia,VIC,Castlemaine,2025
+Yucca Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Yalgoo,2025
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2025
+Moonstone Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Nannine,2025
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Starlight Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Coongan,2025
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2025
+Cloudpeak Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Mullowna,2025
+Cloudpeak Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Mullowna,2025
+Stormfront Holdings,,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Mauritius,,Flacq outskirts,2024
+Stormfront Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Mauritius,,Flacq outskirts,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Bully Hill,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Yalgoo,2024
+Southcross Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,NSW,Boggabilla,2024
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Papua New Guinea,,Arawa,2024
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Papua New Guinea,,Arawa,2024
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Papua New Guinea,,Arawa,2024
+Copperline Industries,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2024
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2024
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Tanzania,,Shinyanga,2024
+Thunder Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,VIC,Kyneton,2024
+Kestrel Resources,,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,TAS,Rosebery,2024
+Ironwood Holdings,COPPER,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,QLD,Barcaldine,2024
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,WA,Coongan,2024
+Lightning Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,QLD,Clermont,2024
+Silverton Resources,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Nannine,2024
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2024
+Goldfield Minerals,COPPER,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Coober Pedy,2024
+Granite Group,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Narrabri,2024
+Ironridge Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH514,,2,LHD,UG,Australia,WA,Bully Hill,2024
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2024
+Southcross Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,I,1,LHD,UG,Australia,WA,Latham,2024
+Ironridge Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Australia,WA,Bully Hill,2024
+Redrock Minerals,Coal,New,L3 - Semi Autonomous,SANDVIK,LH517,I,1,LHD,UG,Australia,WA,Coongan,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,I,1,LHD,UG,Australia,WA,Coongan,2024
+Riverbend Corporation,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Tanzania,,Bariadi,2024
+Granite Group,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Narrabri,2024
+Copperhill Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Juniper Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2024
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Meekatharra,2024
+Stark Industries,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Quorn,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Bully Hill,2024
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Yalgoo,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Leadville Corporation,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Meekatharra,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Meekatharra,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Coongan,2024
+Cascadia Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Spain,,Ponferrada,2024
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Tanzania,,Shinyanga,2024
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,WT,,1,Water Truck,UG,Indonesia,,Timika,2024
+Zincworks Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2024
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,WT,,1,Water Truck,UG,Indonesia,,Timika,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Nickelton Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,TAS,Zeehan,2024
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,5,LHD,UG,Australia,WA,Mullowna,2024
+Tinstone Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,,2,LHD,UG,Australia,WA,Bully Hill,2024
+Yucca Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Yalgoo,2024
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,,,1,Water Truck,UG,Indonesia,,Timika,2024
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2024
+Coalhaven Mining,,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Lao People's Democratic Rep,,Phonsavan,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Australia,NSW,Coonabarabran,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,NSW,Coonabarabran,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Nannine,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Bully Hill,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Bully Hill,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Bully Hill,2024
+Oakridge Corporation,,New,L3 - Semi Autonomous,CAT,R2900,NLK,2,LHD,UG,Australia,QLD,Clermont,2024
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Yalgoo,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Mullowna,2024
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Yalgoo,2024
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R2900,,7,LHD,UG,Australia,QLD,Alpha,2024
+Diamondback Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Argentina,,Catamarca,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,6,LHD,UG,Australia,WA,Mullowna,2024
+Coalhaven Mining,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Lao People's Democratic Rep,,Pakse,2024
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Nannine,2024
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Mullowna,2024
+Ruby Resources,,New,L3 - Semi Autonomous,EPIROC,MT42,,1,UG Haul Truck,UG,Canada,,Calgary,2024
+Emeraldline Minerals,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Canada,ON,Timmins,2024
+Birchwood Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Bully Hill,2024
+Zincworks Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,4,LHD,UG,Australia,WA,Bully Hill,2024
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2024
+Emeraldline Minerals,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Canada,ON,Malartic,2024
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1600,H,1,LHD,UG,United States,,St. John's,2024
+Ironclad Mining,,New,L3 - Semi Autonomous,CAT,R2900,XE,1,LHD,UG,Australia,WA,Yalgoo,2024
+Topaz Mining,,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,QLD,Jericho,2024
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2024
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,2,LHD,UG,Tanzania,,Shinyanga,2024
+Opaline Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,2,LHD,UG,Namibia,,Spitzkoppe,2023
+Ruby Resources,,New,L3 - Semi Autonomous,EPIROC,ST 1030,,1,LHD,UG,Canada,,Calgary,2023
+Starlight Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,2,LHD,UG,Australia,WA,Meekatharra,2023
+Jasper Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,TAS,Queenstown,2023
+Goldfield Minerals,COPPER,New,L3 - Semi Autonomous,CAT,R2900,G,2,LHD,UG,Australia,SA,Coober Pedy,2023
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,226B3,,8,Skid steer,UG,Indonesia,,Timika,2023
+Onyx Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,VIC,Maryborough,2023
+Tinstone Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Mullowna,2023
+Ruby Resources,,New,L3 - Semi Autonomous,EPIROC,ST1030,,1,LHD,UG,Canada,,Calgary,2023
+Basalt Industries,"Gold, silver",New,L3 - Semi Autonomous,CAT,R2900,G,3,LHD,UG,Papua New Guinea,,Kimbe,2023
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Australia,WA,Latham,2023
+Ironwood Holdings,COPPER,New,L3 - Semi Autonomous,CAT,R2900G,G,2,LHD,UG,Australia,QLD,Emerald,2023
+Goldfield Minerals,COPPER,New,L3 - Semi Autonomous,CAT,R2900G,G,2,LHD,UG,Australia,SA,Coober Pedy,2023
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2023
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Bully Hill,2023
+Eastwood Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Burkina Faso,,Fada N'gourma,2023
+Cascadia Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Spain,,Leon,2023
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Nannine,2023
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH 517,i,1,LHD,UG,Australia,WA,Bully Hill,2023
+Juniper Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2023
+Elmwood Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Coongan,2023
+Diamondback Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1600,H,1,LHD,UG,Argentina,,Catamarca,2023
+Stormfront Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Mauritius,,Flacq outskirts,2023
+Marble Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Brazil,,Alta Floresta,2023
+Flint Mining,,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Brazil,,Sinop,2023
+Chert Corporation,Nickel,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Australia,WA,Latham,2023
+Ironclad Mining,Nickel,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Australia,WA,Bully Hill,2023
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Bully Hill,2023
+Ridgeway Minerals,"Zinc, lead, silver",New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Australia,WA,Mullowna,2023
+Marble Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Brazil,,Alta Floresta,2023
+Cascadia Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Spain,,Burgos,2023
+Cascadia Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH 621,i,1,LHD,UG,Spain,,Burgos,2023
+Slate Resources,,New,L3 - Semi Autonomous,CAT,R2900,G,3,LHD,UG,Lao People's Democratic Rep,,Phonsavan,2023
+Riverbend Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,,2,LHD,UG,Tanzania,,Shinyanga,2023
+Silverton Resources,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Nannine,2023
+Emeraldline Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,3,LHD,UG,Canada,ON,Timmins,2023
+Lightning Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,G,2,LHD,UG,Australia,QLD,Clermont,2023
+Schist Minerals,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,United States,,Regina suburbs,2023
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R3000,,1,LHD,UG,Australia,SA,Streaky Bay,2023
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R3000,,1,LHD,UG,Australia,SA,Streaky Bay,2023
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,3,LHD,UG,Australia,WA,Mullowna,2023
+Schist Minerals,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,United States,,Regina suburbs,2023
+Ironridge Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH307,,1,LHD,UG,Australia,WA,Yalgoo,2023
+Gneiss Holdings,,New,L3 - Semi Autonomous,CAT,R1300,G,5,LHD,UG,Malta,,Valletta outskirts,2023
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Indonesia,,Timika,2023
+Ruby Resources,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Canada,ON,Malartic,2023
+Ruby Resources,,New,L3 - Semi Autonomous,CAT,R1600,G,1,LHD,UG,Canada,ON,Malartic,2023
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,CAT,719,,1,LHD,UG,United States,,Charlottetown,2023
+Stonebridge Resources,,New,L3 - Semi Autonomous,CAT,R2900,G,2,LHD,UG,Australia,WA,Coongan,2023
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,2,LHD,UG,Australia,WA,Bully Hill,2023
+Pegmatite Mining,,Upgrade,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Canada,ON,Sudbury,2023
+Ruby Resources,,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Canada,ON,Malartic,2023
+Acme Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,QLD,Jericho,2022
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH217,i,1,LHD,UG,Australia,WA,Meekatharra,2022
+Southcross Mining,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,2,LHD,UG,Canada,-,Calgary,2022
+Meridian Industries,Gold,New,L3 - Semi Autonomous,CAT,R1600,,1,LHD,UG,Australia,TAS,Smithton,2022
+Feldspar Corporation,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Yalgoo,2022
+Mica Resources,,New,L3 - Semi Autonomous,KOMATSU,WX07,,2,LHD,UG,Australia,WA,Coongan,2022
+Talc Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Mali,-,Kayes,2022
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2022
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Mullowna,2022
+Chert Corporation,Nickel,New,L3 - Semi Autonomous,CAT,R1700,G,1,LHD,UG,Australia,WA,Mullowna,2022
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2022
+Pegmatite Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Canada,-,Montreal,2022
+Juniper Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2022
+Jasper Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,TAS,Queenstown,2022
+Oakridge Corporation,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,QLD,Clermont,2022
+Chert Corporation,Nickel,New,L3 - Semi Autonomous,CAT,R1700,K,2,LHD,UG,Australia,WA,Mullowna,2022
+Southcross Mining,Gold,New,L3 - Semi Autonomous,CAT,R1700,K,1,LHD,UG,Canada,-,Calgary,2022
+Ironridge Holdings,,New,L3 - Semi Autonomous,KOMATSU,WX04,,1,LHD,UG,Australia,WA,Yalgoo,2022
+Borate Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Coonabarabran,2022
+Ironridge Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Australia,WA,Yalgoo,2022
+Borate Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Coonabarabran,2022
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2022
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R2900,ZLK,1,LHD,UG,Indonesia,,Timika,2022
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Indonesia,,Timika,2022
+Ironridge Holdings,,New,L3 - Semi Autonomous,KOMATSU,WX04,,1,LHD,UG,Australia,WA,Mullowna,2022
+Elmwood Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2022
+Juniper Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2022
+Jasper Resources,,New,L3 - Semi Autonomous,SANDVIK,LH517,,1,LHD,UG,Australia,TAS,Queenstown,2022
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,United States,,St. John's,2022
+Acme Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,QLD,Jericho,2022
+Ironridge Holdings,,New,L3 - Semi Autonomous,SANDVIK,LH307,,1,LHD,UG,Australia,WA,Yalgoo,2022
+Granite Group,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,2,LHD,UG,Australia,NSW,Narrabri,2022
+Opaline Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,2,LHD,UG,Namibia,,Karasburg outskirts,2022
+Stonebridge Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Australia,WA,Coongan,2022
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,,1,LHD,UG,Australia,WA,Latham,2022
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2022
+Oakridge Corporation,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,QLD,Clermont,2022
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2022
+Marble Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Brazil,,Alta Floresta,2022
+Marble Holdings,Gold,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Brazil,,Alta Floresta,2022
+Redrock Minerals,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,,1,LHD,UG,Australia,WA,Nannine,2022
+Feldspar Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Yalgoo,2022
+Lithia Mining,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Mullowna,2022
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Mullowna,2022
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,GETMAN,A-64,,2,Water Truck,UG,Indonesia,,Timika,2022
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Nannine,2022
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Australia,WA,Bully Hill,2022
+Oakridge Corporation,,Upgrade,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,QLD,Clermont,2022
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2021
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,2,Rock Breaker,UG,Indonesia,,Timika,2021
+Southcross Mining,Gold,New,L3 - Semi Autonomous,CAT,R1600,,1,LHD,UG,Canada,ON,Timmins,2021
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Nannine,2021
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2021
+Oakridge Corporation,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,QLD,Clermont,2021
+Thorium Corporation,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Tanzania,,Kongwa,2021
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2021
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,514,,1,LHD,UG,United States,,St. John's,2021
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Topaz Mining,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,QLD,Clermont,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,AD60,,2,UG Haul Truck,UG,Indonesia,,Timika,2021
+Chert Corporation,Nickel,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Australia,WA,Nannine,2021
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2021
+Rhenium Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Australia,WA,Nannine,2021
+Vanadium Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,NSW,Narrabri,2021
+Ironclad Mining,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Titan Holdings,,New,L3 - Semi Autonomous,EPIROC,ST18,,1,LHD,UG,Australia,TAS,Wynyard,2021
+Timberline Corporation,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Coongan,2021
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Mullowna,2021
+Rhenium Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Australia,WA,Nannine,2021
+Zircon Mining,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Niobium Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Falcon Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Mullowna,2021
+Zenith Holdings,Gold,Upgrade,L3 - Semi Autonomous,SANDVIK,LH621,,1,LHD,UG,Australia,WA,Latham,2021
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Ironclad Mining,,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Tantalum Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Russian Federation,,Vorkuta,2021
+Tantalum Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Russian Federation,,Vorkuta,2021
+Tantalum Resources,,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,Russian Federation,,Vorkuta,2021
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,United States,,St. John's,2021
+Starlight Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2021
+Tellurium Minerals,,New,L3 - Semi Autonomous,CAT,R3000,H,2,LHD,UG,Chile,,Freirina,2021
+Southcross Mining,Gold,New,L3 - Semi Autonomous,CAT,R1300,,1,LHD,UG,Canada,ON,Timmins,2021
+Cesium Holdings,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Australia,WA,Meekatharra,2021
+Argent Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,NSW,Gunnedah,2021
+Vanadium Minerals,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,NSW,Boggabilla,2021
+Onyx Minerals,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Coongan,2021
+Zircon Mining,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Zircon Mining,,New,L3 - Semi Autonomous,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Coober Pedy,2021
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Coober Pedy,2021
+Talon Holdings,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,SA,Coober Pedy,2021
+Argent Mining,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,NSW,Gunnedah,2021
+Sapphire Holdings,Gold,New,L3 - Semi Autonomous,SANDVIK,LH514,,1,LHD,UG,United States,,St. John's,2021
+Vanadium Minerals,,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Australia,NSW,Narrabri,2021
+Rhenium Resources,,New,L3 - Semi Autonomous,KOMATSU,4LD,,1,LHD,UG,Australia,WA,Nannine,2021
+Maplewood Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,VIC,Kyneton,2021
+Emberline Resources,"Copper, Gold",New,L3 - Semi Autonomous,CAT,R1700,,1,Rock Breaker,UG,Indonesia,,Timika,2021
+Ruby Resources,,New,L3 - Semi Autonomous,CAT,R1600,,2,LHD,UG,Canada,,Calgary,2021
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Aurum Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Australia,VIC,Stawell,2021
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Nannine,2021
+Aurum Corporation,Gold,New,L3 - Semi Autonomous,CAT,R1700,,1,LHD,UG,Australia,VIC,Stawell,2021
+Ferrum Resources,Gold,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Tanzania,,Bukoba,2021
+Ruby Resources,,New,L3 - Semi Autonomous,CAT,R1300,G,1,LHD,UG,Canada,,Calgary,2021
+Starlight Resources,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Bully Hill,2021
+Cesium Holdings,,New,L3 - Semi Autonomous,CAT,R1300,,1,LHD,UG,Australia,WA,Meekatharra,2021
+Zenith Holdings,Gold,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,WA,Coongan,2021
+Feldspar Corporation,,New,L3 - Semi Autonomous,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Yalgoo,2021
+Sunstone Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,i,1,LHD,UG,Australia,WA,Meekatharra,2021
+Ironclad Mining,Gold,New,L3 - Semi Autonomous,SANDVIK,LH517,,1,LHD,UG,Australia,WA,Nannine,2021
+Cuprum Minerals,,New,L3 - Semi Autonomous,CAT,R2900,G,1,LHD,UG,Australia,WA,Nannine,2021
+Kestrel Resources,,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,TAS,Rosebery,2021
+Kalium Holdings,COPPER,New,L3 - Semi Autonomous,CAT,R2900,,1,LHD,UG,Australia,QLD,Alpha,2021
+Natrium Mining,,Upgrade,L1 - Operator Assistance,EPIROC,MT2200,,1,UG Haul Truck,UG,United States,,Vancouver suburbs,2021
+Emberline Resources,"Copper, Gold",New,L1 - Operator Assistance,CAT,D10,T,1,Dozer,Surface,Indonesia,,Timika,2026
+Redcliff Corporation,,New,L1 - Operator Assistance,CAT,,,1,Strut Handler,Surface,Australia,WA,Meekatharra,2026
+Whitewater Resources,,New,L1 - Operator Assistance,CAT,785,,1,Water Truck,Surface,Australia,WA,Latham,2025
+Cascadia Minerals,,New,L1 - Operator Assistance,SANDVIK,LH621,i,1,LHD,UG,Spain,,Ponferrada,2025
+Gneiss Holdings,,New,L1 - Operator Assistance,CAT,,,5,LHD,UG,Kazakhstan,,Bor,2025
+Apex Minerals,,New,L1 - Operator Assistance,EPIROC,SIMBA S7,D,1,Drill,UG,Canada,ON,Sudbury,2025
+Longreach Minerals,"Zinc, Lead",New,L1 - Operator Assistance,CAT,D10,,2,Dozer,Surface,Australia,NT,Lajamanu,2025
+Drayton Holdings,,New,L1 - Operator Assistance,EPIROC,PV271,,8,Drill,Surface,Australia,WA,Nannine,2025
+Longreach Minerals,"Zinc, Lead",New,L1 - Operator Assistance,CAT,D10,-,1,Dozer,Surface,Australia,WA,Mullowna,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,VOLVO,FMX8,,1,Water Truck,Surface,Australia,WA,Nannine,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,VOLVO,FMX8,,1,Water Truck,Surface,Australia,WA,Nannine,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,CAT,MD6420B,,1,Drill,Surface,Australia,WA,Meekatharra,2025
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,GETMAN,,,1,Water Truck,UG,Australia,WA,Meekatharra,2025
+Lakeshore Corporation,,New,L1 - Operator Assistance,SANDVIK,DL421,,1,Drill,UG,Australia,WA,Meekatharra,2025
+Fernhill Mining,,New,L1 - Operator Assistance,EPIROC,ST1030,,1,LHD,UG,Mexico,,Chihuahua,2025
+Gneiss Holdings,,New,L1 - Operator Assistance,CAT,R1300,G,5,LHD,UG,Malta,,Gzira,2025
+Ashgrove Corporation,,New,L1 - Operator Assistance,CAT,R1300,,2,LHD,UG,Canada,,Calgary,2025
+Silverton Resources,"Gold, Copper",New,L1 - Operator Assistance,CAT,D10,T2,1,Dozer,Surface,Australia,WA,Yalgoo,2024
+Wolframite Resources,,New,L1 - Operator Assistance,CAT,R1700,K,1,LHD,UG,Saudi Arabia,,Al Jubail,2024
+Wolframite Resources,,New,L1 - Operator Assistance,CAT,R1600,H,1,LHD,UG,Saudi Arabia,,Al Jubail,2024
+Fernhill Mining,,New,L1 - Operator Assistance,EPIROC,ST14,,1,LHD,UG,Mexico,,Chihuahua,2024
+Skyfall Minerals,,New,L1 - Operator Assistance,CAT,,,1,LHD,UG,Kazakhstan,,Tasbag,2024
+Pinehill Corporation,,New,L1 - Operator Assistance,CAT,D8,T,1,Dozer,Surface,Burkina Faso,,Fada N'gourma,2024
+Pinehill Corporation,,New,L1 - Operator Assistance,CAT,395,,1,Excavator,Surface,Burkina Faso,,Fada N'gourma,2024
+Redcliff Corporation,Iron ore,New,L1 - Operator Assistance,CAT,,,1,,Surface,Australia,WA,Meekatharra,2024
+Dunder Mifflin Ltd,,New,L1 - Operator Assistance,CAT,963,,1,Crawler Loader,Surface,South Korea,,Goseong,2024
+Emberline Resources,"Copper, Gold",New,L1 - Operator Assistance,JLG,450,AL,1,,Surface,Indonesia,,Timika,2024
+Globex Corporation Ltd,"CONSTRUCTION AGGREGATE, CRUSHED STONE, GRAVEL",New,L1 - Operator Assistance,KOMATSU,D61PX,24,1,Dozer,Surface,United States,,Charlottetown,2024
+Dunder Mifflin Ltd,,New,L1 - Operator Assistance,CAT,973,K,1,Wheel Loader,Surface,South Korea,,Goseong,2024
+Fernhill Mining,,New,L1 - Operator Assistance,EPIROC,ST14,,1,LHD,UG,Mexico,,Chihuahua,2024
+Skyfall Minerals,,New,L1 - Operator Assistance,CAT,R1300,G,1,LHD,UG,Kazakhstan,,Tasbag,2024
+Initech Ltd,COPPER,New,L1 - Operator Assistance,CAT,D10,,1,Dozer,Surface,United States,,Regina suburbs,2024
+Initech Ltd,COPPER,New,L1 - Operator Assistance,CAT,992,,1,Wheel Loader,Surface,United States,,Regina suburbs,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D10,,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Whitewater Resources,,New,L1 - Operator Assistance,CAT,789,D,1,Water Truck,UG,Australia,WA,Latham,2024
+Whitewater Resources,,New,L1 - Operator Assistance,CAT,789,D,1,Water Truck,UG,Australia,WA,Latham,2024
+Drayton Holdings,Iron ore,New,L1 - Operator Assistance,CAT,MD6420B | MD6310,,6,Drill,Surface,Australia,WA,Meekatharra,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV 271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV 271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Wayne Enterprises Ltd,,New,L1 - Operator Assistance,CAT,D8,T,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1300,G,1,LHD,UG,Mauritius,,Black River outskirts,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Whitewater Resources,,New,L1 - Operator Assistance,CAT,789D,WT,1,Truck,Surface,Australia,WA,Latham,2024
+Acme Mining Ltd,Coal,New,L1 - Operator Assistance,KOMATSU,D155,A6R,1,Dozer,Surface,Indonesia,,Abepura,2024
+Acme Mining Ltd,Coal,New,L1 - Operator Assistance,KOMATSU,D375,6R,1,Dozer,Surface,Indonesia,,Abepura,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Titan Holdings,,New,L1 - Operator Assistance,EPIROC,PV271,,1,Drill,Surface,Australia,WA,Nannine,2024
+Apex Minerals Ltd,Gold,New,L1 - Operator Assistance,CAT,,,5,LHD,UG,Ghana,,Prestea,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D10,T2,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D10,T2,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D11,,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D11,,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Umbrella Industries Ltd,Gold,New,L1 - Operator Assistance,CAT,D10,T2,1,Dozer,Surface,Papua New Guinea,,Arawa,2024
+Fernhill Mining,,New,L1 - Operator Assistance,CAT,R1700,K,1,LHD,UG,Mexico,,Chihuahua,2024
+Vertex Resources Ltd,Coal,New,L1 - Operator Assistance,CAT,D11,T,1,Dozer,Surface,Australia,QLD,Moranbah,2024
+Zenith Holdings Ltd,Gold,New,L1 - Operator Assistance,EPIROC,ST2,D/G,1,LHD,UG,Ghana,,Obuasi,2024
+Aurora Mining Ltd,,New,L1 - Operator Assistance,SANDVIK,LH 514,,2,LHD,UG,United States,,Regina suburbs,2023
+Basalt Industries Ltd,,New,L1 - Operator Assistance,CAT,R1300,G,1,LHD,UG,Canada,,Regina,2023
+Sapphire Holdings,Gold,New,L1 - Operator Assistance,CAT,R1700,K,1,LHD,UG,United States,,Regina suburbs,2023
+Cobalt Corporation Ltd,,New,L1 - Operator Assistance,HITACHI,PC800,,0,Excavator,Surface,United States,,Charlottetown,2023
+Ironclad Mining Ltd,,New,L1 - Operator Assistance,CAT,R1700,K,0,LHD,UG,United States,,Charlottetown,2023
+Dunder Mifflin Ltd,,New,L1 - Operator Assistance,CAT,973,K,1,Wheel Loader,Surface,South Korea,,Cheonan,2023
+Starlight Resources,Gold,New,L1 - Operator Assistance,CAT,994,,1,Wheel Loader,Surface,Australia,WA,Meekatharra,2023
+Cobalt Corporation Ltd,,New,L1 - Operator Assistance,CAT,D8,T,1,Dozer,Surface,United States,,Charlottetown,2023
+Redrock Minerals Ltd,Coal,New,L1 - Operator Assistance,CAT,D6,T,1,Dozer,Surface,United States,,Calgary suburbs,2023
+Vertex Resources Ltd,Coal,New,L1 - Operator Assistance,CAT,D11,T,1,Dozer,Surface,Australia,QLD,Longreach,2023
+Tellurium Minerals,COPPER,New,L1 - Operator Assistance,CAT,D10,T,1,Dozer,Surface,Chile,,Copiapo,2023
+Ruby Resources,,New,L1 - Operator Assistance,CAT,980,M,1,Wheel Loader,Surface,Canada,,Calgary,2023
+Ruby Resources,Oil Sands,New,L1 - Operator Assistance,HITACHI,ZX450L,C,1,Excavator,Surface,Canada,,Vancouver,2023
+Wolframite Resources,,New,L1 - Operator Assistance,CAT,R1700,K,1,,Surface,Saudi Arabia,,Qaryat al-Faw,2023
+Bluestone Holdings Ltd,,New,L1 - Operator Assistance,CAT,335,,1,Excavator,Surface,Australia,QLD,Emerald,2023
+Redcliff Corporation,Iron ore,New,L1 - Operator Assistance,CAT,D10,,1,Dozer,Surface,Australia,WA,Nannine,2023
+Granite Group Ltd,Coal,New,L1 - Operator Assistance,CAT,D8,T,1,Dozer,Surface,United States,,Regina suburbs,2023
+Pegmatite Mining,Diamond,New,L1 - Operator Assistance,CAT,D10,-,1,Dozer,Surface,Canada,,Regina,2023
+Quartzite Mining Ltd,Iron ore,New,L1 - Operator Assistance,HITACHI,EX1200,7,1,Excavator,Surface,Australia,TAS,Zeehan,2023
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,,,1,LHD,UG,Kazakhstan,,Tasbag,2023
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,,,1,LHD,UG,Kazakhstan,,Kalkaman,2023
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1600,,2,LHD,UG,Mauritius,-,Pamplemousses outskirts,2022
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1600,H,2,LHD,UG,Mauritius,-,Pamplemousses outskirts,2022
+Emberline Resources Ltd,,New,L1 - Operator Assistance,KOMATSU,PC800-8,,1,Excavator,Surface,Chile,,Vallenar,2022
+Northgate Minerals Ltd,"Gold, Copper",New,L1 - Operator Assistance,CAT,D8,T,2,Dozer,Surface,Australia,NSW,Tenterfield,2022
+Northgate Minerals Ltd,"Gold, Copper",New,L1 - Operator Assistance,CAT,D8,T,1,Dozer,Surface,Australia,NSW,Tenterfield,2022
+Titan Holdings,Gold,New,L1 - Operator Assistance,EPIROC,PIT VIPER 235,,1,Drill,Surface,Australia,WA,Bully Hill,2022
+Titan Holdings,Gold,New,L1 - Operator Assistance,EPIROC,PIT VIPER 235,,1,Drill,Surface,Australia,WA,Bully Hill,2022
+Northgate Minerals Ltd,"Gold, Copper",New,L1 - Operator Assistance,CAT,D8,T,,Dozer,Surface,Australia,NSW,Tenterfield,2022
+Silverpeak Mining Ltd,,New,L1 - Operator Assistance,CAT,D7,E,1,Dozer,Surface,United States,,St. John's,2022
+Goldcrest Corporation Ltd,"Gold, Copper",New,L1 - Operator Assistance,KOMATSU,D375,,3,Dozer,Surface,Papua New Guinea,,Arawa,2022
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,,,1,LHD,UG,Kazakhstan,,Tasbag,2022
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,R1700,K,1,LHD,UG,Kazakhstan,,Tselinograd,2022
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,R1300,G,2,LHD,UG,Kazakhstan,,Kalkaman,2022
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1300,G,1,LHD,UG,Mauritius,,Black River outskirts,2021
+Silverpeak Mining Ltd,,New,L1 - Operator Assistance,CAT,D7,E,1,Dozer,Surface,United States,,St. John's,2021
+Granite Group Ltd,Coal,New,L1 - Operator Assistance,CAT,D10,T,1,Dozer,Surface,United States,,Halifax suburbs,2021
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1600,,1,LHD,UG,Mauritius,,Black River outskirts,2021
+Copperline Industries Ltd,,New,L1 - Operator Assistance,CAT,D5,KS,1,Dozer,Surface,United States,,Vancouver suburbs,2021
+Tellurium Minerals,Copper,New,L1 - Operator Assistance,CAT,D11,R,1,Dozer,Surface,Chile,,San Pedro de Atacama,2021
+Titan Holdings,Gold,New,L1 - Operator Assistance,EPIROC,PIT VIPER 235,,1,Drill,Surface,Australia,WA,Bully Hill,2021
+Ridgeway Minerals Ltd,,New,L1 - Operator Assistance,CAT,D5,k,1,Dozer,Surface,United States,,Edmonton suburbs,2021
+Hollowbrook Mining Ltd,Copper,New,L1 - Operator Assistance,CAT,D11,R,1,Dozer,Surface,Chile,,Vallenar,2021
+Hollowbrook Mining Ltd,Copper,New,L1 - Operator Assistance,CAT,D10,R,1,Dozer,Surface,Chile,,Vallenar,2021
+Hollowbrook Mining Ltd,Copper,New,L1 - Operator Assistance,CAT,D11,T,1,Dozer,Surface,Chile,,Vallenar,2021
+Kestrel Resources Ltd,Boron,New,L1 - Operator Assistance,CAT,D10,T,1,Dozer,Surface,United States,,Calgary suburbs,2021
+Badger Minerals Ltd,Gold,New,L1 - Operator Assistance,CAT,D10,T,2,Dozer,Surface,New Zealand,,Cromwell,2021
+Titan Holdings,Gold,New,L1 - Operator Assistance,EPIROC,PIT VIPER 235,,1,Drill,Surface,Australia,WA,Bully Hill,2021
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1600,H,2,LHD,UG,Mauritius,,Black River outskirts,2021
+Talon Holdings Ltd,,New,L1 - Operator Assistance,CAT,R1700,,1,LHD,UG,Turkey,,Bingol,2021
+Tantalum Resources,,New,L1 - Operator Assistance,CAT,R1700,,3,LHD,UG,Russian Federation,,Vorkuta,2021
+Falcon Mining Ltd,"Copper, Gold, Silver",New,L1 - Operator Assistance,CAT,D10,,13,Dozer,Surface,Papua New Guinea,,Goroka,2021
+Chert Corporation,Nickel,New,L1 - Operator Assistance,CAT,349,,1,Excavator,Surface,Australia,WA,Mullowna,2021
+Wolframite Resources,,New,L1 - Operator Assistance,CAT,R1700,,1,LHD,UG,Saudi Arabia,,Al Jubail,2021
+Meridian Industries Ltd,Gold,New,L1 - Operator Assistance,SANDVIK,LH203,,1,LHD,UG,Ghana,,Konongo,2021
+Stark Industries Ltd,,New,L1 - Operator Assistance,CAT,R1300,,1,LHD,UG,Mauritius,,Black River outskirts,2021
+Cascadia Minerals Ltd,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,R1700,K,2,LHD,UG,Kazakhstan,,Bor,2021
+Highland Mining Ltd,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,,,6,LHD,UG,Kazakhstan,,Tasbag,2021
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L1 - Operator Assistance,CAT,R1700,K,1,LHD,UG,Kazakhstan,,Tasbag,2021
+Apex Minerals,"Gold, Silver",New,L2 - Teleremote,KOMATSU,D375-8,,2,Dozer,Surface,Canada,ON,Cobalt,2026
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,LIEBHERR,9400E,E,1,Excavator,Surface,Australia,WA,Nannine,2026
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,350,,1,Excavator,Surface,Australia,WA,Meekatharra,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Chile,,Calama,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Chile,,Calama,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,KOMATSU,D375A,8R,1,Dozer,Surface,Chile,,Calama,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,KOMATSU,D375A,8R,1,Dozer,Surface,Chile,,Calama,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,KOMATSU,PC800,8,1,Excavator,Surface,Chile,,Calama,2026
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,KOMATSU,PC450,LC8,1,Excavator,Surface,Chile,,Calama,2026
+Bluestone Holdings,Gold,New,L2 - Teleremote,ARAMINE,350,D,1,LHD,UG,Australia,WA,Coongan,2026
+Silverpeak Mining,Various,New,L2 - Teleremote,CAT,R2900,G,1,LHD,UG,Australia,WA,Coongan,2026
+Emberline Resources,"Copper, Gold",New,L2 - Teleremote,CAT,D10,T,1,Dozer,Surface,Indonesia,,Timika,2026
+Riverbend Corporation Ltd,Iron,New,L2 - Teleremote,CAT,350,,1,Excavator,Surface,Australia,WA,Nannine,2026
+Apex Minerals,Diamond,New,L2 - Teleremote,KOMATSU,PC2000-11,,1,Excavator,Surface,Canada,ON,Sudbury,2026
+Riverbend Corporation Ltd,Iron,New,L2 - Teleremote,LIEBHERR,9400,E,1,Excavator,Surface,Australia,WA,Nannine,2026
+Ironwood Holdings Ltd,"Copper, Gold, Silver",New,L2 - Teleremote,CAT,D6,R,1,Dozer,Surface,Indonesia,,Jayapura,2025
+Quartzite Mining,"Lead, zinc",New,L2 - Teleremote,SANDVIK,LH517,i,2,LHD,UG,United States,,Calgary suburbs,2025
+Quartzite Mining,"Lead, zinc",New,L2 - Teleremote,SANDVIK,LH517,i,1,LHD,UG,United States,,Calgary suburbs,2025
+Quartzite Mining,"Zinc, Lead, Silver",Upgrade,L2 - Teleremote,SANDVIK,LH517,i,1,LHD,UG,United States,,Edmonton suburbs,2025
+Quartzite Mining,Zinc,New,L2 - Teleremote,CAT,R1600,H,1,LHD,UG,United States,,Halifax suburbs,2025
+Quartzite Mining,Zinc,New,L2 - Teleremote,CAT,R1600,H,1,LHD,UG,United States,,Halifax suburbs,2025
+Blackrock Minerals,,Upgrade,L2 - Teleremote,KOMATSU,D375,,,Dozer,Surface,Indonesia,,Merauke,2025
+Stonebridge Resources Ltd,Copper,New,L2 - Teleremote,KOMATSU,PC7000,,1,EXCAVATOR,Surface,Chile,,Copiapo,2025
+Pinecrest Resources,,New,L2 - Teleremote,KOMATSU,WX07,,3,LHD,UG,Canada,,Edmonton,2025
+Copperfield Mining Ltd,,New,L2 - Teleremote,CAT,R2900,XE,1,LHD,UG,India,,Mysore,2025
+Cobalt Corporation,,New,L2 - Teleremote,ARAMINE,350,D,1,LHD,UG,Australia,,Burnie,2025
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,350,,1,Excavator,Surface,Australia,,Emerald,2025
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,352,,1,Excavator,Surface,Australia,,Emerald,2025
+Acme Mining Ltd,,Upgrade,L2 - Teleremote,KOMATSU,D375,,1,Dozer,Surface,Indonesia,,Timika,2025
+Blackrock Minerals Ltd,Coal,New,L2 - Teleremote,KOMATSU,D475,A,1,Dozer,Surface,Australia,QLD,Longreach,2025
+Ashgrove Corporation,Gold,New,L2 - Teleremote,CAT,D10,T,2,Dozer,Surface,Canada,,Regina,2025
+Greystone Industries Ltd,Oil Sands,New,L2 - Teleremote,CAT,D11,T,2,Dozer,Surface,Canada,,Calgary,2024
+Greystone Industries Ltd,Oil Sands,New,L2 - Teleremote,KOMATSU,D375,A,1,Dozer,Surface,Canada,,Calgary,2024
+Sable Mining Ltd,,New,L2 - Teleremote,CAT,R1700,G,1,LHD,UG,Canada,,Regina,2024
+Timberline Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,350,,1,Excavator,Surface,Australia,WA,Mullowna,2024
+Timberline Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,350,,1,Excavator,Surface,Australia,WA,Mullowna,2024
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,D10,,2,Dozer,Surface,Australia,WA,Coongan,2024
+Diamondback Corporation,Gold,New,L2 - Teleremote,CAT,R1600,H,1,LHD,UG,Argentina,,Catamarca,2024
+Fairview Resources Ltd,Iron ore,New,L2 - Teleremote,KOMATSU,D475,8R,5,Dozer,Surface,Brazil,,Sinop,2024
+Westgate Minerals Ltd,,New,L2 - Teleremote,CAT,D8,R,1,Dozer,Surface,Congo,,Impfondo,2024
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,D10,T2,4,Dozer,Surface,Australia,WA,Coongan,2024
+Sable Mining Ltd,,New,L2 - Teleremote,CAT,R1300,,1,LHD,UG,Canada,,Regina,2024
+Eastwood Holdings Ltd,,New,L2 - Teleremote,CAT,992,,1,Wheel Loader,Surface,Canada,,Montreal,2024
+Eastwood Holdings Ltd,Copper,New,L2 - Teleremote,CAT,D10,T,2,Dozer,Surface,Canada,,Montreal,2024
+Skyfall Minerals,,New,L2 - Teleremote,CAT,R1300,,4,LHD,UG,Kazakhstan,,Kalkaman,2024
+Ashgrove Corporation,,Upgrade,L2 - Teleremote,EPIROC,ST,,1,LHD,UG,Canada,,Calgary,2024
+Chert Corporation,Nickel,New,L2 - Teleremote,CAT,D9,,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,D10,T,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Southcross Mining Ltd,Iron ore,New,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Southcross Mining Ltd,Iron ore,New,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,D10,T,1,Dozer,Surface,Australia,WA,Meekatharra,2024
+Lakeshore Corporation Ltd,,New,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Finland,,Rovaniemi,2024
+Greystone Industries Ltd,Oil Sands,New,L2 - Teleremote,CAT,D8,T,2,Dozer,Surface,Canada,,Halifax,2024
+Pinecrest Resources Ltd,Gold,New,L2 - Teleremote,CAT,D8,T,1,Dozer,Surface,United States,,Vancouver suburbs,2024
+Cedarpoint Minerals Ltd,,New,L2 - Teleremote,CAT,R1300,G,2,LHD,UG,Canada,,Calgary,2024
+Talon Holdings,Copper,New,L2 - Teleremote,EPIROC,E10,,1,Drill,UG,Australia,VIC,Bendigo,2024
+Riverbend Corporation Ltd,Iron ore,New,L2 - Teleremote,CAT,349,D,1,Excavator,Surface,Australia,WA,Meekatharra,2024
+Kestrel Resources,,New,L2 - Teleremote,CAT,R2900,G,1,LHD,UG,Australia,TAS,Rosebery,2024
+Fairview Resources Ltd,Iron ore,New,L2 - Teleremote,KOMATSU,D475-5,,2,Dozer,Surface,Brazil,,Cuiaba,2024
+Maplewood Holdings Ltd,Gold,New,L2 - Teleremote,EPIROC,ST 1030,,1,LHD,UG,Saudi Arabia,,Al Jubail,2024
+Blackrock Minerals Ltd,Coal,New,L2 - Teleremote,KOMATSU,D475-5,,2,Dozer,Surface,Australia,QLD,Clermont,2023
+Cobalt Corporation Ltd,,New,L2 - Teleremote,HITACHI,PC490,,0,Excavator,Surface,United States,,Charlottetown,2023
+Cobalt Corporation Ltd,,New,L2 - Teleremote,HITACHI,PC650,,2,Excavator,Surface,United States,,Charlottetown,2023
+Ruby Resources,Oil Sands,New,L2 - Teleremote,CAT,D8,T,1,Dozer,Surface,Canada,,Halifax,2023
+Birchwood Mining Ltd,,New,L2 - Teleremote,KOMATSU,WH04/07,,1,Wheel Loader,Surface,Australia,WA,Coongan,2023
+Cascadia Minerals Ltd,"Gold, Lead, Zinc, Copper",New,L2 - Teleremote,CAT,R1300,G,5,LHD,UG,Kazakhstan,,Tselinograd,2023
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L2 - Teleremote,CAT,,,1,LHD,UG,Kazakhstan,,Zhezkazgan,2023
+Lakeshore Corporation Ltd,,Upgrade,L2 - Teleremote,CAT,D11,T,1,Dozer,Surface,Finland,-,Rovaniemi,2022
+Quartzite Mining Ltd,Iron ore,New,L2 - Teleremote,HITACHI,EX1200,,1,Excavator,Surface,Australia,TAS,Wynyard,2022
+Lakeshore Corporation Ltd,,New,L2 - Teleremote,KOMATSU,D375,,1,Dozer,Surface,Finland,,Rovaniemi,2022
+Gneiss Holdings,,New,L2 - Teleremote,CAT,R1300,G,1,LHD,UG,Malta,,Birkirkara,2022
+Dunder Mifflin Ltd,Steel (smelter),New,L2 - Teleremote,CAT,347,FL,1,Excavator,Surface,South Korea,,Goseong,2022
+Gneiss Holdings,,New,L2 - Teleremote,CAT,R1300,,2,LHD,UG,Malta,,Birkirkara,2022
+Oakridge Corporation Ltd,"Gold, Copper",New,L2 - Teleremote,KOMATSU,D375A-6,,3,Dozer,Surface,Mongolia,,Darkhan,2022
+Elmwood Resources Ltd,,New,L2 - Teleremote,HYUNDAI,R235LCR-9,,1,Excavator,Surface,New Caledonia,,Païta outskirts,2022
+Starlight Resources,Gold,New,L2 - Teleremote,SANDVIK,LH621,,1,LHD,UG,Australia,WA,Bully Hill,2022
+Tellurium Minerals,Copper,New,L2 - Teleremote,CAT,D8,T,1,Dozer,Surface,Chile,,Freirina,2022
+Tellurium Minerals,,New,L2 - Teleremote,ATLAS COPCO,Flexiroc D65,T,1,Drill,Surface,Chile,,Vallenar,2022
+Apex Minerals Ltd,Gold,New,L2 - Teleremote,CAT,R2900,,3,LHD,UG,Ghana,,Hemang,2022
+Willowbrook Minerals Ltd,,New,L2 - Teleremote,SANDVIK,LH621,i,,LHD,UG,Saudi Arabia,,Qaryat al-Faw,2022
+Juniper Mining Ltd,,New,L2 - Teleremote,CAT,R1700,,1,LHD,UG,Australia,QLD,Emerald,2022
+Maplewood Holdings,Gold,New,L2 - Teleremote,CAT,R2900,,5,LHD,UG,Australia,VIC,Kyneton,2022
+Initech Ltd,COPPER,New,L2 - Teleremote,CAT,6060,,1,Shovel,Surface,United States,,Regina suburbs,2022
+Sagebrush Corporation Ltd,,New,L2 - Teleremote,CAT,349,D,1,Rock Breaker,Surface,Australia,WA,Coongan,2022
+Gneiss Holdings,"Gold, Lead, Zinc, Copper",New,L2 - Teleremote,CAT,R1700,K,2,LHD,UG,Kazakhstan,,Bor,2022
+Skyfall Minerals,"Gold, Lead, Zinc, Copper",New,L2 - Teleremote,CAT,R1300,G,3,LHD,UG,Kazakhstan,,Kalkaman,2022
+Gneiss Holdings,"Gold, Lead, Zinc, Copper",New,L2 - Teleremote,CAT,R1300,,2,LHD,UG,Kazakhstan,,Bor,2022
+Oakridge Corporation Ltd,"Gold, Copper",New,L2 - Teleremote,KOMATSU,D475,A,1,Dozer,Surface,Mongolia,,Darkhan,2021
+Oakridge Corporation Ltd,"Gold, Copper",New,L2 - Teleremote,KOMATSU,D375,A,1,Dozer,Surface,Mongolia,,Darkhan,2021
+Oakridge Corporation Ltd,"Gold, Copper",New,L2 - Teleremote,KOMATSU,D375,A,1,Dozer,Surface,Mongolia,,Darkhan,2021
+Mesquite Resources Ltd,COPPER,Upgrade,L2 - Teleremote,CAT,R2900,,1,LHD,UG,Australia,NSW,Boggabilla,2021
+Yucca Holdings Ltd,Copper,New,L2 - Teleremote,CAT,D8,T,1,Dozer,Surface,Chile,,Huasco,2021
+Sunstone Mining Ltd,,New,L2 - Teleremote,CAT,R1700,,1,LHD,UG,Australia,WA,Coongan,2021
+Moonstone Corporation Ltd,,New,L2 - Teleremote,CAT,R1700,,2,LHD,UG,Australia,WA,Bully Hill,2021
+Ironclad Mining,Gold,New,L2 - Teleremote,CAT,R2900,,1,LHD,UG,Australia,WA,Nannine,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,992,K,1,Wheel Loader,Surface,United States,,Edmonton suburbs,2021
+Mesquite Resources,COPPER,New,L2 - Teleremote,CAT,R2900,,1,LHD,UG,Australia,QLD,Alpha,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,730,,1,Truck,Surface,United States,,Edmonton suburbs,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,374,,1,Excavator,Surface,United States,,Edmonton suburbs,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,390,D,1,Excavator,Surface,United States,,Edmonton suburbs,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,349F,,1,Excavator,Surface,United States,,Edmonton suburbs,2021
+Ridgeway Minerals Ltd,,New,L2 - Teleremote,CAT,D8,T,1,Dozer,Surface,United States,,Edmonton suburbs,2021
+Mesquite Resources,COPPER,New,L2 - Teleremote,CAT,R2900,,1,LHD,UG,Australia,QLD,Alpha,2021
+Cesium Holdings,,New,L2 - Teleremote,CAT,R1300,G,1,LHD,UG,Australia,WA,Meekatharra,2021
+Dunder Mifflin Ltd,,New,L2 - Teleremote,CAT,973,,1,Wheel Loader,Surface,South Korea,,Goseong,2021
+Rhenium Resources,,New,L2 - Teleremote,KOMATSU,WX04,,2,LHD,UG,Australia,WA,Nannine,2021
+Zircon Mining,,New,L2 - Teleremote,SANDVIK,LH203,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Tinstone Holdings,Gold,New,L2 - Teleremote,SANDVIK,LH514,,1,LHD,UG,Australia,WA,Bully Hill,2021
+Feldspar Corporation,,New,L2 - Teleremote,SANDVIK,LH621,i,1,LHD,UG,Australia,WA,Yalgoo,2021
+Zenith Holdings,Gold,New,L2 - Teleremote,CAT,R2900,,1,LHD,UG,Australia,WA,Coongan,2021
+Starlight Resources Ltd,,New,L2 - Teleremote,CAT,AD60,,2,Truck,Surface,Indonesia,,Timika,2021
+Umbrella Industries Ltd,Gold,New,L3 - Semi Autonomous,CAT,D10,,1,Dozer,Surface,Papua New Guinea,,Arawa,2022
