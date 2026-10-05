@@ -99,8 +99,19 @@ describe('findTimeline', () => {
     expect(timeline.excludedMachineCount).toBe(5)
   })
 
+  it('counts a deployment in service only from its valid_from, even when commissioned earlier', async () => {
+    // As after a relocation: commissioned in 2021, but this record is only valid from mid-2023
+    await query(`UPDATE deployment SET valid_from = '2023-06-01' WHERE id = 10`)
+
+    const { years } = await findTimeline({})
+    expect(years.find((row) => row.year === 2021)).toEqual({ year: 2021, newlyCommissioned: 96, inService: 0 })
+    expect(years.find((row) => row.year === 2022)).toEqual({ year: 2022, newlyCommissioned: 0, inService: 0 })
+    expect(years.find((row) => row.year === 2023)).toEqual({ year: 2023, newlyCommissioned: 0, inService: 96 })
+  })
+
   it('places year-only commissioning in its year without inventing a date', async () => {
-    await query('UPDATE deployment SET commissioning_year = 2019 WHERE id = 11')
+    // A year-only contribution has no valid_from, since only a full date sets it
+    await query('UPDATE deployment SET commissioning_year = 2019, valid_from = NULL WHERE id = 11')
 
     const timeline = await findTimeline({})
     expect(timeline.years.find((row) => row.year === 2019)).toEqual({ year: 2019, newlyCommissioned: 5, inService: 25 })

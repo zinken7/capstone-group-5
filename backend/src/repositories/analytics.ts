@@ -104,13 +104,14 @@ export interface Timeline {
 /** Announced deployments are not commissioned yet, so no timeline measure counts them */
 const notAnnounced = sql`${tables.deployment.status} IS DISTINCT FROM 'announced'`
 const startYear = sql<number | null>`COALESCE(${tables.deployment.commissioningYear}::int, EXTRACT(YEAR FROM ${tables.deployment.commissioningDate})::int)`
-// valid_to is inclusive, so a deployment is in service on 31 December of every year up to this one
+// Like the map's date filter, a record is in service on 31 December only inside its valid_from..valid_to window
+const firstYearInService = sql<number | null>`EXTRACT(YEAR FROM ${tables.deployment.validFrom})::int`
 const lastYearInService = sql<number | null>`EXTRACT(YEAR FROM ${tables.deployment.validTo} + 1)::int - 1`
 
 /** Per year to the current year: machines newly commissioned (FR-30) and in service on 31 December (FR-22). */
 export async function findTimeline(filters: DeploymentFilters): Promise<Timeline> {
   const [groups, excluded, [today]] = await Promise.all([
-    db.select({ startYear, lastYearInService, machines: sql<number>`SUM(${tables.deployment.quantity})::int` })
+    db.select({ startYear, firstYearInService, lastYearInService, machines: sql<number>`SUM(${tables.deployment.quantity})::int` })
       .from(tables.deployment)
       .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
       .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
@@ -119,7 +120,7 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
       .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
       .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
       .where(and(buildWhere(filters), notAnnounced, sql`${startYear} IS NOT NULL`))
-      .groupBy(startYear, lastYearInService),
+      .groupBy(startYear, firstYearInService, lastYearInService),
     db.select({
       count: sql<number>`COUNT(*)::int`,
       machines: sql<number>`COALESCE(SUM(${tables.deployment.quantity}), 0)::int`,
@@ -143,9 +144,10 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
     let inService = 0
     for (const group of groups) {
       if (group.startYear === year) newlyCommissioned += group.machines
-      if (group.startYear !== null && group.startYear <= year && (group.lastYearInService === null || group.lastYearInService >= year)) {
-        inService += group.machines
-      }
+      const started = group.startYear !== null && group.startYear <= year
+      const valid = (group.firstYearInService === null || group.firstYearInService <= year)
+        && (group.lastYearInService === null || group.lastYearInService >= year)
+      if (started && valid) inService += group.machines
     }
     years.push({ year, newlyCommissioned, inService })
   }
