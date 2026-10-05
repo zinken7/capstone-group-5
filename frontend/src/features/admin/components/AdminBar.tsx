@@ -13,6 +13,7 @@ function AdminBar() {
     <div className="admin-bar">
       <nav aria-label="Administration">
         {!mustChange && <NavLink end to="/admin">Review queue</NavLink>}
+        {!mustChange && state.profile.role === 'root' && <NavLink to="/admin/users">Administrators</NavLink>}
         <NavLink to="/admin/password">Change password</NavLink>
       </nav>
       <span className="admin-bar__user">Signed in as {state.profile.email}</span>

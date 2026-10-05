@@ -4,27 +4,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import App from '../../App'
+import { stubApi } from '../../test/stub-api'
 import { buildCorrection } from './components/CorrectionForm'
 import type { ReviewRecord } from './types'
-
-type Handler = (body: unknown) => Response
-interface Call { key: string; body: unknown; headers: Headers }
-
-/** Stubs fetch with handlers keyed by "METHOD /path"; unknown requests fail loudly. */
-function stubApi(routes: Record<string, Handler | Handler[]>): Call[] {
-  const calls: Call[] = []
-  const queues = new Map(Object.entries(routes).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]))
-  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input), 'http://localhost')
-    const key = `${init?.method ?? 'GET'} ${url.pathname}`
-    const body: unknown = init?.body ? JSON.parse(String(init.body)) : undefined
-    calls.push({ key, body, headers: new Headers(init?.headers) })
-    const entry = queues.get(key)
-    const handler = Array.isArray(entry) ? (entry.length > 1 ? entry.shift() : entry[0]) : entry
-    return handler ? handler(body) : Response.json({ error: `unexpected request ${key}` }, { status: 500 })
-  }))
-  return calls
-}
 
 const profile = (mustChange = false) => Response.json({ email: 'reviewer@example.com', role: 'admin', must_change_password: mustChange })
 const unauthorised = () => Response.json({ error: 'sign in required' }, { status: 401 })

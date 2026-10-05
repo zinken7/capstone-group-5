@@ -10,7 +10,17 @@ navigation.
 
 ## Accounts
 
-Accounts are created from the command line; see
+A root administrator adds and removes administrators on the **Administrators**
+page (`/admin/users`), which only root administrators see:
+
+- **Add an administrator** with their email. The page shows a temporary password
+  once; send it privately. It must be changed at first sign-in.
+- **Deactivate** an administrator to remove their access; they are signed out at
+  once. **Reactivate** restores it. Accounts are never deleted, because the
+  review history refers to them.
+
+Root accounts cannot be created or changed on that page. They, and the first
+account, are created from the command line; see
 [`backend/README.md`](../backend/README.md#administrator-accounts) and, for
 staging, [`staging.md`](staging.md#administrator-accounts). A new account gets a
 temporary password, shown once, which must be changed at first sign-in. Until

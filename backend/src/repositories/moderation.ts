@@ -1,23 +1,14 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
+import { isoTimestamp } from '../lib/iso-timestamp.js'
 
 // company joins twice: once as the machine manufacturer, once as the technology supplier
 const manufacturer = alias(tables.company, 'manufacturer')
 const supplier = alias(tables.company, 'supplier')
-
-/**
- * timestamptz exactly as the API has always serialised it: pg handed res.json
- * a Date, which became ISO 8601 UTC with milliseconds. Drizzle returns the
- * column as PostgreSQL text instead, so the formatting moves into SQL.
- */
-function isoTimestamp(column: AnyPgColumn) {
-  return sql<string>`to_char(${column} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
-}
 
 // The outer deployment reference is spelled out: Drizzle renders columns of a
 // single-table select unqualified, and an unqualified "id" inside the subquery

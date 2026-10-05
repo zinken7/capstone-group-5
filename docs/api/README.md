@@ -22,6 +22,9 @@
 | `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
 | `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
 | `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
+| `GET` | `/api/admin/users` | Lists administrator accounts (root only) |
+| `POST` | `/api/admin/users` | Adds an administrator with a temporary password (root only) |
+| `PATCH` | `/api/admin/users/{id}` | Deactivates or reactivates an administrator (root only) |
 
 The public read endpoints only return deployments with `verification_status = verified` by default (FR-43).
 
@@ -517,6 +520,33 @@ in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
 "verification_status"}`, `400` for invalid input or a correction that changes
 nothing, `404` for an unknown record.
+
+## Administrator accounts (root only)
+
+These routes need a signed-in root administrator; any other administrator gets
+`403 {"error": "root administrator required"}`. They never create, change or
+deactivate root accounts, which are managed only with
+`npm run admin:create -- --root`.
+
+### `GET /api/admin/users`
+
+`200 {"items": [...]}`, root accounts first, each with `id`, `email`, `role`,
+`active`, `must_change_password` and `created_at`. Password hashes are never
+returned.
+
+### `POST /api/admin/users`
+
+Request: `{"email": "reviewer@example.com"}`. Any `role` in the body is ignored.
+`201 {"id", "email", "role": "admin", "temporary_password"}`: the temporary
+password is returned only in this response and must be changed at first
+sign-in. `400` for a missing or invalid email, `409` if the email is taken.
+
+### `PATCH /api/admin/users/{id}`
+
+Request: `{"active": false}` or `{"active": true}`. Deactivating ends the
+account's sessions at once; accounts are never deleted, because review history
+refers to them. `200 {"id", "active"}`, `400` for an invalid body, `404` for an
+unknown account, `409` for a root account.
 
 ## Common implementation trade-offs
 
