@@ -6,7 +6,11 @@ export function formatNumber(value: number | null | undefined): string {
 
 export function formatEnumLabel(value: string | null | undefined): string {
   if (!value) return 'Not recorded'
-  const specialCases: Record<string, string> = { lhd: 'LHD', LHD: 'LHD' }
+  const specialCases: Record<string, string> = {
+    lhd: 'LHD',
+    LHD: 'LHD',
+    semi_autonomous: 'Semi-autonomous',
+  }
   if (specialCases[value]) return specialCases[value]
   const label = value.replaceAll('_', ' ').toLowerCase()
   return label.charAt(0).toUpperCase() + label.slice(1)
