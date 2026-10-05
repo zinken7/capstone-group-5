@@ -133,7 +133,6 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
       {select('Manufacturer', 'manufacturer', remoteOptions.manufacturers.map((value) => [value, value] as const))}
       {select('Automation level', 'automationLevel', reference.automationLevels)}
       {select('Environment', 'environment', reference.environments)}
-      {select('Status', 'status', STATUS_FILTERS.map((value) => [value, formatEnumLabel(value)] as const))}
       <button className="button button--secondary analytics-clear" type="button" onClick={onClear} disabled={Object.keys(filters).length === 0}>Clear all</button>
     </section>
   )

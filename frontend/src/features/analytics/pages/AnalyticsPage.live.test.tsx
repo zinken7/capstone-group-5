@@ -82,6 +82,18 @@ describe('AnalyticsPage live API behaviour', () => {
     })
   })
 
+  test('keeps status mix requests separate from the FR-27 filters', async () => {
+    render(<AnalyticsPage />)
+    await screen.findByText('Technology suppliers')
+
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument()
+    await waitFor(() => {
+      const statusRequests = summaryMock.mock.calls.filter(([filters]) => Boolean(filters?.status))
+      expect(statusRequests.map(([filters]) => filters?.status)).toEqual(expect.arrayContaining(['operational', 'commissioning', 'announced', 'decommissioned']))
+      expect(statusRequests.every(([filters]) => filters?.country === undefined)).toBe(true)
+    })
+  })
+
   test('shows an API error state', async () => {
     summaryMock.mockRejectedValue(new Error('API unavailable'))
     breakdownsMock.mockRejectedValue(new Error('API unavailable'))
