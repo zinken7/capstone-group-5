@@ -1,4 +1,4 @@
-import { formatDateTime, humanise } from '../format'
+import { formatDateTime, formatEnumLabel } from '../../../lib/format'
 import type { ReviewRecord, RevisionHistoryItem } from '../types'
 
 function actor(revision: RevisionHistoryItem): string {
@@ -31,7 +31,7 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
         <ol className="history-list">
           {record.reviews.map((review, index) => (
             <li key={`${review.reviewedAt}-${index}`}>
-              <strong>{humanise(review.decision)}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
+              <strong>{formatEnumLabel(review.decision)}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
               {review.note && <blockquote>{review.note}</blockquote>}
             </li>
           ))}
@@ -48,7 +48,7 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
               {revision.action !== 'create' && revision.previousValues && Object.keys(revision.previousValues).length > 0 && (
                 <dl className="previous-values">
                   {Object.entries(revision.previousValues).map(([field, value]) => (
-                    <div key={field}><dt>Previous {humanise(field).toLowerCase()}</dt><dd>{describe(value)}</dd></div>
+                    <div key={field}><dt>Previous {formatEnumLabel(field).toLowerCase()}</dt><dd>{describe(value)}</dd></div>
                   ))}
                 </dl>
               )}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import MiningMap from '../components/MiningMap'
 import StateMessage from '../../../shared/components/StateMessage'
 import { useLiveSites } from '../../../hooks/useLiveSites'
+import { formatNumber } from '../../../lib/format'
 import type { MapSite } from '../types'
 import { formatAustralianDateInput, parseAustralianDate } from '../date'
 
@@ -180,7 +181,7 @@ function MapPage({ sites: suppliedSites }: MapPageProps = {}) {
                 return (
                   <li key={site.id}>
                     <strong>{site.name}</strong>
-                    <span>{quantity} verified machines · {site.region}, {site.country}</span>
+                    <span>{formatNumber(quantity)} verified machines · {site.region}, {site.country}</span>
                   </li>
                 )
               })}

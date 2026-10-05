@@ -1,3 +1,4 @@
+import { formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import { useLiveSites } from '../../../hooks/useLiveSites'
 import type { AnalyticsBreakdown, AnalyticsSummary } from '../types'
@@ -10,15 +11,19 @@ interface AnalyticsPageProps {
 }
 
 function Breakdown({ title, items, total }: { title: string; items: AnalyticsBreakdown[]; total: number }) {
+  const formatLabel = title === 'Machines by type' || title === 'Machines by automation level'
+    ? formatEnumLabel
+    : (value: string) => value
+
   return (
     <section className="chart-card">
       <h2>{title}</h2>
       <div className="bar-chart">
         {items.map((item) => (
           <div className="bar-row" key={item.label}>
-            <span>{item.label}</span>
+            <span>{formatLabel(item.label)}</span>
             <div className="bar-track"><span style={{ width: `${total ? (item.value / total) * 100 : 0}%` }} /></div>
-            <strong>{item.value}</strong>
+            <strong>{formatNumber(item.value)}</strong>
           </div>
         ))}
       </div>
@@ -49,9 +54,9 @@ function AnalyticsPage({ summary: suppliedSummary }: AnalyticsPageProps = {}) {
       ) : !loading && !error ? (
         <>
           <div className="metric-grid">
-            <article className="metric-card"><span>Automated machines</span><strong>{summary.machineCount}</strong><small>Recorded quantity</small></article>
-            <article className="metric-card"><span>Mine sites</span><strong>{summary.siteCount}</strong><small>Distinct locations</small></article>
-            <article className="metric-card"><span>Countries</span><strong>{summary.countryCount}</strong><small>Geographic coverage</small></article>
+            <article className="metric-card"><span>Automated machines</span><strong>{formatNumber(summary.machineCount)}</strong><small>Recorded quantity</small></article>
+            <article className="metric-card"><span>Mine sites</span><strong>{formatNumber(summary.siteCount)}</strong><small>Distinct locations</small></article>
+            <article className="metric-card"><span>Countries</span><strong>{formatNumber(summary.countryCount)}</strong><small>Geographic coverage</small></article>
           </div>
           <div className="chart-grid">
             <Breakdown title="Machines by type" items={summary.machinesByType} total={summary.machineCount} />

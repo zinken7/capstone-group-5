@@ -29,6 +29,16 @@ describe('ContributePage', () => {
     expect(screen.queryByText(/submission workflow planned/i)).not.toBeInTheDocument()
   })
 
+  test('keeps optional details behind the add-more-detail toggle', async () => {
+    const user = userEvent.setup()
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
+
+    expect(screen.queryByLabelText(/machine model variant/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
+    expect(screen.getByLabelText(/machine model variant/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hide additional details/i })).toHaveAttribute('aria-expanded', 'true')
+  })
+
   test('shows required field errors when submitted incomplete', async () => {
     const user = userEvent.setup()
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
@@ -52,6 +62,7 @@ describe('ContributePage', () => {
     await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
     await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
     await user.type(screen.getByLabelText(/quantity/i), '10')
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/contact email/i), 'not-an-email')
     await user.type(screen.getByLabelText(/evidence url 1/i), 'not-a-url')
     await user.click(screen.getByLabelText(/authorised to disclose/i))
@@ -111,8 +122,9 @@ describe('ContributePage', () => {
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     const user = await fillMinimumForm()
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/machine model variant/i), 'XDE')
-    await user.selectOptions(screen.getByLabelText(/automation level/i), 'autonomous')
+    await user.click(screen.getByLabelText('Autonomous'))
     await user.selectOptions(screen.getByLabelText(/installation type/i), 'retrofit')
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
@@ -156,7 +168,7 @@ describe('ContributePage', () => {
     render(<ContributePage />)
 
     expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Autonomous' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Autonomous' })).toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')
   })
 

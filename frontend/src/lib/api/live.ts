@@ -1,5 +1,6 @@
 import { getMap } from './map'
 import { getSite } from './sites'
+import { formatCountry, formatEnumLabel } from '../format'
 import type { MapQuery, SiteDetail } from './types'
 import type { MapDeployment, MapSite } from '../../features/map/types'
 
@@ -8,16 +9,10 @@ export interface LiveSitesResult {
   excludedCount: number
 }
 
-const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
-
 /** English name for an ISO 3166-1 alpha-2 code; anything else is returned unchanged. */
 export function countryName(countryCode: string): string {
-  try {
-    return regionNames.of(countryCode) ?? countryCode
-  } catch {
-    // Intl throws a RangeError for values that are not region codes.
-    return countryCode
-  }
+  if (!countryCode) return countryCode
+  return formatCountry(countryCode)
 }
 
 const MACHINE_TYPE_LABELS: Record<string, string> = {
@@ -34,8 +29,7 @@ const MACHINE_TYPE_LABELS: Record<string, string> = {
 
 /** Unlisted types use the same sentence case, e.g. underground_haul_truck → "Underground haul truck". */
 export function machineTypeLabel(machineType: string): string {
-  const label = machineType.replaceAll('_', ' ')
-  return MACHINE_TYPE_LABELS[machineType] ?? label.charAt(0).toUpperCase() + label.slice(1)
+  return MACHINE_TYPE_LABELS[machineType] ?? formatEnumLabel(machineType)
 }
 
 function environmentLabel(environment: string): MapDeployment['environment'] {
