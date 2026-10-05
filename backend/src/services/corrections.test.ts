@@ -44,4 +44,22 @@ describe('correctDeployment', () => {
     expect(await query('SELECT id FROM contributor')).toEqual([])
     expect(await query('SELECT url FROM evidence WHERE deployment_id = 10')).toEqual([{ url: 'https://example.com/evidence/10' }])
   })
+
+  it('applies concurrent corrections one after another without losing either', async () => {
+    const outcomes = await Promise.all([
+      correctDeployment(10, input({ quantity: 100 })),
+      correctDeployment(10, input({ quantity: 120 })),
+    ])
+    expect(outcomes.map((outcome) => outcome.kind)).toEqual(['updated', 'updated'])
+
+    const revisions = await query<{ previous_values: { quantity: number; verification_status: string } }>(
+      'SELECT previous_values FROM revision WHERE deployment_id = 10 ORDER BY id',
+    )
+    const final = (await deployment10())?.quantity
+    // The second revision must see the first correction's value, not the original 96
+    expect(revisions.map((revision) => revision.previous_values)).toEqual([
+      { quantity: 96, verification_status: 'verified' },
+      { quantity: final === 100 ? 120 : 100, verification_status: 'pending_review' },
+    ])
+  })
 })
