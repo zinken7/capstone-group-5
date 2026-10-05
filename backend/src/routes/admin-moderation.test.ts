@@ -99,6 +99,29 @@ describe('GET /api/admin/reviews', () => {
       technology_supplier: 'Sandvik',
       technology_product: 'Sandvik AutoMine',
       evidence_count: 0,
+      kind: 'submission',
+      changed_fields: [],
+      contributor_email: null,
+      contributor_organisation: null,
+    })
+  })
+
+  it('identifies a contributor correction and exposes its changed fields', async () => {
+    await request(app).patch('/api/deployments/12').send({
+      quantity: 9,
+      evidence_urls: ['https://example.com/correction/12'],
+      contributor_email: 'field@example.com',
+      organisation: 'Example Mining',
+      disclosure_accepted: true,
+    }).expect(200)
+
+    const response = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(response.status).toBe(200)
+    expect(response.body.items.find((item: { id: number }) => item.id === 12)).toMatchObject({
+      kind: 'correction',
+      changed_fields: ['quantity', 'evidence_urls'],
+      contributor_email: 'field@example.com',
+      contributor_organisation: 'Example Mining',
     })
   })
 })

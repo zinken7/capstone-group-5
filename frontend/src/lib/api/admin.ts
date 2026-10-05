@@ -68,6 +68,10 @@ interface QueueItemDto {
   technology_product: string | null
   evidence_count: number
   submitted_at: string
+  kind?: string | null
+  changed_fields?: string[] | null
+  contributor_email?: string | null
+  contributor_organisation?: string | null
 }
 
 export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
@@ -85,6 +89,10 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     technologyProduct: item.technology_product,
     evidenceCount: item.evidence_count,
     submittedAt: item.submitted_at,
+    kind: item.kind ?? 'submission',
+    changedFields: item.changed_fields ?? [],
+    contributorEmail: item.contributor_email ?? null,
+    contributorOrganisation: item.contributor_organisation ?? null,
   }))
 }
 

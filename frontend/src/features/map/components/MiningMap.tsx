@@ -6,6 +6,7 @@ import {
   Tooltip,
 } from 'react-leaflet'
 import { Fragment } from 'react'
+import { formatEnumLabel, formatNumber } from '../../../lib/format'
 import 'leaflet/dist/leaflet.css'
 import '../map.css'
 import type { MapSite } from '../types'
@@ -89,7 +90,7 @@ function MiningMap({ sites, showDensity = false }: MiningMapProps) {
                 <Tooltip direction="top" offset={[0, -8]} opacity={0.96}>
                   <span className="site-tooltip">
                     <strong>{site.name}</strong>
-                    <small>{quantity} verified machines</small>
+                    <small>{formatNumber(quantity)} verified machines</small>
                   </span>
                 </Tooltip>
                 <Popup>
@@ -114,11 +115,11 @@ function MiningMap({ sites, showDensity = false }: MiningMapProps) {
                           </div>
                           <div>
                             <dt>Status</dt>
-                            <dd>{deployment.status}</dd>
+                            <dd>{formatEnumLabel(deployment.status)}</dd>
                           </div>
                           <div>
                             <dt>Quantity</dt>
-                            <dd>{deployment.quantity}</dd>
+                            <dd>{formatNumber(deployment.quantity)}</dd>
                           </div>
                         </dl>
                       </section>
