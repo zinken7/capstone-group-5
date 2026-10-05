@@ -10,8 +10,8 @@ export interface EquipmentRecord {
   manufacturer: string
   supplier: string
   automationLevel: string
-  environment: 'Surface' | 'Underground' | 'Both'
-  status: DeploymentStatus
+  environment: 'Surface' | 'Underground' | 'Both' | 'Not recorded'
+  status: DeploymentStatus | 'unknown'
   quantity: number
   commissioningDate?: string
 }
