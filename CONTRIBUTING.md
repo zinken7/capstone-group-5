@@ -136,15 +136,20 @@ a label.
    [`.github/pull_request_template.md`](.github/pull_request_template.md).
 4. One approving review is required, from someone outside your own area.
 5. CI must pass. Branch protection enforces both.
-6. When the pull request is ready for its final review, mention @zinken7 in a
-   comment. M1 enables **auto-merge**, and GitHub merges it with a merge commit
-   under M1's name as soon as the review is approved and CI passes. The branch
-   is then deleted automatically.
+6. Merge with a merge commit, the only method enabled. The branch is then
+   deleted automatically. Who merges depends on what the pull request changes:
+   - **Changes under `frontend/` or `backend/`** (code, migrations, seed data,
+     `vercel.json`): when it is ready for its final review, mention @zinken7 in
+     a comment and do not merge it yourself. M1 enables **auto-merge**, and
+     GitHub merges it under M1's name as soon as the review is approved and CI
+     passes, which deploys it to staging.
+   - **Anything else** (documentation, meeting minutes, CI): merge it yourself
+     once it is approved and CI passes.
 
-Do not merge your own pull request. The Vercel projects are on M1's free
-Hobby plan, and Vercel's Hobby plan does not allow collaborators to deploy: a
-commit by anyone other than M1 is blocked. A merge by anyone else is therefore
-not deployed until M1's next merge (see
+The Vercel projects are on M1's free Hobby plan, and Vercel's Hobby plan does
+not allow collaborators to deploy: a commit by anyone other than M1 is blocked.
+A merge by anyone else is therefore never deployed by itself; M1's next merge
+deploys everything on `main` (see
 [`docs/staging.md`](docs/staging.md#deploying)).
 
 Review is for catching problems early, not for scoring points. Be direct about

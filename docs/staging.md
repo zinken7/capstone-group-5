@@ -65,8 +65,9 @@ On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
 
 1. **Check deploy author** reads the author of the merge commit. If anyone but
    M1 authored it, Vercel would block the deployment, so the job skips the
-   migration and both deploys and comments on the merged pull request. M1's
-   next merge then migrates and deploys everything merged so far.
+   migration and both deploys. If the merged pull request changed files under
+   `frontend/` or `backend/` (other than Markdown), it also comments on it to
+   tell M1. M1's next merge then migrates and deploys everything merged so far.
 2. **Migrate staging database** applies pending migrations (see
    [Migrations and seed data](#migrations-and-seed-data)).
 3. **Deploy staging frontend** and **Deploy staging backend** each run
@@ -76,9 +77,11 @@ On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
 A failed check or migration stops both deploys, so new code never runs against
 an old schema.
 
-So that every merge deploys, M1 merges pull requests, normally through
-auto-merge: the author mentions @zinken7, M1 enables auto-merge, and GitHub
-merges under M1's name once the review is approved and CI passes (see
+So that changes to the application deploy when they merge, M1 merges pull
+requests that change `frontend/` or `backend/`, normally through auto-merge:
+the author mentions @zinken7, M1 enables auto-merge, and GitHub merges under
+M1's name once the review is approved and CI passes. Other pull requests do not
+change what runs on staging, so their authors merge them (see
 [`CONTRIBUTING.md`](../CONTRIBUTING.md#pull-requests)). Merge commits are the
 only merge method enabled, because a squash or rebase merge can carry the pull
 request author's name instead.
@@ -215,5 +218,6 @@ migration.
 - The Vercel projects belong to M1's free Hobby account, which is limited to
   non-commercial use and does not allow collaborators: other members cannot
   open the dashboard, and Vercel blocks deployments of their commits. This is
-  why M1 merges pull requests (see [Deploying](#deploying)). Removing the
-  limit needs Vercel Pro. Ask M1 for deployment changes.
+  why M1 merges pull requests that change the application (see
+  [Deploying](#deploying)). Removing the limit needs Vercel Pro. Ask M1 for
+  deployment changes.

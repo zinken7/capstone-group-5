@@ -203,15 +203,25 @@ jobs:
             echo 'allowed=false' >> "$GITHUB_OUTPUT"
             echo "::warning::Staging not migrated or deployed: commit authored by ${login:-an unknown user}, not $DEPLOY_AUTHOR"
           fi
+      # Only pull requests that change what runs on staging need M1's attention;
+      # others, such as documentation, may be merged by their authors.
       - name: Tell M1 on the merged pull request
         if: steps.author.outputs.allowed == 'false'
         env:
           LOGIN: ${{ steps.author.outputs.login }}
         run: |
           pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // ""')
-          if [ -n "$pr" ]; then
-            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "@$DEPLOY_AUTHOR Staging was not migrated or deployed: this merge commit is authored by @${LOGIN:-unknown}, and the Vercel Hobby account deploys only commits by @$DEPLOY_AUTHOR. Your next merge will deploy it. See docs/staging.md."
+          if [ -z "$pr" ]; then
+            echo 'No pull request found for this commit; not notifying.'
+            exit 0
           fi
+          deployable=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$pr/files" --jq '.[].filename' \
+            | grep -E '^(frontend|backend)/' | grep -viE '\.md$' || true)
+          if [ -z "$deployable" ]; then
+            echo "#$pr changes nothing under frontend/ or backend/; not notifying."
+            exit 0
+          fi
+          gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "@$DEPLOY_AUTHOR Staging was not migrated or deployed: this pull request changes frontend/ or backend/, but its merge commit is authored by @${LOGIN:-unknown}, and the Vercel Hobby plan deploys only commits by @$DEPLOY_AUTHOR. Your next merge will deploy it. See docs/staging.md."
 
   # Runs before deploy-staging, so new code never meets an old schema.
   migrate-staging:

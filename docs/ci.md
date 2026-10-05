@@ -58,8 +58,9 @@ On pushes to `main` only, three more jobs run after the checks, in order:
 1. **Check deploy author** runs after the `Backend Lint` gate succeeds. It
    depends on the gate rather than on a path-selected job, so it runs after
    every push, including frontend- or documentation-only ones. If the merge
-   commit is not authored by `DEPLOY_AUTHOR` (M1), it comments on the merged
-   pull request and the next two jobs are skipped.
+   commit is not authored by `DEPLOY_AUTHOR` (M1), the next two jobs are
+   skipped, and if the merged pull request changed non-Markdown files under
+   `frontend/` or `backend/`, the job comments on it to tell M1.
 2. **Migrate staging database** applies pending migrations to Neon staging.
 3. **Deploy staging frontend** and **Deploy staging backend** deploy each
    Vercel project to production with `vercel deploy --prod`, with a 10-minute
