@@ -58,14 +58,14 @@ gantt
 
 | Milestone | Deliverable | Target date | Status |
 |---|---|---|---|
-| Project Spec and Plans | Submission PDF (group, 15%) | 25 Aug 2026 | In progress |
-| Sprint 1 increment | Map serving live data on staging | 31 Aug 2026 | Not started |
-| In-class test | Individual, 20% | 8 Sep 2026 | Not started |
-| Sprint 2 increment | Register, filters, export, headline statistics | 21 Sep 2026 | Not started |
-| Software Features | Individual, 20% | 29 Sep 2026 | Not started |
-| Professional Reflection | Individual, 15% | 29 Sep 2026 | Not started |
-| Sprint 3 increment | Contribution and verification; deployed to UWA | 5 Oct 2026 | Not started |
-| Demonstration video | Individual, 15% | 6 Oct 2026 | Not started |
+| Project Spec and Plans | Submission PDF (group, 15%) | 25 Aug 2026 | Done |
+| Sprint 1 increment | Map serving live data on staging | 31 Aug 2026 | Done |
+| In-class test | Individual, 20% | 8 Sep 2026 | Done |
+| Sprint 2 increment | Register, filters, export, headline statistics | 21 Sep 2026 | Done |
+| Software Features | Individual, 20% | 29 Sep 2026 | Done |
+| Professional Reflection | Individual, 15% | 29 Sep 2026 | Done |
+| Sprint 3 increment | Contribution and verification on the public staging host | 5 Oct 2026 | In progress |
+| Demonstration video | Individual, 15% | 6 Oct 2026 | In progress |
 | Final Project Report | Group, 15%, plus showcase | 13 Oct 2026 | Not started |
 | Peer feedback | Feedback Fruits | 19 Oct 2026 | Not started |
 
@@ -80,12 +80,12 @@ done, rather than waiting on a later layer.
 
 | ID | Feature | Capability delivered | Sprint | Status |
 |---|---|---|---|---|
-| F0 | Foundation | Schema, seed data, CI/CD and staging working together, shown by one mine site from the database appearing on the map | 1 | Not started |
-| F1 | Map | A visitor browses mine sites, sees deployment status, opens site detail, filters the map, and uses the time slider to view a past date | 1–2 | Not started |
-| F2 | Equipment register and export | A user searches, filters and sorts every record, and exports the dataset | 2 | Not started |
-| F3 | Analytics | A user reads headline statistics and market-level charts, with filters applying to every measure | 2–3 | Not started |
-| F4 | Contribute and verification | A contributor submits a record with evidence; an administrator verifies, rejects or requests more | 3 | Not started |
-| F5 | Deployment and handover | The system runs in the UWA environment and is handed over with documentation | 3–4 | Not started |
+| F0 | Foundation | Schema, seed data, CI/CD and staging working together, shown by one mine site from the database appearing on the map | 1 | Done |
+| F1 | Map | A visitor browses mine sites, sees deployment status, opens site detail, filters the map, and uses the time slider to view a past date | 1–2 | Done |
+| F2 | Equipment register and export | A user searches, filters and sorts every record, and exports the dataset | 2 | Done |
+| F3 | Analytics | A user reads headline statistics and market-level charts, with filters applying to every measure | 2–3 | In progress |
+| F4 | Contribute and verification | A contributor submits a record with evidence; an administrator verifies, rejects or requests more | 3 | In progress |
+| F5 | Deployment and handover | The system runs on the public staging host and is handed over with documentation and a UWA deployment path (CM3: UWA hosting is a handover objective, not an MVP requirement) | 3–4 | In progress |
 
 Status values: Not started · In progress · In review · Done. Update this table
 at each sprint review; per-task status stays in the issue tracker.
@@ -134,20 +134,24 @@ blocking.
 
 ### F4. Contribute and verification (Sprint 3)
 
-- Submission form; records published immediately (FR-40, FR-42)
+- Submission form; records enter the review queue immediately, public once
+  verified (FR-40, FR-42)
 - Notice that contributors may submit only what they are permitted to disclose
   (FR-41)
 - Verification status, verified records shown by default (FR-43)
 - Evidence links attached to records (FR-44)
 - Administration screen for review (FR-45)
 - Correction of existing records (FR-46)
-- *Should:* revision history with reversion; editing a verified record returns
-  it to pending review (FR-47, FR-48)
-- *Should:* automated-submission challenge to control spam (FR-51)
+- *Should:* revision history retained; changes to a verified record published
+  only after administrator review (FR-47, FR-48 — corrections-as-proposals
+  tracked in #114)
+- *Should:* automated-submission challenge to control spam — minimal form a
+  honeypot field (FR-51, moved to Sprint 4)
 
 ### F5. Deployment and handover (Sprints 3–4)
 
-- Deployment to the UWA environment
+- Handover packaging; deployment to a UWA environment is a handover objective
+  (CM3), served by documentation rather than an MVP deployment
 - Acceptance walkthrough with the client; defect resolution
 - Handover documentation and licences (CC BY 4.0 data, MIT code, pending Q-10)
 - Final report and showcase presentation

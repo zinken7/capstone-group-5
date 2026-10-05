@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Version** | 0.4 — draft for team review and client confirmation |
-| **Date** | 26 August 2026 |
+| **Version** | 0.5 — draft for team review and client confirmation |
+| **Date** | 5 October 2026 |
 | **Client** | Dr Adrian Boeing, UWA |
 | **Representative users** | RCT Global (Yash Singh, market data analytics) · Epiroc (Milan Ivovic, Regional Business Manager, Asia Pacific) |
 | **Unit** | CITS5206 Capstone Project, Semester 2 2026 |
@@ -19,6 +19,7 @@
 | 0.2 | 11 Aug 2026 | Group 5 | Incorporates the client and representative user meeting of 11 August, and internal review. Issued to the client on 12 August 2026 |
 | 0.3 | 25 Aug 2026 | Hans Lionar (M2) | Automation banding withdrawn: four levels are now recorded **and** presented, so the former FR-10 rollup is removed and the map, analytics and data-model requirements are renumbered. Region promoted from a text field to reference data. Satellite and aerial imagery recorded as out of scope, with Q-12. Vendor sources REF-4 and REF-5 added in support of the four-level scale. Historical dates raised from *Could* to *Must*, and the map time control from *Could* to *Must*, both being required by the capability offered in place of market forecasting |
 | 0.4 | 26 Aug 2026 | Hans Lionar (M2) | Section 5 aligned to the submitted Deliverable 1 report and to `docs/database/ERD.md`, which the project plan makes normative for enumerations and constraints. The duplicate diagram in 5.1 is replaced by the maintained one, so the technology product is correctly optional on a deployment before verification (FR-08), and the administrator and verification review entities required by FR-43 and FR-45 are present. No requirement renumbered or reprioritised |
+| 0.5 | 5 Oct 2026 | Hans Lionar (M2) | Client Meeting 3 (18 September) incorporated as CM3 and applied to the requirements it confirmed or changed. Four-level automation model confirmed with the client dataset's labels, and a contributor may now propose a deployment's automation level for an administrator to confirm on review (FR-09, Section 2.6; Q-1a closed). Whole-submission review made explicit (Section 4.5, FR-45). FR-42 reworded: submissions enter the review queue immediately and become public once verified, superseding immediate publication. FR-44 now requires at least one evidence link before verification; evidence remains public URLs. Correction workflow made explicit: FR-46 covers contributor and administrator corrections, FR-47 separates history retention from reversion, FR-48 reworded per team decision #114 so that changes to a verified record are published only after administrator review. FR-51 reduced to a honeypot field, scheduled Sprint 4. FR-55 recorded as optional, administrator-triggered and non-blocking. FR-56 added for the factory-installed/retrofit attribute; no requirement renumbered. NFR-03 reworded to the origin-bound anti-forgery protection implemented. NFR-11 and C-01 updated: the MVP runs on a public host, UWA hosting is a handover objective. Out-of-scope rows added for the unverified-data display option, contributor notifications and evidence file upload. Appendix A questions closed or restated against CM3. Every requirement, constraint and question changed in this revision is tagged *(rev 0.5)* |
 
 ### Requirement status convention
 
@@ -114,7 +115,7 @@ These terms are the subject of open question Q-1a and are defined further in Sec
 | **Machine model** | A specific model from a manufacturer, for example Caterpillar 793F. A model implies its machine type. |
 | **Deployment** | The central record of this system. A quantity of one machine model, at one site, fitted with one technology product, from a given date. |
 | **Technology product** | A named automation system, e.g. Cat Command for Hauling, Sandvik AutoMine, RCT ControlMaster. |
-| **Automation level** | One of the four vendor product tiers recorded against a technology product: line-of-sight remote, teleremote, semi-autonomous or autonomous (Section 2.6). |
+| **Automation level** | One of the four vendor product tiers recorded against a technology product, labelled per the client dataset: Highly Autonomous, Semi Autonomous, Teleremote or Operator Assistance (Section 2.6, FR-09). |
 | **Verification status** | Where a record stands in review: unverified, pending review, verified or rejected. |
 | **Site status** | Whether the mine itself is operating or under commissioning. Distinct from deployment status. |
 | **Deployment status** | Whether a particular quantity of automated equipment at a site is announced, being commissioned, operational or decommissioned. |
@@ -126,6 +127,7 @@ These terms are the subject of open question Q-1a and are defined further in Sec
 | BRIEF | Autonomous Mining Equipment Market Map — client project description — https://teaching.csse.uwa.edu.au/units/capstone/projects/submit-preference/8/ |
 | CM1 | Client Meeting 1 minutes and transcript, 6 August 2026 |
 | CM2 | Client and representative user meeting, 11 August 2026 — Dr Boeing, Yash Singh (RCT Global), Milan Ivovic (Epiroc), Group 5 and Group 15. Full transcript |
+| CM3 | Client Meeting 3 minutes, 18 September 2026 — online demonstration and requirements review; recording and bilingual transcript. `docs/meeting_minutes/2026-09-18-client-meeting-3.md` |
 | FM1 | Facilitator Meeting 1 minutes and transcript, 7 August 2026 |
 | REF-1 | AV Map — https://avmap.io/ (reference site nominated by client) |
 | REF-2 | Brad Templeton, Autonomy Map — https://www.templetons.com/brad/robocars/autonomap.html (reference site nominated by client) |
@@ -186,7 +188,7 @@ Within a single supplier's sales and operations function, distributed across cou
 
 | ID | Constraint | Source |
 |---|---|---|
-| C-01 | The application must be deployable within a UWA IT environment as far as practical. The phrase is the brief's and admits several readings — see Q-4. | BRIEF |
+| C-01 | The application must be deployable within a UWA IT environment as far as practical. The phrase is the brief's and admits several readings — see Q-4. **Superseded for the MVP by CM3:** the MVP may run locally or on a public host; a future handover may place it on UWA hosting (NFR-11). *(rev 0.5)* | BRIEF, CM3 |
 | C-02 | Data is to be published openly under a Creative Commons licence. | BRIEF |
 | C-03 | Technology stack is the team's choice, subject to C-01. | BRIEF |
 | C-04 | Delivery is bounded by the Semester 2 2026 academic calendar and the team's available hours. | FM1 |
@@ -201,7 +203,7 @@ Modern desktop web browser. No installation, no mobile application, no offline m
 
 **Why the dataset requires an automation attribute.** The brief does not list automation level among the fields to be collected, but two functions depend on it: determining what equipment is in scope, and filtering and grouping records in the map and analytics views. It is therefore held as a derived attribute of the technology product rather than a value collected from contributors.
 
-> **Status: a minimum of three levels is confirmed; their definitions are not.** The client set three levels — baseline, teleremote and autonomy — as the minimum the system must distinguish, and noted that the terms need defining before they can be applied consistently (CM2). The definitions are Q-1a.
+> **Status: the four-level model is confirmed (CM3); the label wording is to be confirmed.** The client set three levels as the minimum the system must distinguish (CM2), and Client Meeting 3 agreed the four-level model, with terminology to remain consistent with the SRS and the vendor terms in the client dataset (CM3). The client dataset names the levels, highest first: **Highly Autonomous, Semi Autonomous, Teleremote, Operator Assistance**. The minutes of CM3 §2 named the lowest level "line-of-sight remote" and the top level "autonomous"; the build follows the client dataset's labels, which CM3 says the terminology should match. The label wording remains flagged for client confirmation under Q-1a (closed for the model, open on wording).
 
 **The adopted vocabulary is the industry's own (Framework C below), not a standard.** Baseline, teleremote and autonomous are the words suppliers publish and contributors will recognise, and they are the words the client used. Two published frameworks are described first because they are what give those words a defensible definition: ISO 17757 supplies the terminology, and the GMG maturity model supplies the graduations. Neither is presented in the interface.
 
@@ -265,11 +267,11 @@ Note that remote operation, however sophisticated the control room, does not by 
 
 *Aggregation is one-way.* A finer scale can always be grouped into a coarser one; a coarser scale cannot be split afterwards without revisiting every record and every classification decision. The fourth level costs one enumerated value now and cannot be recovered later.
 
-Four levels satisfy the client's requirement of at least three, and distinguish the tiers the suppliers themselves sell. ISO 17757 and the GMG levels are recorded per product as the basis of classification and are not shown to a user. The scale is subject to confirmation in Q-1a.
+Four levels satisfy the client's requirement of at least three, and distinguish the tiers the suppliers themselves sell. ISO 17757 and the GMG levels are recorded per product as the basis of classification and are not shown to a user. The four-level model was confirmed in CM3; the displayed labels follow the client dataset (see the status note above), with the wording flagged for confirmation under Q-1a.
 
 **1. The technology product name is the primary fact.** It is what a contributor knows and what a published source states, and it is the system's principal subject: which automation technology is fitted to a machine, and which company supplied it (CM1). Automation level is a derived grouping attribute, not a collected value.
 
-**2. Levels are assigned per product, by an administrator, as products are encountered.** The full population of automation products cannot be enumerated in advance — a realistic estimate is fifty or more, once vendor tiers and underground categories are counted. A product is therefore created when a contributor first names it, and classified by an administrator during review. The level is nullable, so an unclassified product does not block a record from being accepted. A contributor never classifies a machine and is never shown a level during submission.
+**2. Levels are assigned per product, by an administrator, as products are encountered.** The full population of automation products cannot be enumerated in advance — a realistic estimate is fifty or more, once vendor tiers and underground categories are counted. A product is therefore created when a contributor first names it, and classified by an administrator during review. The level is nullable, so an unclassified product does not block a record from being accepted. A contributor may propose the automation level of the deployment being submitted (CM3 §2 lists it among the submission fields), and an administrator confirms it when reviewing the record; classification of the product itself remains the administrator's.
 
 **3. Attributes are recorded against the technology product**, not the deployment: the vendor term as published, the assigned level, and the basis on which it was assigned. Specified in FR-09 and modelled in Section 5.
 
@@ -331,12 +333,13 @@ All traffic between browser and server uses HTTPS. Requests to external services
 | FR-06 | The system shall support surface and underground machine types, including haul trucks, LHDs, dozers, drills, scalers and shotcrete machines. | M | ✅ | CM1 |
 | FR-07 | The system shall accept a record where the defined minimum field set is present, with all other fields optional. | M | ✅ | CM1, C-06 |
 | FR-08 | The system shall accept records only for equipment with an automation product fitted. The product need not be named at submission, but shall be named before the record is verified. | M | ❓ | Team proposal, Section 2.6 — see Q-1a and Q-5 |
-| FR-09 | The system shall classify each technology product at one of four automation levels — line-of-sight remote, teleremote, semi-autonomous or autonomous — and shall hold the vendor term and the basis of classification alongside it. The level shall be editable only by an administrator, and may be left unassigned. | M | ❓ | CM2 confirms the attribute; four-level granularity is a team proposal, see Q-1a |
+| FR-09 | The system shall classify each technology product at one of four automation levels, listed highest first with their stored keys: Highly Autonomous (`autonomous`), Semi Autonomous (`semi_autonomous`), Teleremote (`teleremote`) and Operator Assistance (`operator_assistance`). The interface shall show the client dataset's labels. The vendor term and the basis of classification are held alongside the level, which shall be editable only by an administrator and may be left unassigned. A contributor may propose an automation level for the deployment itself (CM3); an administrator confirms it when reviewing the record, and a confirmed deployment level takes precedence over the product's level in presentation. *(rev 0.5)* | M | ✅ | CM2 confirms the attribute; CM3 confirms the four-level model and the client dataset's terminology — label wording to be confirmed, see Q-1a |
 | FR-10 | The system shall record whether a deployment operates on the surface, underground, or both. | M | ✅ | CM2 |
 | FR-11 | The system shall record valid-from and valid-to dates on each deployment, so that the state of the dataset at a past date can be reconstructed. | M | ❓ | Required by FR-19 |
 | FR-12 | The system shall support geographic grouping of deployments by mine site, region and country, region being selected from a maintained list rather than entered as text. Association of sites with companies is by role, per FR-03. | S | ✅ | CM1, BRIEF |
 | FR-13 | The system shall record machine size class, maximum payload and operating weight. | S | ✅ | CM1, BRIEF |
 | FR-14 | The system shall mark equipment as decommissioned rather than deleting it, and create a new record where equipment relocates. | S | ✅ | CM1 |
+| FR-56 | The system shall record whether a deployment's automation technology was factory-installed or retrofitted, as an optional attribute defaulting to unknown, since it will not always be known. Numbered out of sequence to avoid renumbering the requirements that follow. *(rev 0.5)* | S | ✅ | CM3 |
 
 \newpage
 
@@ -384,24 +387,26 @@ All measures below are computed over recorded deployments — that is, over auto
 
 ## 4.5 Contribution and verification
 
+A submission is reviewed and decided as **one evidence-backed unit**: the administrator verifies or rejects the record as a whole rather than assigning independent truth values to each field, and the administrator makes the final decision (CM3).
+
 | ID | Requirement | Priority | Status | Source |
 |---|---|:--:|:--:|---|
-| FR-40 | The system shall allow users to submit new equipment records via a web form. | M | ✅ | CM1, BRIEF |
+| FR-40 | The system shall allow users to submit new equipment records via a web form. A contributor is not required to hold an account; an email address may be offered so an administrator can follow up (NFR-09). *(rev 0.5)* | M | ✅ | CM1, BRIEF, CM3 |
 | FR-41 | The submission form shall state that a contributor must submit only information they are authorised to disclose. | M | ❓ | Team proposal — see A-04 |
-| FR-42 | Submitted records shall be published immediately on submission. | M | ✅ | CM1 |
-| FR-43 | Each record shall carry a verification status of unverified, pending review, verified or rejected. Public views shall default to verified records only. | M | ✅ | CM1 |
-| FR-44 | The system shall allow contributors to attach one or more evidence links to a record. | M | ✅ | CM1, BRIEF |
-| FR-45 | The system shall provide an administration interface for reviewing, verifying and rejecting submissions. | M | ✅ | CM1 |
-| FR-46 | The system shall allow existing records to be corrected. | M | ✅ | CM1 |
-| FR-47 | The system shall retain prior versions of a record so that an incorrect edit may be reverted. | S | ❓ | Team safeguard |
-| FR-48 | Editing a verified record shall return its status to pending review. | S | ❓ | Team safeguard |
+| FR-42 | Submissions shall be accepted into the review queue immediately; a record becomes public once verified. *(rev 0.5)* | M | ✅ | CM3 (controlled submission path) supersedes CM1's immediate publication — **to be confirmed with the client**, see Q-14 |
+| FR-43 | Each record shall carry a verification status of unverified, pending review, verified or rejected. The public Map, Equipment Register and Analytics shall default to verified records only. Any presentation of unverified data shall be clearly labelled; the MVP provides no such option (Section 7). *(rev 0.5)* | M | ✅ | CM1, CM3 |
+| FR-44 | The system shall allow contributors to attach one or more evidence links to a record. Evidence is public URLs in the MVP, and a record shall not be verified without at least one evidence link. *(rev 0.5)* | M | ✅ | CM1, BRIEF, CM3 |
+| FR-45 | The system shall provide an administration interface for reviewing submissions and recording a decision: verify, reject, or request changes. Each decision is kept as an append-only review record, and the record's verification status changes in the same transaction as the decision. *(rev 0.5)* | M | ✅ | CM1, CM3 |
+| FR-46 | The system shall allow existing records to be corrected: contributors propose changes, and administrators correct records directly. An administrator's correction shall not change the record's verification status, and every correction retains the revision history (FR-47). *(rev 0.5)* | M | ✅ | CM1, CM3 |
+| FR-47 | The system shall retain the prior values of every change in the record's revision history, attributable to whoever made it. A revert action is a later candidate (team issue #114, option 3), not an MVP requirement. *(rev 0.5)* | S | ❓ | Team safeguard, CM3 (history retention) |
+| FR-48 | Changes to a verified record shall be published only after administrator review; the record remains publicly visible, unchanged, while a correction is pending. *Note: the current build still hides a record while a correction is pending; the gap is tracked in team issue #114.* *(rev 0.5)* | S | ❓ | Team decision, issue #114 — see Q-3 |
 | FR-49 | The system shall allow supporting media — case studies, articles, videos — to be linked to companies, sites or equipment. | S | ✅ | CM1, BRIEF |
 | FR-50 | The system shall provide a contact route for bulk data contributions, processed as a manual import. | S | ✅ | CM1 |
-| FR-51 | The submission form shall include an automated-submission challenge to prevent bulk spam, without requiring the contributor to hold an account. | S | ❓ | Team proposal — addresses spam risk while preserving anonymous contribution |
+| FR-51 | The submission form shall include an automated-submission challenge to prevent bulk spam, without requiring the contributor to hold an account. Minimal acceptable form: a hidden honeypot field. Scheduled for Sprint 4. *(rev 0.5)* | S | ❓ | Team proposal — addresses spam risk while preserving anonymous contribution |
 | FR-52 | The system shall support optional user accounts, including sign-in with an existing Microsoft or Google account. | C | ❓ | Team proposal implementing the client's trusted-account concept |
 | FR-53 | Records contributed from a confirmed company email domain shall be flagged as affiliated and prioritised for review. | C | ❓ | Team proposal |
 | FR-54 | The system shall record dated market events — a change of technology supplier behind a machine brand, an acquisition, or the release of a new automation product — linked to the companies and products they concern, and present them as a reverse-chronological feed. | C | ✅ | CM2 |
-| FR-55 | An automated agent shall check a submission against public sources and produce a report assessing each claim — site identity, company roles, technology supplier and machine quantity — as supported, partially supported, contradicted or insufficient evidence, with the source relied on for each and an overall recommendation. The agent shall not alter a record's verification status; the decision remains with a human reviewer. | C | ✅ | CM1 |
+| FR-55 | An automated agent shall check a submission against public sources and produce a report assessing each claim — site identity, company roles, technology supplier and machine quantity — as supported, partially supported, contradicted or insufficient evidence, with the source relied on for each and an overall recommendation. The agent shall not alter a record's verification status; the decision remains with a human reviewer. The agent is optional and administrator-triggered, and is non-blocking for the core MVP: a possible MVP 2 feature that must not displace the manual review workflow. *(rev 0.5)* | C | ✅ | CM1, CM3 |
 
 ---
 
@@ -432,7 +437,7 @@ The diagram is maintained as Mermaid source in `docs/database/ERD.md`, which the
 
 | Entity | Purpose |
 |---------------------------|---------------------------------------------------------------------------------------------|
-| **Deployment** | The central record. A quantity of one machine model, at one site, fitted with one technology product, from a given date. This is what a contributor submits, what a row of the equipment register displays, and what appears in the detail panel of its site marker. |
+| **Deployment** | The central record. A quantity of one machine model, at one site, fitted with one technology product, from a given date. Carries the optional factory-installed/retrofit attribute (FR-56) and, where a contributor proposed one, its own automation level, confirmed on review (FR-09). This is what a contributor submits, what a row of the equipment register displays, and what appears in the detail panel of its site marker. |
 | **Site–company role** | Associates a company with a site in a stated role. A site typically has several: an owner, an operating subsidiary, and often a mining contractor. |
 | **Evidence** | A source supporting a deployment record. |
 | **Revision** | The history of a record — who changed it, when, and its previous values. A revision may be made by a contributor or by an administrator, so every change is attributable to whoever made it. |
@@ -494,7 +499,7 @@ The site record carries three company roles — Hancock Prospecting as owner, Ro
 
 | ID | Requirement | Priority | Status | Source |
 |---|---|:--:|:--:|---|
-| NFR-03 | Requests that create or modify a record shall carry a per-session anti-forgery token, and shall be rejected without a valid one. | M | ❓ | Team standard |
+| NFR-03 | State-changing administrator requests shall be rejected unless they carry anti-forgery protection binding them to the administration session — origin-bound cookie attributes together with a required custom request header, or equivalent. Public submission is anonymous and carries no session; it is protected by validation and FR-51. *(rev 0.5)* | M | ❓ | Team standard |
 | NFR-04 | Contributed text shall be escaped on output so that submitted content cannot execute as code in another user's browser. | M | ❓ | Team standard |
 | NFR-05 | Database queries shall be parameterised. User input shall not be concatenated into a query. | M | ❓ | Team standard |
 | NFR-06 | Administration functions shall require authentication. An unauthenticated or unauthorised user shall not be able to view administration data or perform administration actions. | M | ❓ | Team standard, FR-45 |
@@ -514,7 +519,7 @@ The site record carries three company roles — Hancock Prospecting as owner, Ro
 
 | ID | Requirement | Priority | Status | Source |
 |---|---|:--:|:--:|---|
-| NFR-11 | The application shall run in the hosting environment provided by UWA, using only capabilities that environment offers. | M | ✅ | BRIEF, C-01 — environment capabilities unconfirmed, see Q-4 in Appendix A |
+| NFR-11 | The MVP shall run locally or on a public host; deployment into a UWA environment is a handover objective rather than an MVP requirement. The application shall avoid dependencies that would prevent later UWA hosting. *(rev 0.5)* | M | ✅ | CM3 supersedes the earlier reading of BRIEF/C-01 — handover environment still unconfirmed, see Q-4 in Appendix A |
 | NFR-12 | The repository shall include setup instructions sufficient for a person outside the team to install and run the application on a Linux host. Any required third-party service, key, usage limit or recurring cost shall be documented. The application shall not depend on a paid service that has not been agreed as a project dependency. | S | ❓ | Team standard |
 
 ---
@@ -525,6 +530,9 @@ Recorded explicitly so that scope boundaries are traceable.
 
 | Item | Reason |
 |---|---|
+| Unverified-data display option | Permitted by CM3 behind a clear label; not provided this semester. The public Map, Register and Analytics are verified-only (FR-43) |
+| Contributor notifications | The system does not notify contributors of review outcomes, including "needs changes", in the MVP. Follow-up uses the optional contributor email, manually (CM3) |
+| Direct evidence file upload | Evidence is public URLs for the MVP; image and PDF storage is not required (CM3). See FR-44 and checklist item 4.5 |
 | Self-service bulk upload | Few contributors are expected to hold a full dataset. A contact route with manual import is specified instead (CM1) |
 | Institutional federated identity (AAF / Shibboleth) | Approximately $4,400 joining fee plus $2,046 per service annually, waived only for Enterprise members, and requiring university sponsorship and security review. OpenID Connect provides the required capability — a confirmed email domain — at no cost. |
 | Automated counting of machines from photographs | Not technically sound. A photograph captures what is in frame rather than what is present on site, cannot reliably distinguish automation level, and risks double counting. No labelled dataset for mining equipment exists. |
@@ -533,7 +541,7 @@ Recorded explicitly so that scope boundaries are traceable.
 | Joint-venture ownership percentages | Deployments are counted once against each company holding a role at a site, not apportioned by equity. Shares are disclosed inconsistently and change with corporate transactions, and no requirement depends on them. |
 | Forecasting and market projection | A projection is only as good as the series it is built on, and the dataset will be sparse and unevenly verified for some time. A model constructed on it would carry an apparent precision the underlying data cannot support, and a wrong forward number is worse than none — it would be acted on. The people who need these projections are domain experts who already build them, so the lower-risk contribution is a clean, exportable series they can model independently and judge for themselves. Data export (FR-37) serves that (CM2). It is a candidate for a later version, once coverage and verification rates are good enough to support one. |
 | Access control by internal role | No requirement for differentiated permissions among readers was identified (CM2). Public read access with an administrative interface is sufficient. |
-| Satellite or aerial basemap imagery | Excluded from this release, and a candidate for a later version. Four reasons. Imagery is licensed commercially and billed per request, so it introduces a recurring cost with no owner beyond the semester (Q-4.10). It requires outbound network access and an API key from the hosting environment, neither of which is confirmed (Q-4.6, Q-4.9). Imagery licences generally forbid redistribution, which conflicts with publishing the dataset under Creative Commons (NFR-08). And current imagery of an operating mine site, shown beside a count of the automated machines on it, raises a confidentiality question the project has not put to contributors (A-04). A vector base map answers the question the map exists to answer; imagery would make it more attractive without making it more informative. Where a later version wants imagery, open sources such as Sentinel-2 avoid the licensing and cost objections. |
+| Satellite or aerial basemap imagery | Excluded from this release, and a candidate for a later version — CM3 confirmed it as a bonus for administrators checking that a claimed site exists, not an MVP requirement. Four reasons. Imagery is licensed commercially and billed per request, so it introduces a recurring cost with no owner beyond the semester (Q-4.10). It requires outbound network access and an API key from the hosting environment, neither of which is confirmed (Q-4.6, Q-4.9). Imagery licences generally forbid redistribution, which conflicts with publishing the dataset under Creative Commons (NFR-08). And current imagery of an operating mine site, shown beside a count of the automated machines on it, raises a confidentiality question the project has not put to contributors (A-04). A vector base map answers the question the map exists to answer; imagery would make it more attractive without making it more informative. Where a later version wants imagery, open sources such as Sentinel-2 avoid the licensing and cost objections. |
 | Mobile application | Not requested |
 | Mine planning or operational control functionality | Outside the product purpose |
 
@@ -560,19 +568,21 @@ Every ❓ requirement traces to one of these.
 | # | Question | Requirements affected | Answer |
 |---|---|---|---|
 | Q-1 | **Answered (CM2).** Teleremote equipment is in scope, and is recorded as its own automation level. | FR-08, FR-09 | Closed |
-| Q-1a | **Is the four-level scale acceptable?** Three levels were set as a minimum. The team proposes four — line-of-sight remote, teleremote, semi-autonomous, autonomous — because two suppliers publish ladders at this granularity (REF-4, REF-5) and the market analysis described in CM2 depends on distinguishing line-of-sight from semi-autonomous. Definitions are in Section 2.6, against ISO 17757 and the GMG levels, and would be published with the dataset. | Section 2.6, FR-09 | |
-| Q-2 | **Must a contributor hold an account to submit**, or are anonymous submissions accepted? | FR-40, FR-52, FR-53 | |
-| Q-3 | **Who may correct an existing record** — any user, or only its original contributor? | FR-46, FR-47, FR-48 | |
-| Q-4 | **What is meant by a UWA IT environment, what does it provide, and who can tell us?** The brief requires deployment within a UWA IT environment as far as practical, which could mean any of three things: hosted on hardware UWA operates; hosted on a cloud subscription UWA holds and pays for; or hosted anywhere, provided it satisfies UWA policy on security, data handling and domain use. The three differ in what may be installed, who administers the host, who is billed, and what review is required before going live. The checklist below sets out the detail once the reading is settled. If the client does not hold these answers, the name of someone in UWA IT who does would be enough. | NFR-11, C-01, stack selection | |
-| Q-5 | **What is the minimum field set for a publishable record?** Team proposal: mine site; machine model, or manufacturer and machine type; quantity; and technology product where known. Automation level is not requested from the contributor — it is derived from the technology product during review, per Section 2.6. | FR-07, FR-08, FR-40 | |
+| Q-1a | **Answered (CM3) for the model; label wording to be confirmed.** The four-level model is agreed. The client dataset's labels are used, highest first: Highly Autonomous, Semi Autonomous, Teleremote, Operator Assistance (stored keys in FR-09). CM3 §2 named the lowest level "line-of-sight remote" and the top level "autonomous"; the build follows the client dataset, whose terminology CM3 says should be matched. *(rev 0.5)* | Section 2.6, FR-09 | Closed — label wording to confirm |
+| Q-2 | **Answered (CM3).** No account is required to submit; an email address may be offered so an administrator can follow up. *(rev 0.5)* | FR-40, FR-52, FR-53 | Closed |
+| Q-3 | **Closed by team decision (issue #114) — to be confirmed with the client.** Anyone may propose a correction; a change to a verified record is published only after administrator review (FR-48), so the open takedown risk of unrestricted editing does not arise. *(rev 0.5)* | FR-46, FR-47, FR-48 | Closed — confirm with client |
+| Q-4 | **What is meant by a UWA IT environment, what does it provide, and who can tell us?** The brief requires deployment within a UWA IT environment as far as practical, which could mean any of three things: hosted on hardware UWA operates; hosted on a cloud subscription UWA holds and pays for; or hosted anywhere, provided it satisfies UWA policy on security, data handling and domain use. The three differ in what may be installed, who administers the host, who is billed, and what review is required before going live. The checklist below sets out the detail once the reading is settled. If the client does not hold these answers, the name of someone in UWA IT who does would be enough. **Superseded for the MVP (CM3):** the MVP runs locally or on a public host, and UWA hosting is a handover objective. The checklist in A.1 is retained for the handover conversation. *(rev 0.5)* | NFR-11, C-01, stack selection | Open for handover only |
+| Q-5 | **Closed as implemented — to be confirmed with the client.** The minimum set enforced at submission: site name and country, machine type, machine manufacturer, quantity, and acceptance of the disclosure notice (FR-41); everything else is optional, consistent with CM3 §2's direction that fields stay optional where not always known. A technology product must be named before verification (FR-08). *(rev 0.5)* | FR-07, FR-08, FR-40 | Closed — confirm with client |
 | Q-6 | **Is the MoSCoW prioritisation in Section 4, reproduced in Appendix B, agreed?** | All | |
-| Q-7 | **When will seed data be available?** | A-01, A-02 | |
+| Q-7 | **Answered (CM3).** The client supplied an anonymised dataset based on real data — commercially sensitive information removed, some company names fictionalised, site names replaced by nearby towns, mainly Australian with international records. *(rev 0.5)* | A-01, A-02 | Closed |
 | Q-8 | **Is sensor-level detail required in the dataset?** Raised as a research interest in CM1. Team proposal is to exclude it: sensor architecture is a published property of the technology product, which the system already records, so a researcher can obtain it from the supplier's specification. | Section 7 | |
-| Q-9 | **Should machine model, technology product and region be entered as free text or selected from a controlled list?** Team proposal: a controlled list that contributors may extend, with duplicate entries merged by an administrator. Regions in particular need this, since they are a filter and free text would produce several spellings of the same region. | FR-01, FR-02, Section 5 | |
+| Q-9 | **Should machine model, technology product and region be entered as free text or selected from a controlled list?** Team proposal: a controlled list that contributors may extend, with duplicate entries merged by an administrator. Regions in particular need this, since they are a filter and free text would produce several spellings of the same region. *CM3 §3 confirmed controlled inputs for contribution; the administrator merge/maintenance part remains open.* *(rev 0.5)* | FR-01, FR-02, Section 5 | Partly answered (CM3) |
 | Q-10 | **Two licences are required, and the brief specifies one.** Creative Commons covers the dataset but is not intended for software, so the application needs its own licence. Team proposal: **CC BY 4.0** for the dataset — attribution required, reuse otherwise unrestricted, so a startup or researcher can build on it — and **MIT** for the source code, being short, permissive and the least obstacle to UWA reusing or continuing the work. If returning improvements matters more than ease of reuse, the alternatives are CC BY-SA 4.0 and AGPL 3.0. | NFR-08, NFR-10 | |
-| Q-11 | **Is the product public, or a supplier's internal dashboard?** Access control by role was judged unnecessary on the basis that readers would all be internal to one organisation (CM2). The project is specified as a public, crowdsourced, openly licensed database. If a representative user expects a private view of their own market position, that is a different product and should be settled now. | NFR-08, C-02, dataset scope |
-| Q-12 | **Is satellite or aerial imagery expected on the map?** It is excluded from this release for cost, licensing, network and confidentiality reasons set out in Section 7, and a vector base map is proposed instead. If imagery is expected, it changes the hosting and licensing position and should be raised now rather than in October. | Section 3.3, Section 7 |
-| Q-13 | **Is a market events feed wanted, and who maintains it?** Changes of technology supplier behind a machine brand, and releases of new automation products, were identified as things currently learned too late (CM2). Recording such events is straightforward; keeping them current is an editorial commitment beyond the semester. | FR-54 |
+| Q-11 | **Answered (CM3).** The MVP is a public-facing application. *(rev 0.5)* | NFR-08, C-02, dataset scope | Closed |
+| Q-12 | **Answered (CM3).** Satellite imagery is a bonus feature — useful to an administrator checking that a claimed mine site exists — and is not required for MVP delivery. It remains excluded from this release for the reasons in Section 7. *(rev 0.5)* | Section 3.3, Section 7 | Closed |
+| Q-13 | **Is a market events feed wanted, and who maintains it?** Changes of technology supplier behind a machine brand, and releases of new automation products, were identified as things currently learned too late (CM2). Recording such events is straightforward; keeping them current is an editorial commitment beyond the semester. | FR-54 | |
+| Q-14 | **Does the client confirm the FR-42 reword?** Submissions are accepted into the review queue immediately and become public once verified, per CM3's controlled submission path; CM1 had said records are published immediately. The build behaves as FR-42 now reads. *(rev 0.5)* | FR-42, FR-43 | |
+| Q-15 | **Interim guard until the FR-48 correction model lands (team decision pending):** should staging refuse public corrections to verified records until corrections-as-proposals (issue #114) is implemented, given that today a pending correction hides a verified record? *(rev 0.5)* | FR-48 | |
 
 ## A.1 Hosting environment checklist
 
@@ -623,12 +633,13 @@ To be answered by the client or UWA IT. Each item constrains a specific design d
 | Must | Surface and underground machine types — haul trucks, LHDs, dozers, drills, scalers, shotcrete machines | FR-06 | ☐ yes ☐ amend |
 | Must | A record is accepted once a minimum field set is present; everything else optional | FR-07 | ☐ yes ☐ amend |
 | Must | Only equipment with an automation product fitted is in scope | FR-08 | ☐ yes ☐ amend |
-| Must | Four automation levels — line-of-sight remote, teleremote, semi-autonomous, autonomous — held against the automation product, not entered by contributors | FR-09 | ☐ yes ☐ amend |
+| Must | Four automation levels — Highly Autonomous, Semi Autonomous, Teleremote, Operator Assistance — held against the automation product; a contributor may propose the deployment's own level, which an administrator confirms on review | FR-09 | ☐ yes ☐ amend |
 | Must | Surface or underground recorded per deployment | FR-10 | ☐ yes ☐ amend |
 | Must | Valid-from and valid-to dates, so a past state can be reconstructed | FR-11 | ☐ yes ☐ amend |
 | Should | Grouping by mine site, region and country, region from a maintained list | FR-12 | ☐ yes ☐ amend |
 | Should | Machine size class, maximum payload, operating weight | FR-13 | ☐ yes ☐ amend |
 | Should | Equipment marked decommissioned rather than deleted; relocation creates a new record | FR-14 | ☐ yes ☐ amend |
+| Should | Factory-installed or retrofit recorded per deployment, optional, defaulting to unknown | FR-56 | ☐ yes ☐ amend |
 
 ## B.2 Map
 
@@ -676,13 +687,13 @@ To be answered by the client or UWA IT. Each item constrains a specific design d
 
 | | Item | Requirements | Agreed? |
 |---|---|---|---|
-| Must | Submission form; records published immediately | FR-40, FR-42 | ☐ yes ☐ amend |
+| Must | Submission form; records enter the review queue immediately and become public once verified | FR-40, FR-42 | ☐ yes ☐ amend |
 | Must | Notice that contributors may submit only what they are permitted to disclose | FR-41 | ☐ yes ☐ amend |
 | Must | Verification status, with verified records shown by default | FR-43 | ☐ yes ☐ amend |
 | Must | Evidence links attached to records | FR-44 | ☐ yes ☐ amend |
 | Must | Administration screen for review | FR-45 | ☐ yes ☐ amend |
 | Must | Correction of existing records | FR-46 | ☐ yes ☐ amend |
-| Should | Revision history, with reversion | FR-47, FR-48 | ☐ yes ☐ amend |
+| Should | Revision history; changes to a verified record published only after administrator review | FR-47, FR-48 | ☐ yes ☐ amend |
 | Should | Linked media — case studies, articles, video | FR-49 | ☐ yes ☐ amend |
 | Should | Contact route for bulk contributions, imported manually | FR-50 | ☐ yes ☐ amend |
 | Should | Automated-submission challenge to control spam | FR-51 | ☐ yes ☐ amend |
