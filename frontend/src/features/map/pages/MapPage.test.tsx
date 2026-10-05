@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Map as LeafletMap, point } from 'leaflet'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -160,12 +161,24 @@ describe('MapPage', () => {
 
   test('opens a site card from the list with what is in service and links to the register', async () => {
     const user = userEvent.setup()
+    
+    const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
+    const flyTo = vi.spyOn(LeafletMap.prototype, 'flyTo')
+    vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(390, 544))
+
     renderMap()
 
     const site = await screen.findByRole('button', { name: /roy hill/i })
     await user.click(site)
 
+    expect(panTo).toHaveBeenCalled()
+    expect(flyTo).not.toHaveBeenCalled()
+
     const card = await screen.findByRole('article', { name: 'Roy Hill' })
+    
+    await user.click(within(card).getByRole('button', { name: /zoom to site/i }))
+    expect(flyTo).toHaveBeenCalled()
+
     expect(site).toHaveAttribute('aria-pressed', 'true')
     expect(await within(card).findByText('Caterpillar 793F')).toBeInTheDocument()
     expect(within(card).queryByText('Caterpillar 777F')).not.toBeInTheDocument()
