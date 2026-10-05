@@ -36,6 +36,8 @@ function currentValueForField(record: ReviewRecord, field: string): unknown {
     commissioning_date: record.commissioningDate ?? record.commissioningYear,
     technology_supplier: record.technologySupplier,
     technology_product: record.technologyProduct,
+    evidence_urls: record.evidence.map((item) => item.url),
+    verification_status: record.verificationStatus,
   }
   return values[field]
 }

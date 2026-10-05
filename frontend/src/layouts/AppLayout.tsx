@@ -17,9 +17,12 @@ function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
 
   useEffect(() => {
+    // Only routes explicitly ending in `/` own nested paths. Public pages and
+    // the admin queue have no child routes, so an unknown suffix must remain a
+    // 404 rather than inheriting a misleading parent title.
     const page = pageTitles.find(([path]) => path.endsWith('/')
       ? location.pathname.startsWith(path)
-      : location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1]
+      : location.pathname === path)?.[1]
     document.title = page ? `${page} · Mining Market Map` : 'Page not found · Mining Market Map'
   }, [location.pathname])
 

@@ -17,4 +17,9 @@ describe('AppLayout', () => {
     render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
     expect(document.title).toBe(title)
   })
+
+  test.each(['/map/unknown', '/equipment/unknown', '/analytics/unknown', '/contribute/unknown', '/admin/unknown'])('uses the not-found title for an unknown nested path: %s', (path) => {
+      render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
+      expect(document.title).toBe('Page not found · Mining Market Map')
+    })
 })

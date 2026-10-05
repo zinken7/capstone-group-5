@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm'
+import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
@@ -28,11 +28,17 @@ export interface QueueItem {
   technology_product: string | null
   evidence_count: number
   submitted_at: string
+  /** Whether the pending item is a first submission or a contributor correction. */
+  kind: 'submission' | 'correction'
+  /** API field names changed by the latest contributor correction. */
+  changed_fields: string[]
+  contributor_email: string | null
+  contributor_organisation: string | null
 }
 
 /** Records waiting for a decision, least recently changed first. */
 export async function listPendingReviews(): Promise<QueueItem[]> {
-  return await db
+  const items = await db
     .select({
       id: tables.deployment.id,
       site_name: tables.site.name,
@@ -56,6 +62,43 @@ export async function listPendingReviews(): Promise<QueueItem[]> {
     .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
     .where(eq(tables.deployment.verificationStatus, 'pending_review'))
     .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
+
+  if (items.length === 0) return []
+
+  // Queue metadata comes from the latest revision, rather than from the
+  // deployment itself. A pending record can be either a new submission or a
+  // contributor correction returned to the queue after a previous decision.
+  const revisions = await db
+    .select({
+      deployment_id: tables.revision.deploymentId,
+      action: tables.revision.action,
+      previous_values: sql<Record<string, unknown> | null>`${tables.revision.previousValues}`,
+      contributor_email: tables.contributor.email,
+      contributor_organisation: tables.contributor.organisation,
+      changed_at: tables.revision.changedAt,
+      revision_id: tables.revision.id,
+    })
+    .from(tables.revision)
+    .leftJoin(tables.contributor, eq(tables.contributor.id, tables.revision.contributorId))
+    .where(inArray(tables.revision.deploymentId, items.map((item) => item.id)))
+    .orderBy(asc(tables.revision.changedAt), asc(tables.revision.id))
+
+  const latestByDeployment = new Map<number, (typeof revisions)[number]>()
+  for (const revision of revisions) latestByDeployment.set(revision.deployment_id, revision)
+
+  return items.map((item) => {
+    const revision = latestByDeployment.get(item.id)
+    const changedFields = revision?.action === 'update' && revision.previous_values
+      ? Object.keys(revision.previous_values).filter((field) => field !== 'verification_status')
+      : []
+    return {
+      ...item,
+      kind: revision?.action === 'update' ? 'correction' : 'submission',
+      changed_fields: changedFields,
+      contributor_email: revision?.contributor_email ?? null,
+      contributor_organisation: revision?.contributor_organisation ?? null,
+    }
+  })
 }
 
 export interface ReviewRecord {

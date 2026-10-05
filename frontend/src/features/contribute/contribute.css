@@ -104,6 +104,11 @@
   background: #eef2ff;
 }
 
+.choice-chip:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .choice-chip input {
   position: absolute;
   opacity: 0;
