@@ -28,6 +28,7 @@ runs in Docker Compose, its database host is the `db` service.
 - `npm run lint` runs ESLint with zero warnings allowed.
 - `npm run typecheck` checks TypeScript without producing build output.
 - `npm run db:migrate` applies any database migrations that have not already been run.
+- `npm run admin:create -- --email <email> [--root]` creates an administrator account.
 - `npm run db:seed` loads the synthetic seed dataset; it needs a local `psql` client.
 ## Database migrations
 
@@ -85,6 +86,21 @@ The load runs in one transaction and can be repeated without creating
 duplicates. CI loads it twice into a fresh database on every backend change, and
 [`docs/staging.md`](../docs/staging.md) describes loading it into staging.
 
+
+## Administrator accounts
+
+Administrator sign-in needs `SESSION_SECRET` (at least 32 characters) in the
+environment; `.env.example` has a local value. Create an account with:
+
+```sh
+npm run admin:create -- --email reviewer@example.com          # administrator
+npm run admin:create -- --email lead@example.com --root       # root administrator
+```
+
+The command prints a temporary password once; it must be changed at first
+sign-in. Root accounts can only be created this way. With Docker Compose, run it
+inside the backend container:
+`docker compose exec backend npm run admin:create -- --email … [--root]`.
 
 ## Health check
 

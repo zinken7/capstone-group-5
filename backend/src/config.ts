@@ -30,4 +30,17 @@ function parsePort(value: string): number {
 export const config = Object.freeze({
   databaseUrl: requiredEnvironmentVariable('DATABASE_URL'),
   port: parsePort(process.env.PORT ?? '3000'),
+  // Read on first use, so the public API runs even where administrator
+  // sign-in is not configured yet.
+  get sessionSecret(): string {
+    const secret = requiredEnvironmentVariable('SESSION_SECRET')
+    if (secret.length < 32) {
+      throw new Error('SESSION_SECRET must be at least 32 characters')
+    }
+    return secret
+  },
+  // Cookies are Secure everywhere except local development and tests over HTTP.
+  get secureCookies(): boolean {
+    return process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
+  },
 })

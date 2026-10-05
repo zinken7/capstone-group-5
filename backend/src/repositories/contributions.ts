@@ -200,7 +200,8 @@ export async function insertRevision(
   revision: {
     deploymentId: number
     contributorId: number | null
-    action: 'create' | 'update'
+    adminUserId?: number | null
+    action: 'create' | 'update' | 'verification_change'
     previousValues: Record<string, unknown>
     changeNote: string | null
   },
@@ -208,6 +209,7 @@ export async function insertRevision(
   await tx.db.insert(tables.revision).values({
     deploymentId: revision.deploymentId,
     contributorId: revision.contributorId,
+    adminUserId: revision.adminUserId ?? null,
     action: revision.action,
     previousValues: revision.previousValues,
     changeNote: revision.changeNote,
@@ -223,6 +225,7 @@ export interface CurrentDeployment {
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
+  technologyProductId: number | null
   verificationStatus: string
 }
 
@@ -238,6 +241,7 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       installationType: tables.deployment.installationType,
       commissioningDate: tables.deployment.commissioningDate,
       commissioningYear: tables.deployment.commissioningYear,
+      technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
     })
     .from(tables.deployment)
@@ -264,21 +268,29 @@ const CORRECTABLE_COLUMNS = {
   installation_type: 'installationType',
   commissioning_date: 'commissioningDate',
   commissioning_year: 'commissioningYear',
+  technology_product_id: 'technologyProductId',
 } as const satisfies Record<string, keyof DeploymentInsert>
 
 export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
 
-/** Applies the corrected columns and returns the record to pending review (FR-48). */
+/**
+ * Applies the corrected columns. A contributor's correction returns the record
+ * to pending review (FR-48); an administrator's keeps its verification status.
+ */
 export async function updateDeploymentForReview(
   tx: Tx,
   id: number,
   updates: Partial<Record<CorrectableColumn, unknown>>,
+  options: { returnToPending?: boolean } = {},
 ): Promise<string> {
-  const set: Record<string, unknown> = { verificationStatus: 'pending_review' }
+  const set: Record<string, unknown> = {}
+  if (options.returnToPending ?? true) set.verificationStatus = 'pending_review'
   // Column names come from CORRECTABLE_COLUMNS, never from the request
   for (const [column, value] of Object.entries(updates)) {
     set[CORRECTABLE_COLUMNS[column as CorrectableColumn]] = value
   }
+  // Keep the statement valid when an administrator only adds evidence
+  if (Object.keys(set).length === 0) set.id = sql`${tables.deployment.id}`
 
   const rows = await tx.db
     .update(tables.deployment)

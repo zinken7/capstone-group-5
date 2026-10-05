@@ -12,6 +12,14 @@
 | `GET` | `/api/reference-data` | Returns the controlled values for the contribution form |
 | `POST` | `/api/contributions` | Submits a new deployment record with evidence (FR-40, FR-44) |
 | `PATCH` | `/api/deployments/{id}` | Corrects an existing deployment record (FR-46 to FR-48) |
+| `POST` | `/api/admin/session` | Signs an administrator in (FR-45) |
+| `GET` | `/api/admin/session` | Returns the signed-in administrator |
+| `DELETE` | `/api/admin/session` | Signs out |
+| `POST` | `/api/admin/password` | Changes the signed-in administrator's password |
+| `GET` | `/api/admin/reviews` | Lists records pending review (FR-45) |
+| `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
+| `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
+| `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
 
 The public read endpoints only return deployments with `verification_status = verified` by default (FR-43).
 
@@ -295,6 +303,112 @@ Invalid corrections return `400`, a no-op returns `400 {"error":"correction does
 The deployment row is locked for the transaction. An `update` revision stores each previous changed value, the previous verification status and, when evidence is added, the previous evidence list. The record returns to `pending_review` (FR-48) and is hidden from public read endpoints until reviewed again.
 
 ---
+
+## Administrator sign-in
+
+Administrator routes live under `/api/admin`. A session is a signed,
+`HttpOnly`, `SameSite=Strict` cookie named `admin_session`, scoped to the path
+`/api/admin` and valid for 8 hours. It is `Secure` except when `NODE_ENV` is
+`development` or `test`. The account is reloaded on every request, so
+deactivating it or changing its password ends its sessions at once.
+
+Every modifying request (`POST`, `PATCH`, `DELETE`) must send the header
+`X-Requested-With: fetch`, otherwise it gets `403`. Requests without a valid
+session get `401 {"error": "sign in required"}`. An account that still has its
+temporary password gets `403 {"error": "password change required"}` from every
+administrator route except `GET /api/admin/session` and `POST /api/admin/password`.
+If `SESSION_SECRET` is not configured, administrator routes return `503`.
+
+### `POST /api/admin/session`
+
+Request: `{"email": "reviewer@example.com", "password": "…"}`. The email is
+case-insensitive.
+
+| Status | Body |
+|---|---|
+| `200` | `{"email": "reviewer@example.com", "role": "admin", "must_change_password": true}`, and the session cookie |
+| `400` | `{"error": "email and password are required"}` |
+| `401` | `{"error": "incorrect email or password"}`, the same for an unknown email, a wrong password and a deactivated account |
+
+### `GET /api/admin/session`
+
+`200` with the same body as sign-in, or `401`.
+
+### `DELETE /api/admin/session`
+
+`204`, and the cookie is cleared.
+
+### `POST /api/admin/password`
+
+Request: `{"current_password": "…", "new_password": "…"}`. The new password
+needs at least 12 characters and must differ from the current one. On success
+the response is `200` with the profile (`must_change_password: false`) and a new
+session cookie; other sessions of the account end. Errors are `400` with one
+of: `current password is incorrect`, `new password must be at least 12
+characters`, `new password must differ from the current password`,
+`current_password and new_password are required`.
+
+## Moderation
+
+All moderation routes need a signed-in administrator whose temporary password
+has been changed (see [Administrator sign-in](#administrator-sign-in)).
+
+### `GET /api/admin/reviews`
+
+`200 {"items": [...]}`: every deployment with `verification_status =
+pending_review`, least recently changed first. Each item has `id`, `site_name`,
+`country_code`, `region`, `machine_manufacturer`, `machine_model`,
+`machine_type`, `quantity`, `technology_supplier`, `technology_product`,
+`evidence_count` and `submitted_at` (when the record last changed).
+
+### `GET /api/admin/deployments/{id}`
+
+`200` with the record in any verification status: `verification_status`, site,
+machine, technology, deployment fields (as in the register, plus `valid_from`,
+`valid_to`, `created_at`, `updated_at`), and:
+
+- `evidence`: `url`, `source_type`, `publisher`, `published_date`;
+- `reviews`: `decision`, `note`, `administrator` (email), `reviewed_at`;
+- `revisions`: `action` (`create`, `update`, `verification_change`),
+  `previous_values`, `change_note`, `contributor_email`,
+  `contributor_organisation`, `administrator`, `changed_at`.
+
+`404` for an unknown or malformed id.
+
+### `POST /api/admin/deployments/{id}/reviews`
+
+Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`.
+The note (up to 2,000 characters) is required unless approving.
+
+| Decision | New `verification_status` |
+|---|---|
+| `approved` | `verified` |
+| `rejected` | `rejected` |
+| `needs_changes` | `unverified`; the record leaves the queue until a correction returns it to `pending_review` |
+
+The review row, the new status and a `verification_change` revision holding the
+previous status are written in one transaction.
+
+| Status | Body |
+|---|---|
+| `201` | `{"id": <review id>, "verification_status": "verified"}` |
+| `400` | `{"error": "invalid review", "fields": {...}}` |
+| `404` | `{"error": "deployment not found"}` |
+| `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "a technology product is required before the record can be verified"}` |
+| `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
+
+### `PATCH /api/admin/deployments/{id}`
+
+Takes the fields of the public correction (`quantity`, `environment`,
+`deployment_status`, `automation_level`, `installation_type`,
+`commissioning_date`, `evidence_urls`, `change_note`) plus
+`technology_supplier` and `technology_product`, which must be given together.
+There are no contributor fields and no disclosure. The previous values are kept
+in an `update` revision attributed to the administrator, and the verification
+status does not change. Responses match the public correction: `200 {"id",
+"verification_status"}`, `400` for invalid input or a correction that changes
+nothing, `404` for an unknown record.
 
 ## Common implementation trade-offs
 

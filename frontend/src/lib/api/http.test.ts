@@ -17,6 +17,12 @@ afterEach(() => {
 })
 
 describe('requestJson', () => {
+  it('returns undefined for 204 No Content', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(requestJson<void>('admin/session', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+
   it('returns successful JSON from the default same-origin API base', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 1 }))
 
