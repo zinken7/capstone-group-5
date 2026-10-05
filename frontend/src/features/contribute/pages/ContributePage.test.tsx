@@ -195,6 +195,7 @@ describe('ContributePage', () => {
       environments: ['surface'],
       deployment_statuses: ['operational'],
       installation_types: ['unknown'],
+      countries: ['AU', 'XR'],
     }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -202,6 +203,8 @@ describe('ContributePage', () => {
 
     expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Autonomous' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Australia (AU)' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Anonymised (XR)' })).toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')
   })
 

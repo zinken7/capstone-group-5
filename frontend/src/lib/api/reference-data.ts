@@ -1,5 +1,5 @@
 import { requestJson } from './http'
-import { formatEnumLabel } from '../format'
+import { formatCountry, formatEnumLabel } from '../format'
 import {
   COUNTRIES,
   type ContributionReferenceData,
@@ -23,6 +23,13 @@ function toOptions(value: unknown, fieldName: string): readonly ReferenceOption[
   return value.map((item) => [item, formatEnumLabel(item)] as ReferenceOption)
 }
 
+function toCountryOptions(value: unknown): readonly ReferenceOption[] {
+  return toOptions(value, 'countries').map(([code]) => [
+    code,
+    COUNTRIES.find(([countryCode]) => countryCode === code)?.[1] ?? formatCountry(code),
+  ] as ReferenceOption)
+}
+
 /**
  * Load controlled values used by the contribution form.
  * The backend contract returns the enum values as snake_case string arrays.
@@ -38,6 +45,6 @@ export async function getContributionReferenceData(): Promise<ContributionRefere
     deploymentStatuses: toOptions(response.deployment_statuses, 'deployment_statuses'),
     automationLevels: toOptions(response.automation_levels, 'automation_levels'),
     installationTypes: toOptions(response.installation_types, 'installation_types'),
-    countries: response.countries === undefined ? COUNTRIES : toOptions(response.countries, 'countries'),
+    countries: response.countries === undefined ? COUNTRIES : toCountryOptions(response.countries),
   }
 }

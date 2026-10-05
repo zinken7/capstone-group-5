@@ -262,12 +262,12 @@ function ContributePage({
         <fieldset>
           <legend>Deployment details</legend>
           <div className="form-grid">
-            <label className="form-field form-field--wide" htmlFor="site-name">Mine site name <span aria-hidden="true">*</span>
+            <label className="form-field form-field--wide" htmlFor="site-name"><span className="form-label">Mine site name <span aria-hidden="true">*</span></span>
               <input id="site-name" name="siteName" value={values.siteName} onChange={(event) => updateTextField('siteName', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('siteName'))} aria-describedby={showError('siteName') ? 'site-name-error' : undefined} />
               <FieldError id="site-name-error" message={showError('siteName')} />
             </label>
 
-            <label className="form-field" htmlFor="country-code">Country <span aria-hidden="true">*</span>
+            <label className="form-field" htmlFor="country-code"><span className="form-label">Country <span aria-hidden="true">*</span></span>
               <select id="country-code" name="countryCode" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined}>
                 <option value="">Select a country</option>
                 {countryOptions.map(([value, label]) => <option key={value} value={value}>{label} ({value})</option>)}
@@ -275,18 +275,18 @@ function ContributePage({
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
-            <label className="form-field" htmlFor="machine-type">Machine type <span aria-hidden="true">*</span>
+            <label className="form-field" htmlFor="machine-type"><span className="form-label">Machine type <span aria-hidden="true">*</span></span>
               <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{referenceData.machineTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <FieldError id="machine-type-error" message={showError('machineType')} />
             </label>
-            <label className="form-field" htmlFor="manufacturer">Machine manufacturer <span aria-hidden="true">*</span>
+            <label className="form-field" htmlFor="manufacturer"><span className="form-label">Machine manufacturer <span aria-hidden="true">*</span></span>
               <input id="manufacturer" name="manufacturer" placeholder="e.g. Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
               <FieldError id="manufacturer-error" message={showError('manufacturer')} />
             </label>
             <label className="form-field" htmlFor="machine-model">Machine model
               <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
             </label>
-            <label className="form-field" htmlFor="quantity">Quantity <span aria-hidden="true">*</span>
+            <label className="form-field" htmlFor="quantity"><span className="form-label">Quantity <span aria-hidden="true">*</span></span>
               <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" placeholder="e.g. 10" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
               <FieldError id="quantity-error" message={showError('quantity')} />
             </label>
