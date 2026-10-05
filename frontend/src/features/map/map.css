@@ -47,6 +47,8 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  /* Room for the scrollbar is kept even before it appears, e.g. when More filters opens */
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   border-right: 1px solid var(--border);
   background: var(--color-surface);
@@ -249,6 +251,7 @@
 
 .map-sites ul {
   position: relative;
+  scrollbar-gutter: stable;
   flex: 1;
   margin: 0;
   padding: 0 var(--space-2) var(--space-3);
@@ -509,6 +512,7 @@
 }
 
 .map-card-slot {
+  scrollbar-gutter: stable;
   top: var(--space-4);
   right: 4.5rem;
   width: min(24rem, calc(100% - 6rem));
@@ -632,7 +636,7 @@
 }
 
 .site-marker--commissioning {
-  fill: #d97706;
+  fill: var(--color-warning);
 }
 
 .site-marker--announced {
@@ -814,7 +818,9 @@
   }
 
   .map-panel {
-    max-height: 26rem;
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior: auto;
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
@@ -823,8 +829,33 @@
     min-height: 34rem;
   }
 
+  .map-headline {
+    top: var(--space-2);
+    left: var(--space-2);
+  }
+
+  .map-headline div {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .map-headline dd {
+    font-size: var(--type-lg);
+  }
+
   .map-legend {
-    display: none;
+    bottom: 7rem;
+    left: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  .map-legend ul {
+    gap: 0;
+    margin-bottom: var(--space-2);
+    font-size: var(--type-xs);
+  }
+
+  .map-legend .map-legend__sizes {
+    gap: var(--space-2);
   }
 
   .map-year {
