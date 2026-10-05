@@ -17,6 +17,7 @@ function AdminPasswordPage() {
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showPasswords, setShowPasswords] = useState(false)
 
   const mustChange = state.status === 'signed-in' && state.profile.mustChangePassword
 
@@ -38,43 +39,66 @@ function AdminPasswordPage() {
     }
   }
 
-  return (
-    <section className="product-page admin-page admin-page--narrow">
-      <AdminBar />
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1>Change password</h1>
-          <p className="intro">
-            {mustChange
-              ? 'You signed in with a temporary password. Choose a new one to continue.'
-              : 'Changing your password signs you out everywhere else.'}
-          </p>
-        </div>
-      </header>
+  // The same rules handleSubmit enforces, shown as the password is typed
+  const checks = [
+    { label: `At least ${MIN_LENGTH} characters`, met: proposed.length >= MIN_LENGTH },
+    { label: 'Different from the current password', met: proposed.length > 0 && proposed !== current },
+    { label: 'Both new passwords match', met: confirmation.length > 0 && proposed === confirmation },
+  ]
+  const inputType = showPasswords ? 'text' : 'password'
 
-      <form className="admin-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        {error && <p className="form-summary-error" role="alert">{error}</p>}
-        <div className="form-field">
-          <label htmlFor="current-password">{mustChange ? 'Temporary password' : 'Current password'}</label>
-          <input id="current-password" type="password" autoComplete="current-password" value={current} onChange={(event) => setCurrent(event.target.value)} />
-        </div>
-        <div className="form-field">
-          <label htmlFor="new-password">New password</label>
-          <input id="new-password" type="password" autoComplete="new-password" aria-describedby="new-password-help" value={proposed} onChange={(event) => setProposed(event.target.value)} />
-          <p className="form-help" id="new-password-help">At least {MIN_LENGTH} characters.</p>
-        </div>
-        <div className="form-field">
-          <label htmlFor="confirm-password">Confirm new password</label>
-          <input id="confirm-password" type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
-        </div>
-        <div className="form-actions">
-          <button className="button button--primary" type="submit" disabled={submitting}>
-            {submitting ? 'Saving…' : 'Change password'}
-          </button>
-        </div>
-      </form>
-    </section>
+  return (
+    <>
+      <AdminBar />
+      <main className="admin-page admin-page--form" id="main-content" tabIndex={-1}>
+        <header className="admin-heading">
+          <div>
+            <h1>Change password</h1>
+            <p>{mustChange ? 'Choose your own password to finish setting up your account.' : 'Changing your password signs you out everywhere else.'}</p>
+          </div>
+        </header>
+
+        {mustChange && (
+          <p className="admin-notice admin-notice--warning" role="status">
+            You signed in with a temporary password. Choose a new one to continue; the other administration pages open once it is changed.
+          </p>
+        )}
+
+        <form className="admin-panel admin-password" onSubmit={(event) => void handleSubmit(event)} noValidate>
+          {error && <p className="form-summary-error" role="alert">{error}</p>}
+          <div className="form-field">
+            <label htmlFor="current-password">{mustChange ? 'Temporary password' : 'Current password'}</label>
+            <input id="current-password" type={inputType} autoComplete="current-password" value={current} onChange={(event) => setCurrent(event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label htmlFor="new-password">New password</label>
+            <input id="new-password" type={inputType} autoComplete="new-password" aria-describedby="new-password-checks" value={proposed} onChange={(event) => setProposed(event.target.value)} />
+          </div>
+          <div className="form-field">
+            <label htmlFor="confirm-password">Confirm new password</label>
+            <input id="confirm-password" type={inputType} autoComplete="new-password" aria-describedby="new-password-checks" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+          </div>
+          <label className="admin-check">
+            <input type="checkbox" checked={showPasswords} onChange={(event) => setShowPasswords(event.target.checked)} />
+            Show passwords
+          </label>
+          <ul className="password-checks" id="new-password-checks" aria-label="Password requirements">
+            {checks.map((check) => (
+              <li key={check.label} className={check.met ? 'password-checks__met' : undefined}>
+                <span aria-hidden="true">{check.met ? '✓' : '○'}</span>
+                {check.label}
+                <span className="visually-hidden">{check.met ? ' (done)' : ' (not yet)'}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="form-actions">
+            <button className="button button--primary" type="submit" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Change password'}
+            </button>
+          </div>
+        </form>
+      </main>
+    </>
   )
 }
 

@@ -21,11 +21,13 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
   const prefix = `correction-${correction.id}`
 
   return (
-    <>
-      <section className="admin-panel correction-panel" aria-labelledby={`${prefix}-title`}>
+    <section className="admin-panel correction-panel admin-record__lead" aria-labelledby={`${prefix}-title`}>
+      <header className="correction-panel__header">
         <h2 id={`${prefix}-title`}>Proposed correction</h2>
-        <p className="form-help">{contributorOf(correction)}, {formatDateTime(correction.submittedAt)}. The public record is unchanged until you decide.</p>
-        {correction.changes.length > 0 && (
+        <p className="form-help">{contributorOf(correction)} · {formatDateTime(correction.submittedAt)}. The public record is unchanged until you decide.</p>
+      </header>
+      {correction.changes.length > 0 && (
+        <div className="admin-table-wrap admin-table-wrap--flat">
           <table className="admin-table correction-changes">
             <caption className="visually-hidden">Proposed changes</caption>
             <thead>
@@ -43,13 +45,15 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
                     {describeValue(change.before)}
                     {changedSince(change) && <small className="admin-warning">Now {describeValue(change.current)}: the record changed after this was submitted</small>}
                   </td>
-                  <td><strong>{describeValue(change.proposed)}</strong></td>
+                  <td><strong className="correction-panel__proposed">{describeValue(change.proposed)}</strong></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-        {correction.changeNote && <blockquote>{correction.changeNote}</blockquote>}
+        </div>
+      )}
+      {correction.changeNote && <blockquote>{correction.changeNote}</blockquote>}
+      <div className="correction-panel__sources">
         <h3>Sources supplied</h3>
         {correction.evidenceUrls.length === 0 ? (
           <p className="admin-warning">No source supplied with this correction.</p>
@@ -60,15 +64,16 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
             ))}
           </ul>
         )}
-      </section>
+      </div>
       <DecisionForm
+        embedded
         idPrefix={prefix}
         heading="Decision on this correction"
         options={CORRECTION_DECISIONS}
         submit={(decision, note) => submitCorrectionDecision(correction.id, decision, note)}
         onDecided={onDecided}
       />
-    </>
+    </section>
   )
 }
 
