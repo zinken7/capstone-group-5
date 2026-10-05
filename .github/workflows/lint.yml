@@ -84,6 +84,10 @@ jobs:
       - run: npm run build
       - name: Apply migrations to the isolated CI database
         run: npm run db:migrate
+      # Replays migrations/ into a scratch database, re-introspects it with
+      # drizzle-kit and fails when src/db/ no longer matches.
+      - name: Check the committed Drizzle schema for drift against migrations
+        run: npm run db:schema:check
       # A separate database, so the seed's fixed IDs never meet test fixtures.
       # The second load checks that re-running the seed is a no-op.
       - name: Load the seed dataset twice into a fresh database

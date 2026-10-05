@@ -1,7 +1,10 @@
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import type { QueryResultRow } from 'pg'
 
 import { config } from './config.js'
+import * as relations from './db/relations.js'
+import * as schema from './db/schema.js'
 
 interface DatabaseVersionRow {
   postgresVersion: string
@@ -13,6 +16,13 @@ const pool = new Pool({ connectionString: config.databaseUrl })
 pool.on('error', (error) => {
   console.error('Unexpected PostgreSQL pool error:', error)
 })
+
+/**
+ * Drizzle client over the shared pool: the default data-access path for
+ * repositories (#71). PostGIS and complex aggregates may stay as parameterised
+ * queries through its sql template; closeDatabase() still closes the one pool.
+ */
+export const db = drizzle({ client: pool, schema: { ...schema, ...relations } })
 
 /**
  * Shared parameterised query entry point used by routes and repositories (NFR-05).
