@@ -254,8 +254,11 @@ describe('EquipmentPage', () => {
 
     render(<EquipmentPage />)
 
-    await user.click(await screen.findByRole('button', { name: /correct correction site/i }))
+    const correctButton = await screen.findByRole('button', { name: /correct correction site/i })
+    await user.click(correctButton)
     expect(screen.getByRole('dialog', { name: /correct this record/i })).toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('hidden')
+    expect(screen.getByRole('textbox', { name: /quantity/i })).toHaveFocus()
     await user.clear(screen.getByRole('textbox', { name: /quantity/i }))
     await user.type(screen.getByRole('textbox', { name: /quantity/i }), '2')
     await user.click(screen.getByRole('checkbox'))
@@ -265,6 +268,28 @@ describe('EquipmentPage', () => {
     const patchCall = fetchMock.mock.calls.find(([url, init]) => String(url).endsWith('/deployments/20202') && init?.method === 'PATCH')
     expect(patchCall?.[1]?.headers).toEqual(expect.objectContaining({ 'X-Requested-With': 'fetch' }))
     expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual(expect.objectContaining({ quantity: 2, disclosure_accepted: true }))
+    expect(document.body.style.overflow).toBe('')
+    expect(correctButton).toHaveFocus()
+  })
+
+  test('returns focus to the correction trigger when Escape closes the dialog', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json({ machine_types: ['haul_truck'], automation_levels: ['autonomous'], environments: ['surface'], deployment_statuses: ['operational'], installation_types: ['unknown'] }))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [{ id: 20203, site_id: 7, site_name: 'Escape site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: 'Command truck', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }] }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<EquipmentPage />)
+    const correctButton = await screen.findByRole('button', { name: /correct escape site/i })
+    await user.click(correctButton)
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(correctButton).toHaveFocus()
   })
 
   test('restores URL state and paginates the live register without a full scan', async () => {

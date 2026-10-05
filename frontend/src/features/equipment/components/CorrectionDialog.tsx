@@ -3,6 +3,7 @@ import type { FormEvent, KeyboardEvent } from 'react'
 
 import { submitCorrection, CorrectionApiError } from '../../../lib/api/corrections'
 import type { CorrectionPayload } from '../../../lib/api/corrections'
+import { formatCommissioning, formatEnumLabel, formatNumber } from '../../../lib/format'
 import type { ContributionReferenceData, ReferenceOption } from '../../contribute/types'
 import type { EquipmentRecord } from '../types'
 
@@ -87,8 +88,13 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     firstFieldRef.current?.focus()
-    return () => { previousFocus?.focus() }
+    return () => {
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
   }, [])
 
   function set(field: keyof CorrectionValues, value: string | boolean) {
@@ -135,7 +141,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
   return <div className="correction-overlay" role="presentation"><div ref={dialogRef} className="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-correction-title" aria-describedby="equipment-correction-description" onKeyDown={trapFocus}>
     <div className="correction-dialog__header"><div><p className="eyebrow">Suggest a correction</p><h2 id="equipment-correction-title">Correct this record</h2></div><button className="icon-button" type="button" aria-label="Close correction dialog" onClick={onClose}>×</button></div>
     <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>
-    <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {record.machineType}</dd></div><div><dt>Supplier</dt><dd>{record.supplier}</dd></div><div><dt>Current quantity</dt><dd>{record.quantity}</dd></div><div><dt>Current status</dt><dd>{record.status === 'unknown' ? 'Not recorded' : record.status}</dd></div></dl>
+    <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
     <p className="correction-warning">Submitting a correction returns this record to pending review and hides it from public views until an administrator reviews it.</p>
     {error && <p className="form-summary-error" role="alert">{error}</p>}
     <form onSubmit={(event) => void handleSubmit(event)} noValidate>
@@ -151,7 +157,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
       </div>
       <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>
       {fieldErrors.disclosure_accepted && <p className="field-error" role="alert">{fieldErrors.disclosure_accepted}</p>}
-      <div className="form-actions"><button className="button button--secondary" type="button" onClick={onClose} disabled={submitting}>Cancel</button><button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit correction'}</button></div>
+      <div className="form-actions correction-dialog__actions"><button className="button button--secondary" type="button" onClick={onClose} disabled={submitting}>Cancel</button><button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit correction'}</button></div>
     </form>
   </div></div>
 }
