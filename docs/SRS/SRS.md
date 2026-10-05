@@ -277,7 +277,7 @@ Four levels satisfy the client's requirement of at least three, and distinguish 
 
 **4. Scope is limited to equipment with an automation product fitted.** Entirely manual equipment is excluded, since it comprises effectively the whole global fleet and is neither collectable nor within the product's purpose. Teleremote equipment is in scope, being one of the four levels (CM2). Specified in FR-08.
 
-**5. An unclassified record is still worth holding.** Public sources frequently report that a machine is automated without stating to what degree, and a representative user identified this as the normal case rather than the exception (CM2). Knowing that automation is present is itself useful. The level is therefore nullable, and a record whose level is unknown is retained and counted, reported as unclassified rather than assigned a default.
+**5. An unclassified record is still worth holding.** Public sources frequently report that a machine is automated without stating to what degree, and a representative user identified this as the normal case rather than the exception (CM2). Knowing that automation is present is itself useful. The level is therefore nullable, and a record whose level is unknown is retained and counted, reported as unclassified rather than assigned a default; the form's pre-filled default (FR-58) only carries across a level the technology product already holds, and never supplies one where none is known. *(rev 0.5)*
 
 ---
 
@@ -340,9 +340,9 @@ All traffic between browser and server uses HTTPS. Requests to external services
 | FR-13 | The system shall record machine size class, maximum payload and operating weight. | S | ✅ | CM1, BRIEF |
 | FR-14 | The system shall mark equipment as decommissioned rather than deleting it, and create a new record where equipment relocates. | S | ✅ | CM1 |
 | FR-56 | The system shall record whether a deployment's automation technology was factory-installed or retrofitted, as an optional attribute defaulting to unknown, since it will not always be known. *(rev 0.5)* | S | ✅ | CM3 |
-| FR-57 | A deployment may carry its own automation level, proposed by a contributor and confirmed by an administrator when the record is reviewed. A confirmed deployment level shall take precedence over the level held against its technology product wherever a level is presented, filtered or aggregated. *(rev 0.5)* | M | ❓ | CM3 §2 lists automation level among the information the client identified as important; the propose-and-confirm workflow and the precedence rule are team design — see Q-1a |
+| FR-57 | A deployment may carry its own automation level, proposed by a contributor and confirmed by an administrator when the record is reviewed. A confirmed deployment level shall take precedence over the level held against its technology product wherever a level is presented, filtered or aggregated. *(rev 0.5)* | M | ❓ | CM3 §2 lists automation level among the information the client identified as important; the propose-and-confirm workflow and the precedence rule are team design — see Q-16 |
 
-*Note: FR-56 and FR-57 are numbered after the last existing requirement so that no requirement is renumbered. Both belong with the data model above.*
+*Note: FR-56 to FR-58 are numbered after the last existing requirement so that no requirement is renumbered. FR-56 and FR-57 belong with the data model above; FR-58 sits with contribution and verification in Section 4.5.*
 
 \newpage
 
@@ -410,6 +410,7 @@ A submission is reviewed and decided as **one evidence-backed unit**: the admini
 | FR-53 | Records contributed from a confirmed company email domain shall be flagged as affiliated and prioritised for review. | C | ❓ | Team proposal |
 | FR-54 | The system shall record dated market events — a change of technology supplier behind a machine brand, an acquisition, or the release of a new automation product — linked to the companies and products they concern, and present them as a reverse-chronological feed. | C | ✅ | CM2 |
 | FR-55 | An automated agent shall check a submission against public sources and produce a report assessing each claim — site identity, company roles, technology supplier and machine quantity — as supported, partially supported, contradicted or insufficient evidence, with the source relied on for each and an overall recommendation. The agent shall not alter a record's verification status; the decision remains with a human reviewer. The agent is optional and administrator-triggered, and is non-blocking for the core MVP: a possible MVP 2 feature that must not displace the manual review workflow. *(rev 0.5)* | C | ✅ | CM1, CM3 |
+| FR-58 | The submission form shall offer the four automation levels with a one-line definition of each, so that a contributor proposing a level (FR-57) can tell them apart. Where a technology product carrying a classified level is given, that level shall be pre-filled as the default. *(rev 0.5)* | M | ❓ | Team design supporting FR-57; CM3 §2 lists automation level among the information the client identified as important — see Q-16 |
 
 ---
 
@@ -571,7 +572,7 @@ Every ❓ requirement traces to one of these.
 | # | Question | Requirements affected | Answer |
 |---|---|---|---|
 | Q-1 | **Answered (CM2).** Teleremote equipment is in scope, and is recorded as its own automation level. | FR-08, FR-09 | Closed |
-| Q-1a | **Which labels should the four levels carry?** The four-level model is confirmed (CM3). CM3 asked for terminology consistent with both this specification and the client dataset, and the two disagree; the team proposes the dataset's labels — Highly Autonomous, Semi Autonomous, Teleremote, Operator Assistance — and the build follows them. Section 2.6 sets out the discrepancy in full. *(rev 0.5)* | Section 2.6, FR-09, FR-57 | Proposed answer — awaiting client |
+| Q-1a | **Which labels should the four levels carry?** The four-level model is confirmed (CM3). CM3 asked for terminology consistent with both this specification and the client dataset, and the two disagree; the team proposes the dataset's labels — Highly Autonomous, Semi Autonomous, Teleremote, Operator Assistance — and the build follows them. Section 2.6 sets out the discrepancy in full. *(rev 0.5)* | Section 2.6, FR-09, FR-58 | Proposed answer — awaiting client |
 | Q-2 | **Answered (CM3).** No account is required to submit; an email address may be offered so an administrator can follow up. *(rev 0.5)* | FR-40, FR-52, FR-53 | Closed |
 | Q-3 | **Who may correct an existing record?** Team proposal (issue #114): anyone may propose a correction, and a change to a verified record is published only after administrator review (FR-48), so the takedown risk of unrestricted editing does not arise. An administrator's own correction leaves the verification status unchanged (FR-46). *(rev 0.5)* | FR-46, FR-47, FR-48 | Proposed answer — awaiting client |
 | Q-4 | **What is meant by a UWA IT environment, what does it provide, and who can tell us?** The brief requires deployment within a UWA IT environment as far as practical, which could mean any of three things: hosted on hardware UWA operates; hosted on a cloud subscription UWA holds and pays for; or hosted anywhere, provided it satisfies UWA policy on security, data handling and domain use. The three differ in what may be installed, who administers the host, who is billed, and what review is required before going live. The checklist below sets out the detail once the reading is settled. If the client does not hold these answers, the name of someone in UWA IT who does would be enough. **Superseded for the MVP (CM3):** the MVP runs locally or on a public host, and UWA hosting is a handover objective. The checklist in A.1 is retained for the handover conversation. *(rev 0.5)* | NFR-11, C-01, stack selection | Open for handover only |
@@ -586,6 +587,7 @@ Every ❓ requirement traces to one of these.
 | Q-13 | **Is a market events feed wanted, and who maintains it?** Changes of technology supplier behind a machine brand, and releases of new automation products, were identified as things currently learned too late (CM2). Recording such events is straightforward; keeping them current is an editorial commitment beyond the semester. | FR-54 | |
 | Q-14 | **Does the client confirm the FR-42 reword?** Submissions are accepted into the review queue immediately and become public once verified, per CM3's controlled submission path; CM1 had said records are published immediately. The build behaves as FR-42 now reads. *(rev 0.5)* | FR-42, FR-43 | |
 | Q-15 | **Interim guard until the FR-48 correction model lands (team decision pending):** should staging refuse public corrections to verified records until corrections-as-proposals (issue #114) is implemented, given that today a pending correction hides a verified record? *(rev 0.5)* | FR-48 | |
+| Q-16 | **Should a contributor be asked for the automation level of the deployment, and should their answer override the product's?** CM3 §2 lists automation level among the information the client identified as important. The team proposes that the form offer the four levels with a one-line definition of each, pre-filled from the technology product where that product already carries a classified level (FR-58), that an administrator confirm the proposed level when reviewing the record, and that a confirmed deployment level then take precedence over the product's wherever a level is shown, filtered or aggregated (FR-57). *(rev 0.5)* | FR-57, FR-58 | |
 
 ## A.1 Hosting environment checklist
 
@@ -693,6 +695,7 @@ To be answered by the client or UWA IT. Each item constrains a specific design d
 |---|---|---|---|
 | Must | Submission form; records enter the review queue immediately and become public once verified | FR-40, FR-42 | ☐ yes ☐ amend |
 | Must | Notice that contributors may submit only what they are permitted to disclose | FR-41 | ☐ yes ☐ amend |
+| Must | The form offers the four automation levels with a one-line definition of each, pre-filled from the technology product where it already carries a level | FR-58 | ☐ yes ☐ amend |
 | Must | Verification status, with verified records shown by default | FR-43 | ☐ yes ☐ amend |
 | Must | Evidence links attached to records | FR-44 | ☐ yes ☐ amend |
 | Must | Administration screen for review | FR-45 | ☐ yes ☐ amend |
