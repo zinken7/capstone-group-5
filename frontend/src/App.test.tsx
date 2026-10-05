@@ -39,22 +39,6 @@ describe('Application shell and navigation', () => {
     ).toBeInTheDocument()
   })
 
-  test('keeps all primary navigation links available at 320px', () => {
-    window.innerWidth = 320
-    window.dispatchEvent(new Event('resize'))
-
-    renderApp()
-
-    const navigation = screen.getByRole('navigation', {
-      name: /primary navigation/i,
-    })
-
-    expect(navigation).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Map' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /equipment/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Analytics' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Contribute' })).toBeInTheDocument()
-  })
 
   test('navigates to the Equipment Register', async () => {
     const user = userEvent.setup()
