@@ -1,5 +1,7 @@
+import { Client } from 'pg'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
+const { config } = await import('../config.js')
 const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 const { validateCorrection } = await import('../lib/correction-validation.js')
@@ -18,6 +20,19 @@ function input(body: Record<string, unknown>) {
   const result = validateCorrection({ disclosure_accepted: true, ...body })
   if (!result.ok) throw new Error(JSON.stringify(result.errors))
   return result.value
+}
+
+/** Polls until the given number of sessions are blocked on a row lock. */
+async function waitForLockWaiters(client: Client, count: number): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const { rows } = await client.query<{ waiting: number }>(
+      `SELECT COUNT(*)::int AS waiting FROM pg_stat_activity
+       WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+    )
+    if ((rows[0]?.waiting ?? 0) >= count) return
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  throw new Error(`expected ${count} sessions waiting on a lock`)
 }
 
 async function deployment10() {
@@ -46,10 +61,23 @@ describe('correctDeployment', () => {
   })
 
   it('applies concurrent corrections one after another without losing either', async () => {
-    const outcomes = await Promise.all([
-      correctDeployment(10, input({ quantity: 100 })),
-      correctDeployment(10, input({ quantity: 120 })),
-    ])
+    // Hold the row so both corrections are in flight together before either can proceed
+    const holder = new Client({ connectionString: config.databaseUrl })
+    await holder.connect()
+    let outcomes
+    try {
+      await holder.query('BEGIN')
+      await holder.query('SELECT id FROM deployment WHERE id = 10 FOR UPDATE')
+      const pending = Promise.all([
+        correctDeployment(10, input({ quantity: 100 })),
+        correctDeployment(10, input({ quantity: 120 })),
+      ])
+      await waitForLockWaiters(holder, 2)
+      await holder.query('COMMIT')
+      outcomes = await pending
+    } finally {
+      await holder.end()
+    }
     expect(outcomes.map((outcome) => outcome.kind)).toEqual(['updated', 'updated'])
 
     const revisions = await query<{ previous_values: { quantity: number; verification_status: string } }>(
