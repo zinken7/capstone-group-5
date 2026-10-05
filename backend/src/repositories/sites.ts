@@ -136,6 +136,8 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
       ) AS in_window,
       COALESCE(
         ${filters.includeDecommissioned ?? false}::boolean
+        -- Announced deployments never ran, so they cannot have ended either
+        AND d.status IS DISTINCT FROM 'announced'
         AND d.valid_to < ref.day
         AND CASE WHEN ref.by_year THEN d.start_year <= ${year}::int ELSE d.commissioning_date IS NOT NULL END,
         FALSE

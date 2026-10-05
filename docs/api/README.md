@@ -44,7 +44,7 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | `supplier` | string | No | Filter by technology supplier |
 | `date` | `YYYY-MM-DD` | No | Only return deployments still in service on this date |
 | `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them. Use either `date` or `year`, not both |
-| `include_decommissioned` | `true`\|`false` | No | With `date` or `year`, also keep sites whose deployments had ended by then. Default `false` |
+| `include_decommissioned` | `true`\|`false` | No | With `date` or `year`, also keep sites whose deployments had ended by then (announced deployments never count as ended). Default `false` |
 | `country` | string | No | Filter by country code |
 | `region` | string | No | Filter by region |
 | `machine_type` | string | No | Filter by machine type |
