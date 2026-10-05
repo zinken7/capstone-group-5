@@ -3,6 +3,7 @@ import AdminLoginPage from './features/admin/pages/AdminLoginPage'
 import AdminPasswordPage from './features/admin/pages/AdminPasswordPage'
 import AdminQueuePage from './features/admin/pages/AdminQueuePage'
 import AdminRecordPage from './features/admin/pages/AdminRecordPage'
+import AdminUsersPage from './features/admin/pages/AdminUsersPage'
 import { AdminSessionProvider, RequireAdminSession } from './features/admin/session'
 import AnalyticsPage from './features/analytics/pages/AnalyticsPage'
 import ContributePage from './features/contribute/pages/ContributePage'
@@ -24,6 +25,7 @@ function App() {
           <Route path="/admin/password" element={<RequireAdminSession allowPendingPasswordChange><AdminPasswordPage /></RequireAdminSession>} />
           <Route path="/admin" element={<RequireAdminSession><AdminQueuePage /></RequireAdminSession>} />
           <Route path="/admin/deployments/:id" element={<RequireAdminSession><AdminRecordPage /></RequireAdminSession>} />
+          <Route path="/admin/users" element={<RequireAdminSession><AdminUsersPage /></RequireAdminSession>} />
           <Route path="/" element={<Navigate replace to="/map" />} />
           <Route path="*" element={<Navigate replace to="/map" />} />
         </Routes>

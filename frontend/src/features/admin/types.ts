@@ -87,3 +87,18 @@ export interface AdminCorrection {
   evidenceUrls?: string[]
   changeNote?: string
 }
+
+export interface AdminAccount {
+  id: number
+  email: string
+  role: AdminRole
+  active: boolean
+  mustChangePassword: boolean
+  createdAt: string
+}
+
+export interface NewAdministrator {
+  id: number
+  email: string
+  temporaryPassword: string
+}
