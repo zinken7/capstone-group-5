@@ -29,6 +29,11 @@ router.patch('/deployments/:id', async (req, res, next) => {
       res.status(400).json({ error: 'correction does not change the record' })
       return
     }
+    if (outcome.kind === 'proposed') {
+      // Accepted for review: the verified record stays public and unchanged until an administrator decides
+      res.status(202).json({ id: outcome.id, correction_id: outcome.correctionId, verification_status: outcome.verificationStatus })
+      return
+    }
     res.status(200).json({ id: outcome.id, verification_status: outcome.verificationStatus })
   } catch (error) {
     next(error)

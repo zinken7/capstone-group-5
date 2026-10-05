@@ -241,11 +241,24 @@
   padding-left: 1.1rem;
 }
 
-.history-list blockquote {
+.history-list blockquote,
+.correction-panel blockquote {
   margin: 0.35rem 0 0;
   padding-left: 0.75rem;
   border-left: 3px solid var(--border);
   color: var(--text-muted);
+}
+
+/* Proposed correction: field names are row labels, not column captions */
+.correction-changes tbody th {
+  color: var(--text-strong);
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.admin-table td small.admin-warning {
+  color: #9a3412;
 }
 
 .previous-values {

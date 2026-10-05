@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test } from 'vitest'
 
@@ -17,6 +17,19 @@ describe('AppLayout', () => {
   ])('sets a route-specific document title for %s', (path, title) => {
     render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
     expect(document.title).toBe(title)
+  })
+
+  test('links to administrator sign-in from the footer, not from the main navigation', () => {
+    render(<MemoryRouter initialEntries={['/map']}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
+
+    expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Administrator sign-in' })).toHaveAttribute('href', '/admin')
+    expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).queryByRole('link', { name: /admin/i })).not.toBeInTheDocument()
+  })
+
+  test.each(['/admin', '/admin/login', '/admin/deployments/12'])('leaves the sign-in link out of the administration pages: %s', (path) => {
+    render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
+
+    expect(screen.queryByRole('link', { name: 'Administrator sign-in' })).not.toBeInTheDocument()
   })
 
   test.each(['/map/unknown', '/equipment/unknown', '/analytics/unknown', '/contribute/unknown', '/admin/unknown'])('uses the not-found title for an unknown nested path: %s', (path) => {

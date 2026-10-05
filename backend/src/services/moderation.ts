@@ -1,4 +1,5 @@
 import { withTransaction } from '../database.js'
+import type { Tx } from '../database.js'
 import type { AdminCorrectionInput, ReviewDecision, ReviewInput } from '../lib/admin-validation.js'
 import {
   findEvidenceUrls,
@@ -9,16 +10,20 @@ import {
   lockDeployment,
   updateDeploymentForReview,
 } from '../repositories/contributions.js'
+import { lockCorrection, setCorrectionStatus } from '../repositories/corrections.js'
+import type { CorrectionStatus, LockedCorrection } from '../repositories/corrections.js'
+import type { CurrentDeployment } from '../repositories/contributions.js'
 import {
   findReviewRecord,
   findTechnologyNames,
   insertReview,
-  listPendingReviews,
+  listPendingCorrections,
+  listPendingSubmissions,
   lockDecisionState,
   setVerificationStatus,
 } from '../repositories/moderation.js'
 import type { QueueItem, ReviewRecord } from '../repositories/moderation.js'
-import { diffChanges } from './corrections.js'
+import { changesFromProposed, diffChanges } from './corrections.js'
 
 /** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
 const STATUS_AFTER: Record<ReviewDecision, string> = {
@@ -27,8 +32,10 @@ const STATUS_AFTER: Record<ReviewDecision, string> = {
   needs_changes: 'unverified',
 }
 
-export function listQueue(): Promise<QueueItem[]> {
-  return listPendingReviews()
+/** Submissions and proposed corrections together, oldest first. */
+export async function listQueue(): Promise<QueueItem[]> {
+  const [submissions, corrections] = await Promise.all([listPendingSubmissions(), listPendingCorrections()])
+  return [...submissions, ...corrections].sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))
 }
 
 export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
@@ -72,6 +79,67 @@ export async function decide(deploymentId: number, adminUserId: number, input: R
     })
     return { kind: 'decided', reviewId, verificationStatus }
   })
+}
+
+const CORRECTION_STATUS_AFTER: Record<ReviewDecision, CorrectionStatus> = {
+  approved: 'approved',
+  rejected: 'rejected',
+  needs_changes: 'needs_changes',
+}
+
+export type CorrectionDecisionOutcome =
+  | { kind: 'not_found' }
+  | { kind: 'not_pending'; correctionStatus: string }
+  | { kind: 'decided'; reviewId: number; correctionStatus: string; verificationStatus: string }
+
+/**
+ * Decides a proposed correction (#114). Approval applies it to the record,
+ * attributed to its contributor, and keeps the record verified; rejecting it
+ * or asking for changes leaves the record as it is. The review row records
+ * the decision against the correction.
+ */
+export async function decideCorrection(correctionId: number, adminUserId: number, input: ReviewInput): Promise<CorrectionDecisionOutcome> {
+  return withTransaction(async (tx) => {
+    const correction = await lockCorrection(tx, correctionId)
+    if (!correction) return { kind: 'not_found' }
+    if (correction.status !== 'pending') return { kind: 'not_pending', correctionStatus: correction.status }
+
+    const current = await lockDeployment(tx, correction.deploymentId)
+    // The foreign key guarantees the deployment exists
+    if (!current) throw new Error(`Correction ${correctionId} has no deployment`)
+
+    if (input.decision === 'approved') await applyCorrection(tx, correction, current)
+    const reviewId = await insertReview(tx, {
+      deploymentId: correction.deploymentId,
+      adminUserId,
+      decision: input.decision,
+      note: input.note,
+      correctionId,
+    })
+    const correctionStatus = CORRECTION_STATUS_AFTER[input.decision]
+    await setCorrectionStatus(tx, correctionId, correctionStatus)
+    return { kind: 'decided', reviewId, correctionStatus, verificationStatus: current.verificationStatus }
+  })
+}
+
+/** Applies an approved correction against the record as it is now, keeping the previous values (FR-47). */
+async function applyCorrection(tx: Tx, correction: LockedCorrection, current: CurrentDeployment): Promise<void> {
+  const { previous, updates } = diffChanges(current, changesFromProposed(correction.proposedValues))
+  const existingUrls = await findEvidenceUrls(tx, current.id)
+  const newUrls = correction.evidenceUrls.filter((url) => !existingUrls.includes(url))
+  if (newUrls.length > 0) previous.evidence_urls = existingUrls
+  // The record may already hold these values, for example after an administrator's edit
+  if (Object.keys(previous).length === 0) return
+
+  await insertRevision(tx, {
+    deploymentId: current.id,
+    contributorId: correction.contributorId,
+    action: 'update',
+    previousValues: previous,
+    changeNote: correction.changeNote,
+  })
+  await updateDeploymentForReview(tx, current.id, updates, { returnToPending: false })
+  await insertEvidence(tx, current.id, newUrls)
 }
 
 export type AdminCorrectionOutcome =

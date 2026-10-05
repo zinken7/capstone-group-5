@@ -52,18 +52,18 @@ function AdminQueuePage() {
                 <th scope="col">Machine</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Technology</th>
-                <th scope="col">Evidence</th>
+                <th scope="col">Sources</th>
                 <th scope="col">Last changed</th>
                 <th scope="col"><span className="visually-hidden">Action</span></th>
               </tr>
             </thead>
             <tbody>
               {queue.items.map((item) => (
-                <tr key={item.id}>
+                <tr key={`${item.kind}-${item.correctionId ?? item.id}`}>
                   <td><strong>{item.siteName}</strong><small>{[item.region, item.countryCode].filter(Boolean).join(', ')}</small></td>
                   <td>
-                    <strong>{formatEnumLabel(item.kind ?? 'submission')}</strong>
-                    {item.kind === 'correction' && item.changedFields && item.changedFields.length > 0 && <small>{item.changedFields.map(formatEnumLabel).join(', ')}</small>}
+                    <strong>{formatEnumLabel(item.kind)}</strong>
+                    {item.changedFields.length > 0 && <small>{item.changedFields.map(formatEnumLabel).join(', ')}</small>}
                     {(item.contributorEmail || item.contributorOrganisation) && <small>{[item.contributorEmail, item.contributorOrganisation].filter(Boolean).join(' · ')}</small>}
                   </td>
                   <td>{[item.machineManufacturer, item.machineModel].filter(Boolean).join(' ')}<small>{formatEnumLabel(item.machineType)}</small></td>
@@ -71,7 +71,13 @@ function AdminQueuePage() {
                   <td>{item.technologyProduct ? `${item.technologySupplier ?? ''} ${item.technologyProduct}`.trim() : <span className="admin-warning">Not recorded</span>}</td>
                   <td>{item.evidenceCount > 0 ? item.evidenceCount : <span className="admin-warning">None</span>}</td>
                   <td>{formatDateTime(item.submittedAt)}</td>
-                  <td><Link className="button button--secondary" to={`/admin/deployments/${item.id}`} aria-label={`Review ${item.siteName} record ${item.id}`}>Review</Link></td>
+                  <td>
+                    <Link
+                      className="button button--secondary"
+                      to={`/admin/deployments/${item.id}`}
+                      aria-label={item.kind === 'correction' ? `Review correction ${item.correctionId} to ${item.siteName} record ${item.id}` : `Review ${item.siteName} record ${item.id}`}
+                    >Review</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
