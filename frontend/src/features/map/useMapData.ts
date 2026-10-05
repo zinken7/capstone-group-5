@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { getTimeline } from '../../lib/api/analytics'
+import { getAnalyticsTimeline } from '../../lib/api/analytics'
 import { getMap } from '../../lib/api/map'
 import { getContributionReferenceData } from '../../lib/api/reference-data'
 import type { MapMarker, MapQuery, MapResult } from '../../lib/api/types'
@@ -33,7 +33,7 @@ export function useMapOptions(): MapOptions | null {
 
   useEffect(() => {
     let active = true
-    void Promise.allSettled([getContributionReferenceData(), getMap(), getTimeline()]).then(([reference, map, timeline]) => {
+    void Promise.allSettled([getContributionReferenceData(), getMap(), getAnalyticsTimeline()]).then(([reference, map, timeline]) => {
       if (!active) return
       const references = reference.status === 'fulfilled' ? reference.value : DEFAULT_CONTRIBUTION_REFERENCE_DATA
       const markers = map.status === 'fulfilled' ? map.value.markers : []
@@ -51,7 +51,7 @@ export function useMapOptions(): MapOptions | null {
           .map(([key, countryCode]) => ({ name: key.slice(countryCode.length + 1), countryCode }))
           .sort((a, b) => a.name.localeCompare(b.name)),
         commodities: sortedUnique(markers.map((marker) => marker.commodity)),
-        firstYear: timeline.status === 'fulfilled' && timeline.value.length > 0 ? timeline.value[0].year : null,
+        firstYear: timeline.status === 'fulfilled' && timeline.value.years.length > 0 ? timeline.value.years[0].year : null,
       })
     })
     return () => {

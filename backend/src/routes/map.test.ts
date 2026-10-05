@@ -163,6 +163,16 @@ describe('GET /api/map?year=', () => {
     expect(site(withEnded.body.features, 1)).toMatchObject({ status: 'decommissioned', machine_count: 0, deployment_count: 0 })
   })
 
+  it('never treats an announced deployment as ended, even with an old end date', async () => {
+    // Only deployment 14 at Roy Hill, recorded as announced with an end date before 2022
+    await query("UPDATE deployment SET commissioning_date = '2023-01-01', commissioning_year = 2023, valid_from = '2023-01-01' WHERE id = 10")
+    await query("UPDATE deployment SET status = 'announced' WHERE id = 14")
+
+    const response = await request(app).get('/api/map?year=2022&include_decommissioned=true')
+
+    expect(site(response.body.features, 1)).toBeUndefined()
+  })
+
   it('does not let ended deployments change the status of a site that is still in service', async () => {
     const response = await request(app).get('/api/map?year=2022&include_decommissioned=true')
 
