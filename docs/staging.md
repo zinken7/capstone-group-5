@@ -52,33 +52,52 @@ directory.
 
 ## Deploying
 
-Production deployments run from GitHub Actions, not from Vercel's Git
-integration:
+**Vercel's free Hobby plan does not allow collaborators to deploy.** The
+Vercel projects are on M1's Hobby account, and Vercel blocks every deployment,
+from Git or the CLI, of a commit whose author is not the account owner.
+Deployments by other team members need the paid Pro plan. Staging is therefore
+deployed only from merge commits authored by M1.
 
-- On every push to `main`, `.github/workflows/lint.yml` runs CI, then
-  **Migrate staging database**, then **Deploy staging frontend** and
-  **Deploy staging backend**. Each deploy job runs `vercel deploy --prod` from
-  the repository root, and Vercel builds the project's root directory. A failed
-  check or migration stops both deploys, so new code never runs against an old
-  schema.
-- `git.deploymentEnabled` in each `vercel.json` turns the Git integration off
-  for `main`. It still builds preview deployments for other branches and links
-  them on the pull request. Previews use the staging database and are protected
-  by Vercel Authentication, so only members of the owning Vercel account can
-  open them.
+Production deployments run from GitHub Actions. Vercel's Git integration is
+turned off (`git.deploymentEnabled: false` in each `vercel.json`), so Vercel
+builds no Git or preview deployments.
 
-The deploy jobs use M1's Vercel token because the Hobby account blocks Git
-deployments of commits by anyone who is not on it; this is what stopped #74
-from deploying. They read their configuration from the `staging` GitHub
-environment, which only `main` can use (see
-[Migrations and seed data](#migrations-and-seed-data)):
+On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
+
+1. **Check deploy author** reads the author of the merge commit. If anyone but
+   M1 authored it, Vercel would block the deployment, so the job skips the
+   migration and both deploys. If the merged pull request changed files under
+   `frontend/` or `backend/` (other than Markdown), it also comments on it to
+   tell M1. M1's next merge then migrates and deploys everything merged so far.
+2. **Migrate staging database** applies pending migrations (see
+   [Migrations and seed data](#migrations-and-seed-data)).
+3. **Deploy staging frontend** and **Deploy staging backend** each run
+   `vercel deploy --prod` from the repository root, and Vercel builds the
+   project's root directory. Each job times out after 10 minutes.
+
+A failed check or migration stops both deploys, so new code never runs against
+an old schema.
+
+So that changes to the application deploy when they merge, M1 merges pull
+requests that change `frontend/` or `backend/`, normally through auto-merge:
+the author mentions @zinken7, M1 enables auto-merge, and GitHub merges under
+M1's name once the review is approved and CI passes. Other pull requests do not
+change what runs on staging, so their authors merge them (see
+[`CONTRIBUTING.md`](../CONTRIBUTING.md#pull-requests)). Merge commits are the
+only merge method enabled, because a squash or rebase merge can carry the pull
+request author's name instead.
+
+The jobs read their configuration from the `staging` GitHub environment, which
+only `main` can use (see [Migrations and seed data](#migrations-and-seed-data)),
+and from one repository variable:
 
 | Name | Kind | Value |
 | --- | --- | --- |
-| `VERCEL_TOKEN` | Secret | Vercel access token created by M1 |
-| `VERCEL_ORG_ID` | Variable | Vercel account ID |
-| `VERCEL_FRONTEND_PROJECT_ID` | Variable | ID of `capstone-group-5` |
-| `VERCEL_BACKEND_PROJECT_ID` | Variable | ID of `capstone-group-5-api` |
+| `VERCEL_TOKEN` | Environment secret | Vercel access token created by M1 |
+| `VERCEL_ORG_ID` | Environment variable | Vercel account ID |
+| `VERCEL_FRONTEND_PROJECT_ID` | Environment variable | ID of `capstone-group-5` |
+| `VERCEL_BACKEND_PROJECT_ID` | Environment variable | ID of `capstone-group-5-api` |
+| `DEPLOY_AUTHOR` | Repository variable | GitHub login of the Vercel account owner, `zinken7` |
 
 The IDs are in `.vercel/repo.json` after `npx vercel link --repo`. Before the
 token expires, create a new one under Vercel → Account Settings → Tokens, scoped
@@ -102,9 +121,11 @@ cd backend                       # or: cd frontend
 npx vercel deploy --prod
 ```
 
-A CLI deployment uploads the working tree, including uncommitted changes, and
-replaces the current production deployment of that project until the next push
-to `main` deploys again.
+A CLI deployment uploads the working tree, including uncommitted changes and
+whatever branch is checked out, and replaces the current production deployment
+of that project until the next push to `main` deploys again. Vercel accepts it
+only if the checked-out commit is authored by M1. Deploy from an up-to-date
+`main` unless you are deliberately trying a change.
 
 ## Migrations and seed data
 
@@ -217,8 +238,9 @@ migration.
 - Neon Free allows 100 CU-hours and 0.5 GB of storage per project per month.
   Compute suspends after 5 minutes without queries, so the first request after
   a quiet period is slightly slower.
-- The Vercel projects belong to M1's Hobby account, which is limited to
-  non-commercial use and does not support team members. Other members cannot
-  open the dashboard or preview deployments, and Vercel blocks Git deployments
-  of their commits, including branch previews; `main` is deployed from GitHub
-  Actions for this reason. Ask M1 for deployment changes.
+- The Vercel projects belong to M1's free Hobby account, which is limited to
+  non-commercial use and does not allow collaborators: other members cannot
+  open the dashboard, and Vercel blocks deployments of their commits. This is
+  why M1 merges pull requests that change the application (see
+  [Deploying](#deploying)). Removing the limit needs Vercel Pro. Ask M1 for
+  deployment changes.
