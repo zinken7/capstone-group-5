@@ -28,6 +28,10 @@ export interface MapFilters {
   environment?: string
   /** YYYY-MM-DD */
   date?: string
+  /** In service on 31 December of this year, by the same rule as the analytics timeline (#109) */
+  year?: number
+  /** With a date or year, also keep sites whose deployments had ended by then, as decommissioned */
+  includeDecommissioned?: boolean
 }
 
 export interface MapSite {
@@ -35,13 +39,19 @@ export interface MapSite {
   name: string
   longitude: number
   latitude: number
+  countryCode: string
+  region: string | null
+  commodity: string | null
   status: DeploymentStatus | null
   technologySuppliers: string[]
+  /** Machines and deployments in the map's view: in service at the date or year when one is given */
+  machineCount: number
+  deploymentCount: number
 }
 
 export interface MapResult {
   sites: MapSite[]
-  /** Deployments excluded for lacking a commissioning date when a date is given */
+  /** Deployments excluded for lacking a commissioning date (or, by year, a commissioning year) */
   excludedCount: number
 }
 
@@ -50,16 +60,32 @@ type MapRow = {
   site_name: string
   longitude: number
   latitude: number
+  country_code: string
+  region: string | null
+  commodity: string | null
   status: DeploymentStatus
+  quantity: number
   technology_supplier: string | null
   excluded: boolean
   in_window: boolean
+  ended: boolean
 }
 
 /**
  * Map query: site-level and deployment-level filters run in SQL; only verified deployments are returned (FR-43).
  *
  * Date semantics (FR-11 / FR-19): deployments without a commissioning date count as excluded; "in service" uses valid_from / valid_to, with a null valid_from meaning no lower bound.
+ *
+ * Year semantics match the analytics timeline, so the map and the in-service
+ * curve agree: on 31 December of the year, a deployment is in service when it
+ * is not announced, its commissioning year (or the year of its date) is no
+ * later, and the day falls inside valid_from..valid_to. A deployment with no
+ * commissioning year is excluded.
+ *
+ * A deployment that had ended by the reference day (valid_to before it) is
+ * left out unless includeDecommissioned is set; then its site is kept, and a
+ * site with nothing else in service shows as decommissioned. Ended
+ * deployments never count towards machineCount.
  *
  * Stays as parameterised SQL through Drizzle (#71): the && bounding-box
  * operator, ST_MakeEnvelope and the exclusion/window flags have no clearer
@@ -68,24 +94,54 @@ type MapRow = {
 export async function findMapSites(filters: MapFilters): Promise<MapResult> {
   const { bbox } = filters
   const date = filters.date ?? null
+  const year = filters.year ?? null
   const result = await db.execute<MapRow>(sql`
+    WITH reference AS (
+      SELECT
+        COALESCE(${date}::date, make_date(${year}::int, 12, 31)) AS day,
+        ${year}::int IS NOT NULL AS by_year
+    ),
+    candidate AS (
+      SELECT
+        d.*,
+        COALESCE(d.commissioning_year::int, EXTRACT(YEAR FROM d.commissioning_date)::int) AS start_year
+      FROM deployment d
+    )
     SELECT
       s.id::int AS site_id,
       s.name AS site_name,
       ST_X(s.point_4326) AS longitude,
       ST_Y(s.point_4326) AS latitude,
+      s.country_code,
+      r.name AS region,
+      s.commodity,
       d.status::text AS status,
+      d.quantity,
       sc.name AS technology_supplier,
-      (${date}::date IS NOT NULL AND d.commissioning_date IS NULL) AS excluded,
       (
-        ${date}::date IS NULL
-        OR (
-          d.commissioning_date IS NOT NULL
-          AND (d.valid_from IS NULL OR d.valid_from <= ${date}::date)
-          AND (d.valid_to IS NULL OR d.valid_to >= ${date}::date)
-        )
-      ) AS in_window
-    FROM deployment d
+        CASE
+          WHEN ref.day IS NULL THEN FALSE
+          WHEN ref.by_year THEN d.status IS DISTINCT FROM 'announced' AND d.start_year IS NULL
+          ELSE d.commissioning_date IS NULL
+        END
+      ) AS excluded,
+      (
+        CASE
+          WHEN ref.day IS NULL THEN TRUE
+          WHEN ref.by_year THEN d.status IS DISTINCT FROM 'announced' AND d.start_year <= ${year}::int
+          ELSE d.commissioning_date IS NOT NULL
+        END
+        AND (ref.day IS NULL OR d.valid_from IS NULL OR d.valid_from <= ref.day)
+        AND (ref.day IS NULL OR d.valid_to IS NULL OR d.valid_to >= ref.day)
+      ) AS in_window,
+      COALESCE(
+        ${filters.includeDecommissioned ?? false}::boolean
+        AND d.valid_to < ref.day
+        AND CASE WHEN ref.by_year THEN d.start_year <= ${year}::int ELSE d.commissioning_date IS NOT NULL END,
+        FALSE
+      ) AS ended
+    FROM candidate d
+    CROSS JOIN reference ref
     JOIN site s ON s.id = d.site_id
     LEFT JOIN region r ON r.id = s.region_id
     JOIN machine_model m ON m.id = d.machine_model_id
@@ -106,28 +162,40 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
   const rows = result.rows
 
   let excludedCount = 0
-  const bySite = new Map<number, { row: MapRow; deployments: Array<{ status: DeploymentStatus }>; suppliers: Set<string> }>()
+  type SiteEntry = { row: MapRow; deployments: Array<{ status: DeploymentStatus }>; ended: boolean; suppliers: Set<string>; machines: number }
+  const bySite = new Map<number, SiteEntry>()
 
   for (const row of rows) {
     if (row.excluded) excludedCount += 1
-    if (!row.in_window) continue
+    if (!row.in_window && !row.ended) continue
 
     let entry = bySite.get(row.site_id)
     if (!entry) {
-      entry = { row, deployments: [], suppliers: new Set() }
+      entry = { row, deployments: [], ended: false, suppliers: new Set(), machines: 0 }
       bySite.set(row.site_id, entry)
     }
-    entry.deployments.push({ status: row.status })
     if (row.technology_supplier !== null) entry.suppliers.add(row.technology_supplier)
+    if (row.ended) {
+      entry.ended = true
+      continue
+    }
+    entry.deployments.push({ status: row.status })
+    entry.machines += row.quantity
   }
 
-  const sites: MapSite[] = [...bySite.values()].map(({ row, deployments, suppliers }) => ({
+  const sites: MapSite[] = [...bySite.values()].map(({ row, deployments, ended, suppliers, machines }) => ({
     id: row.site_id,
     name: row.site_name,
     longitude: row.longitude,
     latitude: row.latitude,
-    status: deriveSiteStatus(deployments),
+    countryCode: row.country_code,
+    region: row.region,
+    commodity: row.commodity,
+    // A site kept only for deployments that had ended reads as decommissioned
+    status: deriveSiteStatus(deployments) ?? (ended ? 'decommissioned' : null),
     technologySuppliers: [...suppliers],
+    machineCount: machines,
+    deploymentCount: deployments.length,
   }))
 
   return { sites, excludedCount }
