@@ -118,6 +118,23 @@ describe('findTimeline', () => {
     expect(years.reduce((total, row) => total + row.newlyCommissioned, 0)).toBe(116)
   })
 
+  it('leaves announced deployments out of both measures and the excluded count', async () => {
+    await query(`
+      BEGIN;
+      INSERT INTO deployment (id, site_id, machine_model_id, technology_product_id, quantity, status, verification_status, commissioning_year)
+      VALUES (15, 2, 1, 1, 7, 'announced', 'verified', 2022), (16, 2, 1, 1, 3, 'announced', 'verified', NULL);
+      INSERT INTO evidence (deployment_id, url, source_type) VALUES
+        (15, 'https://example.com/evidence/15', 'news'),
+        (16, 'https://example.com/evidence/16', 'news');
+      COMMIT;
+    `)
+
+    const timeline = await findTimeline({})
+    expect(timeline.years.find((row) => row.year === 2022)).toEqual({ year: 2022, newlyCommissioned: 0, inService: 96 })
+    expect(timeline.excludedCount).toBe(1)
+    expect(timeline.excludedMachineCount).toBe(5)
+  })
+
   it('applies the shared filters', async () => {
     const rct = await findTimeline({ supplier: 'RCT' })
     expect(rct).toEqual({ years: [], excludedCount: 1, excludedMachineCount: 5 })

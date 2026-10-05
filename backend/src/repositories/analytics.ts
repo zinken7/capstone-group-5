@@ -111,6 +111,8 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
           d.valid_to
         ${FROM_VERIFIED_DEPLOYMENTS}
         ${where}
+          -- Announced deployments are not commissioned yet, so neither measure counts them
+          AND d.status IS DISTINCT FROM 'announced'
       ),
       span AS (
         SELECT generate_series(MIN(start_year), EXTRACT(YEAR FROM CURRENT_DATE)::int) AS year
@@ -135,6 +137,7 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
       SELECT COUNT(*)::int AS excluded_count, COALESCE(SUM(d.quantity), 0)::int AS excluded_machine_count
       ${FROM_VERIFIED_DEPLOYMENTS}
       ${where}
+        AND d.status IS DISTINCT FROM 'announced'
         AND d.commissioning_year IS NULL
         AND d.commissioning_date IS NULL
       `,
