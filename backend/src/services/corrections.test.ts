@@ -24,7 +24,7 @@ function input(body: Record<string, unknown>) {
 
 /** Polls until the given number of sessions are blocked on a row lock. */
 async function waitForLockWaiters(client: Client, count: number): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     const { rows } = await client.query<{ waiting: number }>(
       `SELECT COUNT(*)::int AS waiting FROM pg_stat_activity
        WHERE datname = current_database() AND wait_event_type = 'Lock'`,
@@ -89,5 +89,6 @@ describe('correctDeployment', () => {
       { quantity: 96, verification_status: 'verified' },
       { quantity: final === 100 ? 120 : 100, verification_status: 'pending_review' },
     ])
-  })
+    // Longer than the 10 s lock-wait poll, so a slow database fails with its message instead of a timeout
+  }, 15_000)
 })
