@@ -1,17 +1,13 @@
 import { Router } from 'express'
 
 import { validateCorrection } from '../lib/correction-validation.js'
+import { parseId } from '../lib/ids.js'
 import { correctDeployment } from '../services/corrections.js'
 
 const router = Router()
 
-function parseDeploymentId(raw: string | undefined): number | null {
-  const id = Number(raw)
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
 router.patch('/deployments/:id', async (req, res, next) => {
-  const id = parseDeploymentId(req.params.id)
+  const id = parseId(req.params.id)
   if (id === null) {
     res.status(404).json({ error: 'deployment not found' })
     return
