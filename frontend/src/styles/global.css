@@ -12,6 +12,27 @@
   box-sizing: border-box;
 }
 
+/* Always keep room for the page scrollbar, so the layout does not jump when a page grows long enough to scroll */
+html {
+  scrollbar-gutter: stable;
+}
+
+/*
+ * The map page fits the screen and never scrolls, so it gives that room back
+ * to the map instead of leaving an empty strip. Its header and footer add the
+ * same width to their padding, so they line up with every other page.
+ */
+@media (min-width: 901px) {
+  html:has(.map-page) {
+    scrollbar-gutter: auto;
+  }
+
+  html:has(.map-page) .site-header,
+  html:has(.map-page) .site-footer {
+    padding-right: calc(clamp(1rem, 4vw, 3rem) + var(--scrollbar-width, 0px));
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -19,6 +40,24 @@ body {
 }
 
 a { color: inherit; }
+
+.skip-link {
+  position: fixed;
+  z-index: 2000;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.45rem;
+  color: white;
+  background: var(--brand);
+  font-weight: 750;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1rem));
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
 
 button,
 input,
@@ -85,7 +124,7 @@ select {
 .button { min-height: 2.7rem; padding: 0.6rem 1rem; border: 0; border-radius: 0.5rem; font-weight: 750; cursor: pointer; }
 .button--primary { color: white; background: var(--brand); }
 .button--primary:hover { background: var(--brand-dark); }
-.button--secondary { color: var(--text-strong); background: var(--surface-muted); border: 1px solid var(--border); }
+.button--secondary { color: var(--text-strong); background: var(--surface-muted); border: 1px solid var(--control-border); }
 .button--secondary:hover { background: #e7ebf3; }
 .button:disabled { cursor: not-allowed; opacity: 0.55; }
 .state-message { padding: 1.25rem; border: 1px solid #efc36e; border-radius: 0.75rem; background: #fff8e6; }
@@ -101,7 +140,7 @@ select {
   width: 100%;
   min-height: 2.65rem;
   padding: 0.55rem 0.7rem;
-  border: 1px solid #9ca8b7;
+  border: 1px solid var(--control-border);
   border-radius: 0.45rem;
   background: var(--color-surface);
   color: var(--text-strong);

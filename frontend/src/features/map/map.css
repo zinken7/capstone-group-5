@@ -47,6 +47,8 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  /* Room for the scrollbar is kept even before it appears, e.g. when More filters opens */
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   border-right: 1px solid var(--border);
   background: var(--color-surface);
@@ -106,7 +108,7 @@
 .map-field select {
   min-height: 2.5rem;
   padding: 0 var(--space-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.5rem;
   background: var(--color-surface);
   color: var(--text-strong);
@@ -142,7 +144,7 @@
   align-items: center;
   min-height: 2.1rem;
   padding: 0 var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 999px;
   color: var(--text-strong);
   font-size: var(--type-sm);
@@ -249,6 +251,7 @@
 
 .map-sites ul {
   position: relative;
+  scrollbar-gutter: stable;
   flex: 1;
   margin: 0;
   padding: 0 var(--space-2) var(--space-3);
@@ -319,7 +322,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.5rem;
   background: var(--color-surface);
   color: var(--text-strong);
@@ -419,7 +422,7 @@
   flex: none;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.5rem;
   background: var(--color-surface);
   color: var(--text-strong);
@@ -509,6 +512,7 @@
 }
 
 .map-card-slot {
+  scrollbar-gutter: stable;
   top: var(--space-4);
   right: 4.5rem;
   width: min(24rem, calc(100% - 6rem));
@@ -769,7 +773,7 @@
   gap: var(--space-2);
   min-height: 2.5rem;
   padding: 0 var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 0.5rem;
   background: var(--color-surface);
   color: var(--text-strong);

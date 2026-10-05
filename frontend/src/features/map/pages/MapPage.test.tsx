@@ -226,9 +226,11 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Hide filters and sites' }))
     expect(screen.queryByLabelText('Machine type')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /show filters and sites/i })).toHaveFocus()
 
     await user.click(screen.getByRole('button', { name: /show filters and sites/i }))
     expect(screen.getByLabelText('Machine type')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide filters and sites' })).toHaveFocus()
   })
 
   test('draws a Natural Earth base map and requests no map tiles', async () => {

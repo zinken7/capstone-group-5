@@ -46,6 +46,7 @@ function MapPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [map, setMap] = useState<LeafletMap | null>(null)
   const stage = useRef<HTMLDivElement>(null)
+  const panelTogglePending = useRef(false)
   const [fullscreen, setFullscreen] = useState(false)
 
   const options = useMapOptions()
@@ -60,6 +61,12 @@ function MapPage() {
     const timer = setTimeout(() => setYear(yearInput), YEAR_DELAY_MS)
     return () => clearTimeout(timer)
   }, [yearInput])
+
+  useEffect(() => {
+    if (!panelTogglePending.current) return
+    panelTogglePending.current = false
+    document.querySelector<HTMLButtonElement>(panelOpen ? '#hide-map-panel' : '#show-map-panel')?.focus()
+  }, [panelOpen])
 
   const onMapReady = useCallback((instance: LeafletMap) => setMap(instance), [])
 
@@ -105,6 +112,11 @@ function MapPage() {
     setIncludeDecommissioned(false)
   }
 
+  const setPanelVisibility = (open: boolean) => {
+    panelTogglePending.current = true
+    setPanelOpen(open)
+  }
+
   const machines = markers.reduce((total, marker) => total + marker.machineCount, 0)
   const countries = new Set(markers.map((marker) => marker.countryCode)).size
   // A site that leaves the view after a filter change drops its card with it
@@ -123,11 +135,11 @@ function MapPage() {
           markers={markers}
           selectedId={selectedId}
           onSelectSite={selectSite}
-          onCollapse={() => setPanelOpen(false)}
+          onCollapse={() => setPanelVisibility(false)}
         />
       ) : (
         <div className="map-rail">
-          <button type="button" className="map-rail__button" aria-expanded="false" aria-controls="map-panel" title="Show filters and sites" onClick={() => setPanelOpen(true)}>
+          <button id="show-map-panel" type="button" className="map-rail__button" aria-expanded="false" aria-controls="map-panel" title="Show filters and sites" onClick={() => setPanelVisibility(true)}>
             <MapIcon name="chevronRight" />
             <span className="map-rail__label">Filters</span>
             <span className="visually-hidden">Show filters and sites</span>
@@ -150,8 +162,8 @@ function MapPage() {
           <button type="button" className="map-control" title="Zoom out" onClick={() => map?.zoomOut()}><MapIcon name="minus" /><span className="visually-hidden">Zoom out</span></button>
           <button type="button" className="map-control" title="Show all sites" onClick={() => map && fitToMarkers(map, markers)}><MapIcon name="globe" /><span className="visually-hidden">Show all sites</span></button>
           {document.fullscreenEnabled && (
-            <button type="button" className="map-control" title={fullscreen ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen} onClick={toggleFullscreen}>
-              <MapIcon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} /><span className="visually-hidden">Full screen</span>
+            <button type="button" className="map-control" title={fullscreen ? 'Exit full screen' : 'Full screen'} aria-label={fullscreen ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen} onClick={toggleFullscreen}>
+              <MapIcon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} />
             </button>
           )}
         </div>

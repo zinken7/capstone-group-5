@@ -25,9 +25,11 @@ interface DecisionFormProps {
   options?: DecisionOptions
   /** Keeps element ids unique when a page shows several forms. */
   idPrefix?: string
+  /** Inside another panel (a proposed correction): no panel of its own, and a smaller heading */
+  embedded?: boolean
 }
 
-function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECORD_DECISIONS, idPrefix = 'decision' }: DecisionFormProps) {
+function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECORD_DECISIONS, idPrefix = 'decision', embedded = false }: DecisionFormProps) {
   const { handleError } = useAdminSession()
   const [decision, setDecision] = useState<ReviewDecision>('approved')
   const [note, setNote] = useState('')
@@ -55,8 +57,8 @@ function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECOR
   }
 
   return (
-    <form className="admin-panel decision-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby={`${idPrefix}-heading`}>
-      <h2 id={`${idPrefix}-heading`}>{heading}</h2>
+    <form className={embedded ? 'decision-form decision-form--embedded' : 'admin-panel decision-form'} onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby={`${idPrefix}-heading`}>
+      {embedded ? <h3 id={`${idPrefix}-heading`}>{heading}</h3> : <h2 id={`${idPrefix}-heading`}>{heading}</h2>}
       {error && <p className="form-summary-error" role="alert">{error}</p>}
       <fieldset className="decision-options">
         <legend className="visually-hidden">{heading}</legend>
