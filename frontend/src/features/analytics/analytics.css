@@ -1,7 +1,7 @@
 .analytics-page { gap: 1.25rem; }
 .analytics-filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) auto; gap: 0.75rem; align-items: end; padding: 1rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface-muted); }
 .analytics-filter { display: grid; gap: 0.35rem; color: var(--text-strong); font-size: 0.78rem; font-weight: 750; }
-.analytics-filter select { min-height: 2.5rem; padding: 0.45rem 0.55rem; border: 1px solid #9ca8b7; border-radius: 0.45rem; color: var(--text-strong); background: white; }
+.analytics-filter select { min-height: 2.5rem; padding: 0.45rem 0.55rem; border: 1px solid var(--control-border); border-radius: 0.45rem; color: var(--text-strong); background: white; }
 .analytics-clear { white-space: nowrap; }
 .analytics-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .metric-card--status { min-width: 0; }
