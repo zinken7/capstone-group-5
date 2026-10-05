@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm"
 export const adminRole = pgEnum("admin_role", ['root', 'admin'])
 export const automationLevel = pgEnum("automation_level", ['operator_assistance', 'teleremote', 'semi_autonomous', 'autonomous'])
 export const companyRole = pgEnum("company_role", ['owner', 'operator', 'contractor'])
+export const correctionStatus = pgEnum("correction_status", ['pending', 'approved', 'rejected', 'needs_changes'])
 export const deploymentStatus = pgEnum("deployment_status", ['announced', 'commissioning', 'operational', 'decommissioned'])
 export const evidenceType = pgEnum("evidence_type", ['company_release', 'news', 'academic', 'government', 'report', 'other'])
 export const installationType = pgEnum("installation_type", ['factory_installed', 'retrofit', 'unknown'])
@@ -110,6 +111,39 @@ export const adminUser = pgTable("admin_user", {
 	check("admin_user_password_hash_check", sql`btrim(password_hash) <> ''::text`),
 ]);
 
+export const verificationReview = pgTable("verification_review", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "verification_review_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	adminUserId: bigint("admin_user_id", { mode: "number" }).notNull(),
+	decision: verificationDecision().notNull(),
+	reviewNote: text("review_note"),
+	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	correctionId: bigint("correction_id", { mode: "number" }),
+}, (table) => [
+	index("verification_review_admin_user_idx").using("btree", table.adminUserId.asc().nullsLast().op("int8_ops")),
+	index("verification_review_correction_idx").using("btree", table.correctionId.asc().nullsLast().op("int8_ops")).where(sql`(correction_id IS NOT NULL)`),
+	index("verification_review_deployment_reviewed_idx").using("btree", table.deploymentId.asc().nullsLast().op("int8_ops"), table.reviewedAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "verification_review_deployment_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.adminUserId],
+			foreignColumns: [adminUser.id],
+			name: "verification_review_admin_user_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.deploymentId, table.correctionId],
+			foreignColumns: [deploymentCorrection.id, deploymentCorrection.deploymentId],
+			name: "verification_review_correction_same_deployment_fkey"
+		}),
+]);
+
 export const deployment = pgTable("deployment", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "deployment_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
@@ -160,31 +194,6 @@ export const deployment = pgTable("deployment", {
 	check("deployment_verified_requires_technology_product", sql`(verification_status <> 'verified'::verification_status) OR (technology_product_id IS NOT NULL)`),
 	check("deployment_validity_ordered", sql`(valid_to IS NULL) OR (valid_from IS NULL) OR (valid_to >= valid_from)`),
 	check("deployment_commissioning_precision", sql`(commissioning_date IS NULL) OR ((commissioning_year IS NOT NULL) AND ((commissioning_year)::numeric = EXTRACT(year FROM commissioning_date)))`),
-]);
-
-export const verificationReview = pgTable("verification_review", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "verification_review_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	deploymentId: bigint("deployment_id", { mode: "number" }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	adminUserId: bigint("admin_user_id", { mode: "number" }).notNull(),
-	decision: verificationDecision().notNull(),
-	reviewNote: text("review_note"),
-	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	index("verification_review_admin_user_idx").using("btree", table.adminUserId.asc().nullsLast().op("int8_ops")),
-	index("verification_review_deployment_reviewed_idx").using("btree", table.deploymentId.asc().nullsLast().op("int8_ops"), table.reviewedAt.asc().nullsLast().op("int8_ops")),
-	foreignKey({
-			columns: [table.deploymentId],
-			foreignColumns: [deployment.id],
-			name: "verification_review_deployment_id_fkey"
-		}),
-	foreignKey({
-			columns: [table.adminUserId],
-			foreignColumns: [adminUser.id],
-			name: "verification_review_admin_user_id_fkey"
-		}),
 ]);
 
 export const revision = pgTable("revision", {
@@ -270,4 +279,35 @@ export const evidence = pgTable("evidence", {
 		}),
 	unique("evidence_deployment_url_unique").on(table.deploymentId, table.url),
 	check("evidence_url_check", sql`btrim(url) <> ''::text`),
+]);
+
+export const deploymentCorrection = pgTable("deployment_correction", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "deployment_correction_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	contributorId: bigint("contributor_id", { mode: "number" }),
+	proposedValues: jsonb("proposed_values").notNull(),
+	baseValues: jsonb("base_values").notNull(),
+	evidenceUrls: text("evidence_urls").array().notNull(),
+	changeNote: text("change_note"),
+	status: correctionStatus().default('pending').notNull(),
+	submittedAt: timestamp("submitted_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("deployment_correction_deployment_idx").using("btree", table.deploymentId.asc().nullsLast().op("int8_ops"), table.submittedAt.asc().nullsLast().op("timestamptz_ops")),
+	index("deployment_correction_pending_idx").using("btree", table.submittedAt.asc().nullsLast().op("timestamptz_ops")).where(sql`(status = 'pending'::correction_status)`),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "deployment_correction_deployment_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.contributorId],
+			foreignColumns: [contributor.id],
+			name: "deployment_correction_contributor_id_fkey"
+		}),
+	unique("deployment_correction_id_deployment_unique").on(table.id, table.deploymentId),
+	check("deployment_correction_values_are_objects", sql`(jsonb_typeof(proposed_values) = 'object'::text) AND (jsonb_typeof(base_values) = 'object'::text)`),
+	check("deployment_correction_changes_something", sql`(proposed_values <> '{}'::jsonb) OR (cardinality(evidence_urls) > 0)`),
 ]);

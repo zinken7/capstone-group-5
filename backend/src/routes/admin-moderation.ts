@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { validateAdminCorrection, validateReview } from '../lib/admin-validation.js'
 import { parseId } from '../lib/ids.js'
 import { currentAdmin, requireAdmin } from '../middleware/require-admin.js'
-import { correctAsAdministrator, decide, getReviewRecord, listQueue } from '../services/moderation.js'
+import { correctAsAdministrator, decide, decideCorrection, getReviewRecord, listQueue } from '../services/moderation.js'
 
 const router = Router()
 
@@ -62,6 +62,35 @@ router.post('/admin/deployments/:id/reviews', ...requireAdmin(), async (req, res
         return
       case 'decided':
         res.status(201).json({ id: outcome.reviewId, verification_status: outcome.verificationStatus })
+    }
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/admin/corrections/:id/reviews', ...requireAdmin(), async (req, res, next) => {
+  const id = parseId(req.params.id)
+  if (id === null) {
+    res.status(404).json({ error: 'correction not found' })
+    return
+  }
+  const result = validateReview(req.body)
+  if (!result.ok) {
+    res.status(400).json({ error: 'invalid review', fields: result.errors })
+    return
+  }
+
+  try {
+    const outcome = await decideCorrection(id, currentAdmin(res).id, result.value)
+    switch (outcome.kind) {
+      case 'not_found':
+        res.status(404).json({ error: 'correction not found' })
+        return
+      case 'not_pending':
+        res.status(409).json({ error: 'only pending corrections can be decided', correction_status: outcome.correctionStatus })
+        return
+      case 'decided':
+        res.status(201).json({ id: outcome.reviewId, correction_status: outcome.correctionStatus, verification_status: outcome.verificationStatus })
     }
   } catch (error) {
     next(error)
