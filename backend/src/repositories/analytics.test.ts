@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
-const { findBreakdowns } = await import('./analytics.js')
+const { findBreakdowns, findTimeline } = await import('./analytics.js')
 
 beforeEach(async () => {
   await resetDatabase()
@@ -69,5 +69,45 @@ describe('findBreakdowns', () => {
     expect(result.machineCount).toBe(0)
     expect(result.byCountry).toEqual([])
     expect(result.byAutomationLevel.every((level) => level.machineCount === 0 && level.share === 0)).toBe(true)
+  })
+})
+
+describe('findTimeline', () => {
+  it('counts machines commissioned and in service each year up to the current year', async () => {
+    const { years } = await findTimeline({})
+
+    // Deployment 14: 20 machines from 2015, valid to 2020-12-31; deployment 10: 96 machines from 2021
+    expect(years[0]).toEqual({ year: 2015, newlyCommissioned: 20, inService: 20 })
+    expect(years.find((row) => row.year === 2018)).toEqual({ year: 2018, newlyCommissioned: 0, inService: 20 })
+    expect(years.find((row) => row.year === 2020)).toEqual({ year: 2020, newlyCommissioned: 0, inService: 20 })
+    expect(years.find((row) => row.year === 2021)).toEqual({ year: 2021, newlyCommissioned: 96, inService: 96 })
+
+    const last = years.at(-1)
+    expect(last?.year).toBeGreaterThanOrEqual(2026)
+    expect(last?.inService).toBe(96)
+    expect(years.map((row) => row.year)).toEqual(Array.from({ length: years.length }, (_, index) => 2015 + index))
+  })
+
+  it('reports undated deployments as excluded instead of placing them in a year', async () => {
+    const timeline = await findTimeline({})
+
+    // Deployment 11 (5 machines) has no commissioning date or year
+    expect(timeline.excludedCount).toBe(1)
+    expect(timeline.excludedMachineCount).toBe(5)
+  })
+
+  it('places year-only commissioning in its year without inventing a date', async () => {
+    await query('UPDATE deployment SET commissioning_year = 2019 WHERE id = 11')
+
+    const timeline = await findTimeline({})
+    expect(timeline.years.find((row) => row.year === 2019)).toEqual({ year: 2019, newlyCommissioned: 5, inService: 25 })
+    expect(timeline.excludedCount).toBe(0)
+  })
+
+  it('applies the shared filters', async () => {
+    const rct = await findTimeline({ supplier: 'RCT' })
+    expect(rct).toEqual({ years: [], excludedCount: 1, excludedMachineCount: 5 })
+
+    expect(await findTimeline({ country: 'CA' })).toEqual({ years: [], excludedCount: 0, excludedMachineCount: 0 })
   })
 })

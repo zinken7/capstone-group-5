@@ -82,3 +82,72 @@ export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakd
     byAutomationLevel: withShares(byLevel(byAutomationLevel), machineCount),
   }
 }
+
+export interface TimelineYear {
+  year: number
+  newlyCommissioned: number
+  inService: number
+}
+
+export interface Timeline {
+  years: TimelineYear[]
+  /** Deployments, and their machines, left out because no commissioning year is recorded */
+  excludedCount: number
+  excludedMachineCount: number
+}
+
+/**
+ * Machines commissioned in each year (FR-30) and in service on 31 December of each year (FR-22),
+ * from the first commissioning year to the current year; validity ends are inclusive, as on the map.
+ */
+export async function findTimeline(filters: DeploymentFilters): Promise<Timeline> {
+  const params: unknown[] = []
+  const where = buildWhere(filters, params)
+
+  const [years, excluded] = await Promise.all([
+    query<{ year: number; newly_commissioned: number; in_service: number }>(
+      `
+      WITH dated AS (
+        SELECT
+          d.quantity,
+          COALESCE(d.commissioning_year::int, EXTRACT(YEAR FROM d.commissioning_date)::int) AS start_year,
+          d.valid_to
+        ${FROM_VERIFIED_DEPLOYMENTS}
+        ${where}
+      ),
+      span AS (
+        SELECT generate_series(MIN(start_year), GREATEST(MAX(start_year), EXTRACT(YEAR FROM CURRENT_DATE)::int)) AS year
+        FROM dated
+        WHERE start_year IS NOT NULL
+      )
+      SELECT
+        span.year,
+        COALESCE(SUM(dated.quantity) FILTER (WHERE dated.start_year = span.year), 0)::int AS newly_commissioned,
+        COALESCE(SUM(dated.quantity) FILTER (
+          WHERE dated.valid_to IS NULL OR dated.valid_to >= make_date(span.year, 12, 31)
+        ), 0)::int AS in_service
+      FROM span
+      LEFT JOIN dated ON dated.start_year <= span.year
+      GROUP BY span.year
+      ORDER BY span.year
+      `,
+      params,
+    ),
+    query<{ excluded_count: number; excluded_machine_count: number }>(
+      `
+      SELECT COUNT(*)::int AS excluded_count, COALESCE(SUM(d.quantity), 0)::int AS excluded_machine_count
+      ${FROM_VERIFIED_DEPLOYMENTS}
+      ${where}
+        AND d.commissioning_year IS NULL
+        AND d.commissioning_date IS NULL
+      `,
+      params,
+    ),
+  ])
+
+  return {
+    years: years.map((row) => ({ year: row.year, newlyCommissioned: row.newly_commissioned, inService: row.in_service })),
+    excludedCount: excluded[0]?.excluded_count ?? 0,
+    excludedMachineCount: excluded[0]?.excluded_machine_count ?? 0,
+  }
+}
