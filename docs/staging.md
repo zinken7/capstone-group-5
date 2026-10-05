@@ -37,6 +37,7 @@ and Production. The backend uses only:
 | --- | --- |
 | `DATABASE_URL` | Pooled connection, used by the running backend |
 | `DATABASE_URL_UNPOOLED` | Direct connection, used for migrations and seed data |
+| `SESSION_SECRET` | Signs administrator session cookies; at least 32 random characters, set by M1 for Production |
 
 The other Neon variables (`PG*`, `POSTGRES_*`, `NEON_PROJECT_ID`,
 `VITE_NEON_AUTH_URL`) are unused. If the database is ever reconnected, leave the
@@ -184,6 +185,28 @@ Verify afterwards:
 ```sh
 curl --fail https://capstone-group-5-api.vercel.app/health/database
 curl --fail https://capstone-group-5.vercel.app/api/map
+```
+
+### Administrator accounts
+
+Administrator sign-in needs `SESSION_SECRET` in the backend project. Set it
+once, without displaying the value, and redeploy (the next push to `main` does
+this):
+
+```sh
+cd backend
+openssl rand -base64 48 | npx vercel env add SESSION_SECRET production
+```
+
+Create staging administrators against the direct connection. The command prints
+a temporary password once; pass it on privately. Root accounts can only be
+created this way:
+
+```sh
+cd backend
+npx vercel env pull /tmp/staging.env --environment=production --yes
+(set -a; . /tmp/staging.env; set +a; DATABASE_URL="$DATABASE_URL_UNPOOLED" npm run admin:create -- --email lead@example.com --root)
+rm /tmp/staging.env
 ```
 
 ## Rollback
