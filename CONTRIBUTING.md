@@ -34,7 +34,7 @@ work, identified by the issue number.
 issue #14
   └── branch  feat/14-map-markers
         └── commits  feat(map): render site markers from the GeoJSON endpoint
-              └── pull request  "Closes #14"  →  squash merge  →  card moves to Done
+              └── pull request  "Closes #14"  →  auto-merge by M1  →  card moves to Done
 ```
 
 ## Branching
@@ -129,14 +129,23 @@ a label.
 ## Pull requests
 
 1. Open the pull request against `main`.
-2. Title follows the commit convention. It becomes the commit subject on
-   squash merge, so this is the message that lands in history.
+2. Title follows the commit convention. It appears in the merge commit on
+   `main`.
 3. Body includes `Closes #n`, what changed, and how it was tested. GitHub
    pre-fills this from
    [`.github/pull_request_template.md`](.github/pull_request_template.md).
 4. One approving review is required, from someone outside your own area.
 5. CI must pass. Branch protection enforces both.
-6. Squash merge, then delete the branch.
+6. When the pull request is ready for its final review, mention @zinken7 in a
+   comment. M1 enables **auto-merge**, and GitHub merges it with a merge commit
+   under M1's name as soon as the review is approved and CI passes. The branch
+   is then deleted automatically.
+
+Do not merge your own pull request. The Vercel projects are on M1's free
+Hobby plan, and Vercel's Hobby plan does not allow collaborators to deploy: a
+commit by anyone other than M1 is blocked. A merge by anyone else is therefore
+not deployed until M1's next merge (see
+[`docs/staging.md`](docs/staging.md#deploying)).
 
 Review is for catching problems early, not for scoring points. Be direct about
 defects and open to being wrong.
