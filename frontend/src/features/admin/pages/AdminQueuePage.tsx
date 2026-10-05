@@ -31,7 +31,7 @@ function AdminQueuePage() {
   return (
     <>
       <AdminBar />
-      <main className="admin-page" id="main-content">
+      <main className="admin-page" id="main-content" tabIndex={-1}>
         <header className="admin-heading">
           <div>
             <h1>Review queue</h1>

@@ -46,7 +46,7 @@ function AdminLoginPage() {
   return (
     <>
       <AdminBar />
-      <main className="admin-page admin-page--narrow" id="main-content">
+      <main className="admin-page admin-page--narrow" id="main-content" tabIndex={-1}>
         <div className="admin-card">
           <header className="admin-heading admin-heading--card">
             <div>

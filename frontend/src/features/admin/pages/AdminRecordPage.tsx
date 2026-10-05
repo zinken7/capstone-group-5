@@ -71,7 +71,7 @@ function AdminRecordPage() {
     return (
       <>
         <AdminBar />
-        <main className="admin-page" id="main-content">
+        <main className="admin-page" id="main-content" tabIndex={-1}>
           <StateMessage variant="error" title="Record not found" message="There is no deployment record with this id." />
           <p><Link to="/admin">Back to the review queue</Link></p>
         </main>
@@ -82,7 +82,7 @@ function AdminRecordPage() {
   return (
     <>
       <AdminBar />
-      <main className="admin-page" id="main-content">
+      <main className="admin-page" id="main-content" tabIndex={-1}>
         <p className="admin-back"><Link to="/admin">← Review queue</Link></p>
         {state.status === 'loading' && <StateMessage variant="loading" title="Loading the record" message="Fetching the record and its history." />}
         {state.status === 'error' && <StateMessage variant="error" title="Record unavailable" message={state.message} />}

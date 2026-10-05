@@ -50,7 +50,7 @@ function AdminPasswordPage() {
   return (
     <>
       <AdminBar />
-      <main className="admin-page admin-page--form" id="main-content">
+      <main className="admin-page admin-page--form" id="main-content" tabIndex={-1}>
         <header className="admin-heading">
           <div>
             <h1>Change password</h1>

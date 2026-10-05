@@ -77,7 +77,7 @@ function FilterPanel({
             <strong>{formatNumber(markers.length)}</strong> {markers.length === 1 ? 'site' : 'sites'} · <strong>{formatNumber(machines)}</strong> machines in service
           </p>
         </div>
-        <button type="button" className="map-icon-button" aria-expanded="true" aria-controls="map-panel" title="Hide filters and sites" onClick={onCollapse}>
+        <button id="hide-map-panel" type="button" className="map-icon-button" aria-expanded="true" aria-controls="map-panel" title="Hide filters and sites" onClick={onCollapse}>
           <MapIcon name="chevronLeft" /><span className="visually-hidden">Hide filters and sites</span>
         </button>
       </div>
