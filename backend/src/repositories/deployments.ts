@@ -1,15 +1,27 @@
-import { query } from '../database.js'
+import { and, asc, count, eq, ilike, or, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
+
+import { db } from '../database.js'
+import * as tables from '../db/schema.js'
 import type { DeploymentFilters } from '../lib/deployment-filters.js'
 
+// company joins twice: once as the machine manufacturer, once as the technology supplier
+export const manufacturer = alias(tables.company, 'manufacturer')
+export const supplier = alias(tables.company, 'supplier')
+
+/** The deployment's own level wins; the product level is the fallback. */
+export const effectiveAutomationLevel = sql<string | null>`COALESCE(${tables.deployment.automationLevel}, ${tables.technologyProduct.automationLevel})::text`
+
 export const REGISTER_SORTS = {
-  site: 's.name',
-  country: 's.country_code',
-  manufacturer: 'mc.name',
-  machine_type: 'm.machine_type::text',
-  supplier: 'sc.name',
-  status: 'd.status::text',
-  quantity: 'd.quantity',
-  commissioning: 'COALESCE(d.commissioning_date, make_date(d.commissioning_year, 1, 1))',
+  site: tables.site.name,
+  country: tables.site.countryCode,
+  manufacturer: manufacturer.name,
+  machine_type: sql`${tables.machineModel.machineType}::text`,
+  supplier: supplier.name,
+  status: sql`${tables.deployment.status}::text`,
+  quantity: tables.deployment.quantity,
+  commissioning: sql`COALESCE(${tables.deployment.commissioningDate}, make_date(${tables.deployment.commissioningYear}, 1, 1))`,
 } as const
 
 export type RegisterSort = keyof typeof REGISTER_SORTS
@@ -52,171 +64,133 @@ export interface DeploymentSummary {
   countryCount: number
 }
 
-const FROM_VERIFIED_DEPLOYMENTS = `
-  FROM deployment d
-  JOIN site s ON s.id = d.site_id
-  LEFT JOIN region r ON r.id = s.region_id
-  JOIN machine_model m ON m.id = d.machine_model_id
-  JOIN company mc ON mc.id = m.manufacturer_id
-  LEFT JOIN technology_product p ON p.id = d.technology_product_id
-  LEFT JOIN company sc ON sc.id = p.supplier_id
-`
+// The join chain repeats in each query below: Drizzle cannot type a shared
+// join helper over a caller-chosen selection, so the shared semantics live in
+// buildWhere and the register/count/summary tests pin the three together.
 
 /** Escapes LIKE wildcards so a search for "50%" matches literally. */
 function likePattern(text: string): string {
   return `%${text.replace(/[\\%_]/g, (character) => `\\${character}`)}%`
 }
 
-/** Builds the WHERE clause; values go into params, never into the SQL text (NFR-05). */
-function buildWhere(filters: DeploymentFilters, params: unknown[]): string {
-  const conditions = [`d.verification_status = 'verified'`]
-  const add = (sql: (placeholder: string) => string, value: unknown) => {
-    params.push(value)
-    conditions.push(sql(`$${params.length}`))
-  }
+/** Builds the WHERE condition; values bind as parameters, never into the SQL text (NFR-05). */
+export function buildWhere(filters: DeploymentFilters): SQL | undefined {
+  const conditions: SQL[] = [eq(tables.deployment.verificationStatus, 'verified')]
 
   if (filters.q !== undefined) {
-    add((ph) => `(s.name ILIKE ${ph} OR m.model_name ILIKE ${ph} OR mc.name ILIKE ${ph} OR sc.name ILIKE ${ph} OR p.product_name ILIKE ${ph})`, likePattern(filters.q))
+    const pattern = likePattern(filters.q)
+    const search = or(
+      ilike(tables.site.name, pattern),
+      ilike(tables.machineModel.modelName, pattern),
+      ilike(manufacturer.name, pattern),
+      ilike(supplier.name, pattern),
+      ilike(tables.technologyProduct.productName, pattern),
+    )
+    if (search) conditions.push(search)
   }
-  if (filters.country !== undefined) add((ph) => `s.country_code = ${ph}`, filters.country)
-  if (filters.region !== undefined) add((ph) => `r.name = ${ph}`, filters.region)
-  if (filters.commodity !== undefined) add((ph) => `s.commodity = ${ph}`, filters.commodity)
-  if (filters.supplier !== undefined) add((ph) => `sc.name = ${ph}`, filters.supplier)
-  if (filters.manufacturer !== undefined) add((ph) => `mc.name = ${ph}`, filters.manufacturer)
+  if (filters.country !== undefined) conditions.push(eq(tables.site.countryCode, filters.country))
+  if (filters.region !== undefined) conditions.push(eq(tables.region.name, filters.region))
+  if (filters.commodity !== undefined) conditions.push(eq(tables.site.commodity, filters.commodity))
+  if (filters.supplier !== undefined) conditions.push(eq(supplier.name, filters.supplier))
+  if (filters.manufacturer !== undefined) conditions.push(eq(manufacturer.name, filters.manufacturer))
   // Enum columns compare as text so an unknown value matches nothing instead of erroring
-  if (filters.machineType !== undefined) add((ph) => `m.machine_type::text = ${ph}`, filters.machineType)
-  if (filters.automationLevel !== undefined) {
-    add((ph) => `COALESCE(d.automation_level, p.automation_level)::text = ${ph}`, filters.automationLevel)
+  if (filters.machineType !== undefined) {
+    conditions.push(sql`${tables.machineModel.machineType}::text = ${filters.machineType}`)
   }
-  if (filters.environment !== undefined) add((ph) => `d.environment::text = ${ph}`, filters.environment)
-  if (filters.status !== undefined) add((ph) => `d.status::text = ${ph}`, filters.status)
+  if (filters.automationLevel !== undefined) {
+    conditions.push(sql`${effectiveAutomationLevel} = ${filters.automationLevel}`)
+  }
+  if (filters.environment !== undefined) {
+    conditions.push(sql`${tables.deployment.environment}::text = ${filters.environment}`)
+  }
+  if (filters.status !== undefined) {
+    conditions.push(sql`${tables.deployment.status}::text = ${filters.status}`)
+  }
 
-  return `WHERE ${conditions.join(' AND ')}`
-}
-
-interface RegisterDbRow {
-  id: number
-  site_id: number
-  site_name: string
-  country_code: string
-  region: string | null
-  commodity: string | null
-  machine_manufacturer: string
-  machine_model: string | null
-  model_variant: string | null
-  machine_type: string
-  quantity: number
-  technology_supplier: string | null
-  technology_product: string | null
-  automation_level: string | null
-  environment: string | null
-  installation_type: string
-  status: string | null
-  commissioning_date: string | null
-  commissioning_year: number | null
-  valid_from: string | null
-  valid_to: string | null
+  return and(...conditions)
 }
 
 /** Flattened verified deployments for the equipment register (FR-36) and export (FR-37). */
 export async function findRegisterRows(filters: DeploymentFilters, options: RegisterQuery): Promise<RegisterRow[]> {
-  const params: unknown[] = []
-  const where = buildWhere(filters, params)
   // Sort column comes from the REGISTER_SORTS whitelist, not from user input
-  const orderBy = `${REGISTER_SORTS[options.sort]} ${options.order === 'desc' ? 'DESC' : 'ASC'} NULLS LAST, d.id ASC`
+  const direction = options.order === 'desc' ? sql`DESC` : sql`ASC`
 
-  let pagination = ''
+  let query = db.select({
+    id: tables.deployment.id,
+    siteId: tables.site.id,
+    siteName: tables.site.name,
+    countryCode: tables.site.countryCode,
+    region: tables.region.name,
+    commodity: tables.site.commodity,
+    machineManufacturer: manufacturer.name,
+    machineModel: tables.machineModel.modelName,
+    modelVariant: tables.machineModel.modelVariant,
+    machineType: tables.machineModel.machineType,
+    quantity: tables.deployment.quantity,
+    technologySupplier: supplier.name,
+    technologyProduct: tables.technologyProduct.productName,
+    automationLevel: effectiveAutomationLevel,
+    environment: tables.deployment.environment,
+    installationType: tables.deployment.installationType,
+    status: tables.deployment.status,
+    commissioningDate: tables.deployment.commissioningDate,
+    commissioningYear: tables.deployment.commissioningYear,
+    validFrom: tables.deployment.validFrom,
+    validTo: tables.deployment.validTo,
+  })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(buildWhere(filters))
+    .orderBy(sql`${REGISTER_SORTS[options.sort]} ${direction} NULLS LAST`, asc(tables.deployment.id))
+    // Dynamic mode so pagination can be chained conditionally
+    .$dynamic()
+
   if (options.page) {
-    params.push(options.page.limit, options.page.offset)
-    pagination = `LIMIT $${params.length - 1} OFFSET $${params.length}`
+    query = query.limit(options.page.limit).offset(options.page.offset)
   }
 
-  const rows = await query<RegisterDbRow>(
-    `
-    SELECT
-      d.id::int AS id,
-      s.id::int AS site_id,
-      s.name AS site_name,
-      s.country_code,
-      r.name AS region,
-      s.commodity,
-      mc.name AS machine_manufacturer,
-      m.model_name AS machine_model,
-      m.model_variant,
-      m.machine_type::text AS machine_type,
-      d.quantity,
-      sc.name AS technology_supplier,
-      p.product_name AS technology_product,
-      COALESCE(d.automation_level, p.automation_level)::text AS automation_level,
-      d.environment::text AS environment,
-      d.installation_type::text AS installation_type,
-      d.status::text AS status,
-      d.commissioning_date::text AS commissioning_date,
-      d.commissioning_year::int AS commissioning_year,
-      d.valid_from::text AS valid_from,
-      d.valid_to::text AS valid_to
-    ${FROM_VERIFIED_DEPLOYMENTS}
-    ${where}
-    ORDER BY ${orderBy}
-    ${pagination}
-    `,
-    params,
-  )
-
-  return rows.map((row) => ({
-    id: row.id,
-    siteId: row.site_id,
-    siteName: row.site_name,
-    countryCode: row.country_code,
-    region: row.region,
-    commodity: row.commodity,
-    machineManufacturer: row.machine_manufacturer,
-    machineModel: row.machine_model,
-    modelVariant: row.model_variant,
-    machineType: row.machine_type,
-    quantity: row.quantity,
-    technologySupplier: row.technology_supplier,
-    technologyProduct: row.technology_product,
-    automationLevel: row.automation_level,
-    environment: row.environment,
-    installationType: row.installation_type,
-    status: row.status,
-    commissioningDate: row.commissioning_date,
-    commissioningYear: row.commissioning_year,
-    validFrom: row.valid_from,
-    validTo: row.valid_to,
-  }))
+  return await query
 }
 
 /** Number of verified deployments matching the filters, for register pagination. */
 export async function countRegisterRows(filters: DeploymentFilters): Promise<number> {
-  const params: unknown[] = []
-  const rows = await query<{ count: number }>(
-    `SELECT COUNT(*)::int AS count ${FROM_VERIFIED_DEPLOYMENTS} ${buildWhere(filters, params)}`,
-    params,
-  )
+  const rows = await db.select({ count: count() })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(buildWhere(filters))
   return rows[0]?.count ?? 0
 }
 
 /** Headline statistics over the filtered verified deployments (FR-21). */
 export async function summariseDeployments(filters: DeploymentFilters): Promise<DeploymentSummary> {
-  const params: unknown[] = []
-  const rows = await query<{ machine_count: number; site_count: number; country_count: number }>(
-    `
-    SELECT
-      COALESCE(SUM(d.quantity), 0)::int AS machine_count,
-      COUNT(DISTINCT d.site_id)::int AS site_count,
-      COUNT(DISTINCT s.country_code)::int AS country_count
-    ${FROM_VERIFIED_DEPLOYMENTS}
-    ${buildWhere(filters, params)}
-    `,
-    params,
-  )
+  const rows = await db.select({
+    machineCount: sql<number>`COALESCE(SUM(${tables.deployment.quantity}), 0)::int`,
+    siteCount: sql<number>`COUNT(DISTINCT ${tables.deployment.siteId})::int`,
+    countryCount: sql<number>`COUNT(DISTINCT ${tables.site.countryCode})::int`,
+  })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(buildWhere(filters))
   const row = rows[0]
 
   return {
-    machineCount: row?.machine_count ?? 0,
-    siteCount: row?.site_count ?? 0,
-    countryCount: row?.country_count ?? 0,
+    machineCount: row?.machineCount ?? 0,
+    siteCount: row?.siteCount ?? 0,
+    countryCount: row?.countryCount ?? 0,
   }
 }

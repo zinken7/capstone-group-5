@@ -9,6 +9,8 @@
 | `GET` | `/api/register` | Returns a page of the equipment register: searchable, filterable, sortable (FR-36) |
 | `GET` | `/api/register/export` | Downloads every matching register row as CSV (FR-37) |
 | `GET` | `/api/analytics/summary` | Returns total machines, sites and countries (FR-21) |
+| `GET` | `/api/analytics/breakdowns` | Returns machine counts and shares by country, machine type, manufacturer, supplier and automation level (FR-23 to FR-26, FR-29, FR-31) |
+| `GET` | `/api/analytics/timeline` | Returns machines newly commissioned and in service per year (FR-22, FR-30) |
 | `GET` | `/api/reference-data` | Returns the controlled values for the contribution form |
 | `POST` | `/api/contributions` | Submits a new deployment record with evidence (FR-40, FR-44) |
 | `PATCH` | `/api/deployments/{id}` | Corrects an existing deployment record (FR-46 to FR-48) |
@@ -117,7 +119,7 @@ Returns one site's base attributes and its verified deployments. An unknown id r
 
 ## Shared deployment filters
 
-`GET /api/register`, `GET /api/register/export` and `GET /api/analytics/summary` accept the same optional filters. Blank values are ignored; a parameter supplied more than once returns `400`.
+`GET /api/register`, `GET /api/register/export` and the `GET /api/analytics/*` endpoints accept the same optional filters, so every analytics measure applies them (FR-27). Blank values are ignored; a parameter supplied more than once returns `400`.
 
 | Parameter | Matches |
 |---|---|
@@ -203,6 +205,60 @@ Accepts the shared filters and returns headline totals over matching verified de
 ```
 
 `machine_count` is the sum of `quantity`; `site_count` and `country_count` are distinct counts. Repeated filter parameters return `400`.
+
+---
+
+## `GET /api/analytics/breakdowns`
+
+Accepts the shared filters and returns machine counts over matching verified deployments, grouped five ways:
+
+```json
+{
+  "machine_count": 121,
+  "by_country": [{ "key": "AU", "machine_count": 121, "share": 1 }],
+  "by_machine_type": [{ "key": "haul_truck", "machine_count": 116, "share": 0.9587 }, { "key": "drill", "machine_count": 5, "share": 0.0413 }],
+  "by_manufacturer": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "Sandvik", "machine_count": 5, "share": 0.0413 }],
+  "by_supplier": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "RCT", "machine_count": 5, "share": 0.0413 }],
+  "by_automation_level": [
+    { "key": "operator_assistance", "machine_count": 0, "share": 0 },
+    { "key": "teleremote", "machine_count": 5, "share": 0.0413 },
+    { "key": "semi_autonomous", "machine_count": 0, "share": 0 },
+    { "key": "autonomous", "machine_count": 96, "share": 0.7934 },
+    { "key": null, "machine_count": 20, "share": 0.1653 }
+  ]
+}
+```
+
+- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
+- `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
+- `by_country`, `by_machine_type`, `by_manufacturer` and `by_supplier` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
+- `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
+- Repeated filter parameters return `400`.
+
+---
+
+## `GET /api/analytics/timeline`
+
+Accepts the shared filters and returns one row per year, from the first commissioning year among matching deployments to the current year:
+
+```json
+{
+  "excluded_count": 1,
+  "excluded_machine_count": 5,
+  "years": [
+    { "year": 2015, "newly_commissioned": 20, "in_service": 20 },
+    { "year": 2021, "newly_commissioned": 96, "in_service": 96 }
+  ]
+}
+```
+
+- The series ends at the current year; deployments dated later are not counted yet.
+- `announced` deployments are not commissioned yet, so they are left out of both measures and of the excluded counts. Use `GET /api/analytics/summary?status=announced` for their total.
+- `newly_commissioned` (FR-30) sums `quantity` for deployments commissioned that year.
+- `in_service` (FR-22) sums `quantity` for deployments commissioned in or before that year whose validity window contains 31 December of that year: `valid_from` empty or on or before it, and `valid_to` empty or on or after it. This is the same inclusive rule as the map's date filter, so a relocated record counts only from its own `valid_from`.
+- The commissioning year comes from `commissioning_year`, so year-only records are placed without inventing a date.
+- Other deployments with neither a commissioning date nor a year are left out and counted in `excluded_count` and `excluded_machine_count`, as the map reports `excluded_count` (FR-19). `years` is empty when no matching deployment is dated.
+- Repeated filter parameters return `400`.
 
 ---
 
@@ -427,7 +483,8 @@ Route tests, repository tests and contribution/correction service tests run agai
 - `valid_from` may be null; the map date filter treats that as no lower bound.
 - Moderation still needs visibility parameters such as `include_unverified`.
 - Register and summary filters do not yet include the map's `date` and `bbox` parameters.
-- Remaining analytics measures (FR-22 to FR-27 breakdowns) are tracked in #67.
+- Analytics count verified deployments only; there is no option to include unverified records.
+- The frontend Analytics page still builds its figures from site detail requests; switching it to `/api/analytics/*` is the frontend part of #67.
 - New submissions start as `pending_review`, and public corrections return records to review under FR-48; #62 still needs to confirm the final moderation behaviour and FR-51 anti-spam controls matter before public launch.
 - Administrator revision/review history endpoints belong to #66.
 - Persistence currently uses the shared parameterised `query()`/`withTransaction()` layer and is planned to move to Drizzle with #71.

@@ -1,7 +1,28 @@
-import { query } from '../database.js'
-import type { Queryable } from '../database.js'
+import { asc, eq, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 
-// All moderation SQL lives here, so it can move to Drizzle (#71) in one place.
+import { db } from '../database.js'
+import type { Tx } from '../database.js'
+import * as tables from '../db/schema.js'
+
+// company joins twice: once as the machine manufacturer, once as the technology supplier
+const manufacturer = alias(tables.company, 'manufacturer')
+const supplier = alias(tables.company, 'supplier')
+
+/**
+ * timestamptz exactly as the API has always serialised it: pg handed res.json
+ * a Date, which became ISO 8601 UTC with milliseconds. Drizzle returns the
+ * column as PostgreSQL text instead, so the formatting moves into SQL.
+ */
+function isoTimestamp(column: AnyPgColumn) {
+  return sql<string>`to_char(${column} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
+}
+
+// The outer deployment reference is spelled out: Drizzle renders columns of a
+// single-table select unqualified, and an unqualified "id" inside the subquery
+// would resolve to evidence's own id instead of correlating.
+const evidenceCount = sql<number>`(SELECT COUNT(*)::int FROM ${tables.evidence} e WHERE e.deployment_id = "deployment"."id")`
 
 export interface QueueItem {
   id: number
@@ -18,29 +39,32 @@ export interface QueueItem {
   submitted_at: string
 }
 
-const recordJoins = `
-  FROM deployment d
-  JOIN site s ON s.id = d.site_id
-  LEFT JOIN region r ON r.id = s.region_id
-  JOIN machine_model m ON m.id = d.machine_model_id
-  JOIN company mc ON mc.id = m.manufacturer_id
-  LEFT JOIN technology_product p ON p.id = d.technology_product_id
-  LEFT JOIN company sc ON sc.id = p.supplier_id
-`
-
 /** Records waiting for a decision, least recently changed first. */
 export async function listPendingReviews(): Promise<QueueItem[]> {
-  return query<QueueItem>(`
-    SELECT
-      d.id::int AS id, s.name AS site_name, s.country_code, r.name AS region,
-      mc.name AS machine_manufacturer, m.model_name AS machine_model, m.machine_type::text AS machine_type,
-      d.quantity, sc.name AS technology_supplier, p.product_name AS technology_product,
-      (SELECT COUNT(*)::int FROM evidence e WHERE e.deployment_id = d.id) AS evidence_count,
-      d.updated_at AS submitted_at
-    ${recordJoins}
-    WHERE d.verification_status = 'pending_review'
-    ORDER BY d.updated_at, d.id
-  `)
+  return await db
+    .select({
+      id: tables.deployment.id,
+      site_name: tables.site.name,
+      country_code: tables.site.countryCode,
+      region: tables.region.name,
+      machine_manufacturer: manufacturer.name,
+      machine_model: tables.machineModel.modelName,
+      machine_type: tables.machineModel.machineType,
+      quantity: tables.deployment.quantity,
+      technology_supplier: supplier.name,
+      technology_product: tables.technologyProduct.productName,
+      evidence_count: evidenceCount,
+      submitted_at: isoTimestamp(tables.deployment.updatedAt),
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(eq(tables.deployment.verificationStatus, 'pending_review'))
+    .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
 }
 
 export interface ReviewRecord {
@@ -83,96 +107,139 @@ export interface ReviewRecord {
 
 /** One record in any verification status, with its evidence and full history. */
 export async function findReviewRecord(id: number): Promise<ReviewRecord | null> {
-  const rows = await query<Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions'>>(`
-    SELECT
-      d.id::int AS id, d.verification_status::text AS verification_status,
-      s.id::int AS site_id, s.name AS site_name, s.country_code, r.name AS region, s.commodity,
-      mc.name AS machine_manufacturer, m.model_name AS machine_model, m.model_variant,
-      m.machine_type::text AS machine_type, d.quantity,
-      sc.name AS technology_supplier, p.product_name AS technology_product,
-      d.automation_level::text AS automation_level, d.environment::text AS environment,
-      d.installation_type::text AS installation_type, d.status::text AS status,
-      d.commissioning_date::text AS commissioning_date, d.commissioning_year::int AS commissioning_year,
-      d.valid_from::text AS valid_from, d.valid_to::text AS valid_to,
-      d.created_at, d.updated_at
-    ${recordJoins}
-    WHERE d.id = $1
-  `, [id])
+  const rows = await db
+    .select({
+      id: tables.deployment.id,
+      verification_status: tables.deployment.verificationStatus,
+      site_id: tables.site.id,
+      site_name: tables.site.name,
+      country_code: tables.site.countryCode,
+      region: tables.region.name,
+      commodity: tables.site.commodity,
+      machine_manufacturer: manufacturer.name,
+      machine_model: tables.machineModel.modelName,
+      model_variant: tables.machineModel.modelVariant,
+      machine_type: tables.machineModel.machineType,
+      quantity: tables.deployment.quantity,
+      technology_supplier: supplier.name,
+      technology_product: tables.technologyProduct.productName,
+      automation_level: tables.deployment.automationLevel,
+      environment: tables.deployment.environment,
+      installation_type: tables.deployment.installationType,
+      status: tables.deployment.status,
+      commissioning_date: tables.deployment.commissioningDate,
+      commissioning_year: tables.deployment.commissioningYear,
+      valid_from: tables.deployment.validFrom,
+      valid_to: tables.deployment.validTo,
+      created_at: isoTimestamp(tables.deployment.createdAt),
+      updated_at: isoTimestamp(tables.deployment.updatedAt),
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
 
   const [evidence, reviews, revisions] = await Promise.all([
-    query<ReviewRecord['evidence'][number]>(`
-      SELECT url, source_type::text AS source_type, publisher, published_date::text AS published_date
-      FROM evidence WHERE deployment_id = $1 ORDER BY id
-    `, [id]),
-    query<ReviewRecord['reviews'][number]>(`
-      SELECT v.decision::text AS decision, v.review_note AS note, a.email AS administrator, v.reviewed_at
-      FROM verification_review v JOIN admin_user a ON a.id = v.admin_user_id
-      WHERE v.deployment_id = $1 ORDER BY v.reviewed_at, v.id
-    `, [id]),
-    query<ReviewRecord['revisions'][number]>(`
-      SELECT
-        rv.action::text AS action, rv.previous_values, rv.change_note,
-        c.email AS contributor_email, c.organisation AS contributor_organisation,
-        a.email AS administrator, rv.changed_at
-      FROM revision rv
-      LEFT JOIN contributor c ON c.id = rv.contributor_id
-      LEFT JOIN admin_user a ON a.id = rv.admin_user_id
-      WHERE rv.deployment_id = $1 ORDER BY rv.changed_at, rv.id
-    `, [id]),
+    db
+      .select({
+        url: tables.evidence.url,
+        source_type: tables.evidence.sourceType,
+        publisher: tables.evidence.publisher,
+        published_date: tables.evidence.publishedDate,
+      })
+      .from(tables.evidence)
+      .where(eq(tables.evidence.deploymentId, id))
+      .orderBy(asc(tables.evidence.id)),
+    db
+      .select({
+        decision: tables.verificationReview.decision,
+        note: tables.verificationReview.reviewNote,
+        administrator: tables.adminUser.email,
+        reviewed_at: isoTimestamp(tables.verificationReview.reviewedAt),
+      })
+      .from(tables.verificationReview)
+      .innerJoin(tables.adminUser, eq(tables.adminUser.id, tables.verificationReview.adminUserId))
+      .where(eq(tables.verificationReview.deploymentId, id))
+      .orderBy(asc(tables.verificationReview.reviewedAt), asc(tables.verificationReview.id)),
+    db
+      .select({
+        action: tables.revision.action,
+        previous_values: sql<Record<string, unknown> | null>`${tables.revision.previousValues}`,
+        change_note: tables.revision.changeNote,
+        contributor_email: tables.contributor.email,
+        contributor_organisation: tables.contributor.organisation,
+        administrator: tables.adminUser.email,
+        changed_at: isoTimestamp(tables.revision.changedAt),
+      })
+      .from(tables.revision)
+      .leftJoin(tables.contributor, eq(tables.contributor.id, tables.revision.contributorId))
+      .leftJoin(tables.adminUser, eq(tables.adminUser.id, tables.revision.adminUserId))
+      .where(eq(tables.revision.deploymentId, id))
+      .orderBy(asc(tables.revision.changedAt), asc(tables.revision.id)),
   ])
   return { ...record, evidence, reviews, revisions }
 }
 
 /** Locks the record for a decision and returns what the decision rules need. */
-export async function lockDecisionState(tx: Queryable, id: number): Promise<{
+export async function lockDecisionState(tx: Tx, id: number): Promise<{
   verificationStatus: string
   technologyProductId: number | null
   evidenceCount: number
 } | null> {
-  const rows = await tx.query<{ verification_status: string; technology_product_id: number | null; evidence_count: number }>(`
-    SELECT
-      verification_status::text AS verification_status,
-      technology_product_id::int AS technology_product_id,
-      (SELECT COUNT(*)::int FROM evidence e WHERE e.deployment_id = d.id) AS evidence_count
-    FROM deployment d
-    WHERE d.id = $1
-    FOR UPDATE
-  `, [id])
-  const row = rows[0]
-  return row
-    ? { verificationStatus: row.verification_status, technologyProductId: row.technology_product_id, evidenceCount: row.evidence_count }
-    : null
+  const rows = await tx.db
+    .select({
+      verificationStatus: tables.deployment.verificationStatus,
+      technologyProductId: tables.deployment.technologyProductId,
+      evidenceCount,
+    })
+    .from(tables.deployment)
+    .where(eq(tables.deployment.id, id))
+    .for('update')
+  return rows[0] ?? null
 }
 
-export async function insertReview(tx: Queryable, review: {
+export async function insertReview(tx: Tx, review: {
   deploymentId: number
   adminUserId: number
   decision: string
   note: string | null
 }): Promise<number> {
-  const rows = await tx.query<{ id: number }>(`
-    INSERT INTO verification_review (deployment_id, admin_user_id, decision, review_note)
-    VALUES ($1, $2, $3::verification_decision, $4)
-    RETURNING id::int AS id
-  `, [review.deploymentId, review.adminUserId, review.decision, review.note])
+  const rows = await tx.db
+    .insert(tables.verificationReview)
+    .values({
+      deploymentId: review.deploymentId,
+      adminUserId: review.adminUserId,
+      // Validated against the controlled values upstream; the database enum still rejects anything else
+      decision: review.decision as (typeof tables.verificationReview.$inferInsert)['decision'],
+      reviewNote: review.note,
+    })
+    .returning({ id: tables.verificationReview.id })
   const row = rows[0]
   if (!row) throw new Error('Inserting the verification review returned no row')
   return row.id
 }
 
-export async function setVerificationStatus(tx: Queryable, id: number, status: string): Promise<void> {
-  await tx.query('UPDATE deployment SET verification_status = $2::verification_status WHERE id = $1', [id, status])
+export async function setVerificationStatus(tx: Tx, id: number, status: string): Promise<void> {
+  await tx.db
+    .update(tables.deployment)
+    // Statuses come from the decision map in the moderation service
+    .set({ verificationStatus: status as (typeof tables.deployment.$inferInsert)['verificationStatus'] })
+    .where(eq(tables.deployment.id, id))
 }
 
 /** Supplier and product names of a technology product, for revision history. */
-export async function findTechnologyNames(tx: Queryable, productId: number | null): Promise<{ supplier: string; product: string } | null> {
+export async function findTechnologyNames(tx: Tx, productId: number | null): Promise<{ supplier: string; product: string } | null> {
   if (productId === null) return null
-  const rows = await tx.query<{ supplier: string; product: string }>(`
-    SELECT c.name AS supplier, p.product_name AS product
-    FROM technology_product p JOIN company c ON c.id = p.supplier_id
-    WHERE p.id = $1
-  `, [productId])
+  const rows = await tx.db
+    .select({ supplier: tables.company.name, product: tables.technologyProduct.productName })
+    .from(tables.technologyProduct)
+    .innerJoin(tables.company, eq(tables.company.id, tables.technologyProduct.supplierId))
+    .where(eq(tables.technologyProduct.id, productId))
   return rows[0] ?? null
 }
