@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Client } from 'pg'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -100,14 +100,16 @@ afterAll(async () => {
 })
 
 describe('upgrading a Sprint 2 database', () => {
-  it('applies the later migrations and keeps every existing row and value', { timeout: 60_000 }, async () => {
+  it('applies every later migration and keeps every existing row and value', { timeout: 60_000 }, async () => {
     const url = await createSprint2Database('sprint2_upgrade', SPRINT_2_DATA)
 
     const result = runMigrations(url)
     expect(result.status, result.output).toBe(0)
 
     await withClient(url, async (client) => {
-      expect(await appliedMigrations(client)).toEqual(['001_initial_schema.sql', '002_update_schema.sql', '003_admin_roles.sql'])
+      // Every migration in migrations/, so a new one is covered without editing this test
+      const allMigrations = (await readdir(new URL('../../migrations/', import.meta.url))).filter((file) => file.endsWith('.sql')).sort()
+      expect(await appliedMigrations(client)).toEqual(allMigrations)
 
       const counts = await client.query(`
         SELECT
