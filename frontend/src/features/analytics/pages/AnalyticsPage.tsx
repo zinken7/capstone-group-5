@@ -84,6 +84,7 @@ function dataFromSummary(summary: AnalyticsSummary): AnalyticsData {
       by_manufacturer: [],
       by_supplier: toDto(summary.machinesBySupplier),
       by_automation_level: toDto(summary.machinesByAutomationLevel),
+      by_status: [],
     },
     timeline: { excluded_count: 0, excluded_machine_count: 0, years: [] },
     statusMix: [],

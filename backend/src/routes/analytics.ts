@@ -48,6 +48,7 @@ router.get('/analytics/breakdowns', async (req, res, next) => {
       by_manufacturer: toBreakdownDto(breakdowns.byManufacturer),
       by_supplier: toBreakdownDto(breakdowns.bySupplier),
       by_automation_level: toBreakdownDto(breakdowns.byAutomationLevel),
+      by_status: toBreakdownDto(breakdowns.byStatus),
     })
   } catch (error) {
     next(error)

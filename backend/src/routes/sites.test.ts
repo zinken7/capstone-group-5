@@ -24,6 +24,13 @@ describe('GET /api/sites/:id', () => {
     expect(deploymentIds).toEqual([10, 14])
   })
 
+  it('gives each deployment its commissioning year, so a year-only record can be placed in time', async () => {
+    const response = await request(app).get('/api/sites/1')
+
+    const years = response.body.deployments.map((deployment: { id: number; commissioning_year: number | null }) => [deployment.id, deployment.commissioning_year])
+    expect(years.sort()).toEqual([[10, 2021], [14, 2015]])
+  })
+
   it('returns an empty deployment list when the only deployment is not verified', async () => {
     const response = await request(app).get('/api/sites/3')
 

@@ -47,6 +47,7 @@ router.get('/sites/:id', async (req, res, next) => {
         environment: deployment.environment,
         status: deployment.status,
         commissioning_date: deployment.commissioningDate,
+        commissioning_year: deployment.commissioningYear,
         valid_from: deployment.validFrom,
         valid_to: deployment.validTo,
       })),

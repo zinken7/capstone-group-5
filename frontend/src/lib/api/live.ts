@@ -47,7 +47,7 @@ function isDeploymentInQuery(
   if (query.automationLevel !== undefined && deployment.automationLevel !== query.automationLevel) return false
   if (query.environment !== undefined && deployment.environment !== query.environment) return false
   if (query.date !== undefined) {
-    if (deployment.validFrom > query.date) return false
+    if (deployment.validFrom !== null && deployment.validFrom > query.date) return false
     if (deployment.validTo !== null && deployment.validTo < query.date) return false
   }
   return true

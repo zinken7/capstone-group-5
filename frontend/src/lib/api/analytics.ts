@@ -1,6 +1,8 @@
 import { requestJson } from './http'
 
 export interface AnalyticsFilters {
+  q?: string
+  siteId?: string
   country?: string
   region?: string
   commodity?: string
@@ -31,6 +33,7 @@ export interface AnalyticsBreakdownsDto {
   by_manufacturer: AnalyticsBreakdownItemDto[]
   by_supplier: AnalyticsBreakdownItemDto[]
   by_automation_level: AnalyticsBreakdownItemDto[]
+  by_status: AnalyticsBreakdownItemDto[]
 }
 
 export interface AnalyticsTimelineYearDto {
@@ -47,7 +50,9 @@ export interface AnalyticsTimelineDto {
 
 function queryString(filters: AnalyticsFilters): string {
   const params = new URLSearchParams()
-  const entries: [keyof AnalyticsFilters, string][] = [
+  const entries: Array<[keyof AnalyticsFilters, string]> = [
+    ['q', 'q'],
+    ['siteId', 'site_id'],
     ['country', 'country'],
     ['region', 'region'],
     ['commodity', 'commodity'],
@@ -77,4 +82,3 @@ export function getAnalyticsBreakdowns(filters: AnalyticsFilters = {}): Promise<
 export function getAnalyticsTimeline(filters: AnalyticsFilters = {}): Promise<AnalyticsTimelineDto> {
   return requestJson<AnalyticsTimelineDto>(`analytics/timeline${queryString(filters)}`)
 }
-

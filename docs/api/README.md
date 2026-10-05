@@ -43,6 +43,8 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | `bbox` | `minLon,minLat,maxLon,maxLat` | No | Restrict to sites within the given rectangular range |
 | `supplier` | string | No | Filter by technology supplier |
 | `date` | `YYYY-MM-DD` | No | Only return deployments still in service on this date |
+| `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them. Use either `date` or `year`, not both |
+| `include_decommissioned` | `true`\|`false` | No | With `date` or `year`, also keep sites whose deployments had ended by then (announced deployments never count as ended). Default `false` |
 | `country` | string | No | Filter by country code |
 | `region` | string | No | Filter by region |
 | `machine_type` | string | No | Filter by machine type |
@@ -63,8 +65,13 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
       "properties": {
         "id": 1,
         "name": "Roy Hill",
+        "country_code": "AU",
+        "region": "Pilbara",
+        "commodity": "iron_ore",
         "status": "operational",
-        "technology_suppliers": ["Caterpillar", "RCT"]
+        "technology_suppliers": ["Caterpillar", "RCT"],
+        "machine_count": 96,
+        "deployment_count": 1
       }
     }
   ]
@@ -74,12 +81,16 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | Field | Description |
 |---|---|
 | `geometry.coordinates` | `[longitude, latitude]` |
-| `excluded_count` | Number of deployments excluded by the date filter (FR-19) |
+| `excluded_count` | Number of deployments that cannot be placed in time (FR-19): with `date`, those without a commissioning date; with `year`, those without a commissioning year, other than announced ones |
 | `properties.id`/`name` | Site identifier and name |
-| `properties.status` | Highest-precedence deployment status for the site (FR-16) |
+| `properties.country_code`/`region`/`commodity` | Site attributes, for headline counts and the site card without a request per site |
+| `properties.status` | Highest-precedence deployment status for the site (FR-16). A site kept only by `include_decommissioned` reads `decommissioned` |
 | `properties.technology_suppliers` | Array because a site may have multiple suppliers (FR-18) |
+| `properties.machine_count`/`deployment_count` | Machines and deployments in view: every matching verified deployment, or only those in service on the `date` or `year`. Ended deployments kept by `include_decommissioned` never count |
 
-Malformed `bbox` or `date` parameters return `400` rather than being silently ignored. Sites without coordinates cannot be placed on the map and are omitted. Filtering runs in SQL and `date` is handled so `excluded_count` remains accurate.
+**`year` rule.** On 31 December of the year, a deployment is in service when it is not announced, its commissioning year (or the year of its commissioning date) is no later, and the day falls inside `valid_from`..`valid_to`. This is the rule `GET /api/analytics/timeline` uses, so the machine counts on the map add up to that year's `in_service`. Unlike `date`, it places records known only by their year.
+
+Malformed `bbox`, `date`, `year` or `include_decommissioned` parameters return `400` rather than being silently ignored, as does giving both `date` and `year`. Sites without coordinates cannot be placed on the map and are omitted. Filtering runs in SQL, so `excluded_count` remains accurate.
 
 ---
 
@@ -109,6 +120,7 @@ Returns one site's base attributes and its verified deployments. An unknown id r
       "environment": "surface",
       "status": "operational",
       "commissioning_date": "2021-01-01",
+      "commissioning_year": 2021,
       "valid_from": "2021-01-01",
       "valid_to": null
     }
@@ -214,7 +226,7 @@ Accepts the shared filters and returns headline totals over matching verified de
 
 ## `GET /api/analytics/breakdowns`
 
-Accepts the shared filters and returns machine counts over matching verified deployments, grouped five ways:
+Accepts the shared filters and returns machine counts over matching verified deployments, grouped by country, machine type, manufacturer, supplier, automation level and deployment status:
 
 ```json
 {
@@ -223,6 +235,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
   "by_machine_type": [{ "key": "haul_truck", "machine_count": 116, "share": 0.9587 }, { "key": "drill", "machine_count": 5, "share": 0.0413 }],
   "by_manufacturer": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "Sandvik", "machine_count": 5, "share": 0.0413 }],
   "by_supplier": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "RCT", "machine_count": 5, "share": 0.0413 }],
+  "by_status": [{ "key": "operational", "machine_count": 116, "share": 0.9587 }, { "key": "decommissioned", "machine_count": 5, "share": 0.0413 }],
   "by_automation_level": [
     { "key": "operator_assistance", "machine_count": 0, "share": 0 },
     { "key": "teleremote", "machine_count": 5, "share": 0.0413 },
@@ -235,7 +248,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
 
 - Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
-- `by_country`, `by_machine_type`, `by_manufacturer` and `by_supplier` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
+- `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier` and `by_status` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
 - `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
 - Repeated filter parameters return `400`.
 
