@@ -63,9 +63,13 @@ describe('AnalyticsPage live API behaviour', () => {
     const timelineCard = screen.getByRole('heading', { name: 'Machines in service over time' }).closest('section')
     expect(timelineCard).not.toBeNull()
     const timelineView = within(timelineCard as HTMLElement)
-    await userEvent.click(timelineView.getByRole('button', { name: 'Show as table' }))
+    const toggle = timelineView.getByRole('button', { name: 'Show as table' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(toggle)
+    expect(timelineView.getByRole('button', { name: 'Show chart' })).toHaveAttribute('aria-pressed', 'true')
     expect(timelineView.getByRole('columnheader', { name: 'Machines' })).toBeInTheDocument()
     expect(timelineView.getByText('2024')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'All countries' })).toBeInTheDocument()
   })
 
   test('sends a changed filter to every analytics endpoint', async () => {
@@ -80,6 +84,26 @@ describe('AnalyticsPage live API behaviour', () => {
       expect(summaryMock.mock.calls.some(([filters]) => filters?.country === 'AU')).toBe(true)
       expect(breakdownsMock.mock.calls.some(([filters]) => filters?.country === 'AU')).toBe(true)
       expect(timelineMock.mock.calls.some(([filters]) => filters?.country === 'AU')).toBe(true)
+    })
+  })
+
+  test('lets keyboard users activate country and machine-type chart categories', async () => {
+    const user = userEvent.setup()
+    render(<AnalyticsPage />)
+    await screen.findByText('Technology suppliers')
+
+    const countryCategory = await screen.findByRole('button', { name: 'Filter by Australia' })
+    countryCategory.focus()
+    await user.keyboard('{Enter}')
+    await waitFor(() => {
+      expect(summaryMock.mock.calls.some(([filters]) => filters?.country === 'AU')).toBe(true)
+    })
+
+    const machineTypeCategory = await screen.findByRole('button', { name: 'Filter by Haul truck' })
+    machineTypeCategory.focus()
+    await user.keyboard(' ')
+    await waitFor(() => {
+      expect(summaryMock.mock.calls.some(([filters]) => filters?.machineType === 'haul_truck')).toBe(true)
     })
   })
 
