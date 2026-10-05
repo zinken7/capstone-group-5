@@ -58,6 +58,8 @@ describe('findRegisterRows', () => {
     expect(await ids({ machineType: 'drill' })).toEqual([11])
     expect(await ids({ environment: 'surface', region: 'Pilbara', commodity: 'iron_ore' })).toEqual([11, 10, 14])
     expect(await ids({ country: 'CA' })).toEqual([])
+    expect(await ids({ siteId: 1 })).toEqual([10, 14])
+    expect(await ids({ siteId: 3 })).toEqual([])
     expect(await ids({ machineType: 'spaceship' })).toEqual([])
   })
 

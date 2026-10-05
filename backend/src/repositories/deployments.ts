@@ -88,6 +88,7 @@ export function buildWhere(filters: DeploymentFilters): SQL | undefined {
     )
     if (search) conditions.push(search)
   }
+  if (filters.siteId !== undefined) conditions.push(eq(tables.site.id, filters.siteId))
   if (filters.country !== undefined) conditions.push(eq(tables.site.countryCode, filters.country))
   if (filters.region !== undefined) conditions.push(eq(tables.region.name, filters.region))
   if (filters.commodity !== undefined) conditions.push(eq(tables.site.commodity, filters.commodity))

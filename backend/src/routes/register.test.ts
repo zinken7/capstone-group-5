@@ -60,6 +60,15 @@ describe('GET /api/register', () => {
     expect(itemIds(searched.body)).toEqual([11])
   })
 
+  it('restricts the register to one exact site with site_id', async () => {
+    const response = await request(app).get('/api/register?site_id=1')
+
+    expect(response.status).toBe(200)
+    expect(response.body.total).toBe(2)
+    expect(itemIds(response.body)).toEqual([10, 14])
+    expect(response.body.items.every((item: { site_id: number }) => item.site_id === 1)).toBe(true)
+  })
+
   it('pages with limit and offset while total covers every match', async () => {
     const response = await request(app).get('/api/register?limit=1&offset=1')
 
@@ -78,6 +87,8 @@ describe('GET /api/register', () => {
       ['limit=ten', 'invalid limit parameter'],
       ['offset=-1', 'invalid offset parameter'],
       ['country=AU&country=CA', 'invalid country parameter'],
+      ['site_id=abc', 'invalid site_id parameter'],
+      ['site_id=0', 'invalid site_id parameter'],
     ]
 
     for (const [search, error] of cases) {
@@ -108,6 +119,15 @@ describe('GET /api/register/export', () => {
       'Caterpillar,Cat MineStar Command for hauling,autonomous,surface,unknown,operational,2021-01-01,2021,2021-01-01,',
     )
     expect(lines[2]?.startsWith('14,')).toBe(true)
+  })
+
+  it('applies site_id to the export', async () => {
+    const response = await request(app).get('/api/register/export?site_id=2')
+
+    expect(response.status).toBe(200)
+    const lines = response.text.trimEnd().split('\r\n')
+    expect(lines).toHaveLength(2)
+    expect(lines[1]?.startsWith('11,2,Mount Whaleback,')).toBe(true)
   })
 
   it('is not paged', async () => {
