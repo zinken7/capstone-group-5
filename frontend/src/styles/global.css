@@ -211,10 +211,24 @@ h1 {
 code { font-family: var(--font-mono); }
 
 @media (max-width: 1200px) {
-  .site-header { position: static; display: grid; gap: 0.75rem; }
-  .primary-nav { width: 100%; }
-  .primary-nav { overflow-x: auto; padding-bottom: 0.2rem; }
-  .primary-nav a { flex: 0 0 auto; }
+  .site-header {
+    position: static;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .primary-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .primary-nav a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0.65rem 0.8rem;
+  }
 }
 
 @media (max-width: 760px) {
