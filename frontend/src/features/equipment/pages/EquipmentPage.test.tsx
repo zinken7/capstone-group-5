@@ -138,7 +138,7 @@ describe('EquipmentPage', () => {
   })
 
   test('renders incomplete records returned by the register API', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+    const registerResponse = {
       total: 1,
       limit: 500,
       offset: 0,
@@ -164,14 +164,75 @@ describe('EquipmentPage', () => {
         valid_from: null,
         valid_to: null,
       }],
-    }))
+    }
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(Response.json(registerResponse)))
     vi.stubGlobal('fetch', fetchMock)
 
     render(<EquipmentPage />)
 
-    expect(await screen.findByText('1 records shown')).toBeInTheDocument()
+    expect(await screen.findByText(/showing 1.*1 of 1/i)).toBeInTheDocument()
     expect(screen.getByText('aaaa')).toBeInTheDocument()
     expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0)
     expect(fetchMock).toHaveBeenCalledWith('/api/register?limit=500', expect.anything())
+  })
+
+  test('opens the correction dialog and submits a pending-review correction', async () => {
+    const user = userEvent.setup()
+    const registerResponse = {
+      total: 1,
+      limit: 25,
+      offset: 0,
+      items: [{
+        id: 20202,
+        site_id: 7,
+        site_name: 'Correction site',
+        country_code: 'AU',
+        region: 'Pilbara',
+        commodity: 'iron_ore',
+        machine_manufacturer: 'Caterpillar',
+        machine_model: 'Command truck',
+        model_variant: null,
+        machine_type: 'haul_truck',
+        quantity: 1,
+        technology_supplier: 'Caterpillar',
+        technology_product: 'Cat Command',
+        automation_level: 'autonomous',
+        environment: 'surface',
+        installation_type: 'unknown',
+        status: 'operational',
+        commissioning_date: '2024',
+        commissioning_year: 2024,
+        valid_from: null,
+        valid_to: null,
+      }],
+    }
+    const referenceResponse = {
+      machine_types: ['haul_truck'],
+      automation_levels: ['autonomous'],
+      environments: ['surface'],
+      deployment_statuses: ['operational'],
+      installation_types: ['unknown'],
+    }
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input)
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceResponse))
+      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ id: 20202, verification_status: 'pending_review' }))
+      return Promise.resolve(Response.json(registerResponse))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<EquipmentPage />)
+
+    await user.click(await screen.findByRole('button', { name: /correct correction site/i }))
+    expect(screen.getByRole('dialog', { name: /correct this record/i })).toBeInTheDocument()
+    await user.clear(screen.getByRole('textbox', { name: /quantity/i }))
+    await user.type(screen.getByRole('textbox', { name: /quantity/i }), '2')
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: /submit correction/i }))
+
+    expect(await screen.findByText(/correction submitted for review/i)).toBeInTheDocument()
+    const patchCall = fetchMock.mock.calls.find(([url, init]) => String(url).endsWith('/deployments/20202') && init?.method === 'PATCH')
+    expect(patchCall?.[1]?.headers).toEqual(expect.objectContaining({ 'X-Requested-With': 'fetch' }))
+    expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual(expect.objectContaining({ quantity: 2, disclosure_accepted: true }))
   })
 })
