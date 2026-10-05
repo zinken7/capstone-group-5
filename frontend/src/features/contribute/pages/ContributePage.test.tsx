@@ -51,6 +51,7 @@ describe('ContributePage', () => {
     expect(screen.getByText('Machine manufacturer is required.')).toBeInTheDocument()
     expect(screen.getByText('Quantity must be a positive whole number.')).toBeInTheDocument()
     expect(screen.getByText('Confirm that you are authorised to disclose this information.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/mine site name/i)).toHaveFocus()
   })
 
   test('validates optional email and evidence URLs', async () => {

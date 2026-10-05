@@ -136,6 +136,23 @@ function ContributePage({
     if (hasContributionErrors(nextErrors)) {
       setSubmitState('idle')
       setSubmitMessage('Please correct the highlighted fields before submitting.')
+      const firstInvalidField: Record<string, string> = {
+        siteName: 'site-name',
+        countryCode: 'country-code',
+        machineType: 'machine-type',
+        manufacturer: 'manufacturer',
+        quantity: 'quantity',
+        commissioningDate: 'commissioning-date',
+        evidenceUrls: 'evidence-0',
+        email: 'email',
+        disclosureAccepted: 'disclosure-accepted',
+      }
+      const firstInvalidId = Object.keys(nextErrors)
+        .map((field) => firstInvalidField[field])
+        .find(Boolean)
+      if (firstInvalidId) {
+        window.setTimeout(() => document.getElementById(firstInvalidId)?.focus(), 0)
+      }
       return
     }
 
@@ -231,16 +248,6 @@ function ContributePage({
         <p>Only submit information you are authorised to disclose. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
-      <button
-        className="detail-toggle"
-        type="button"
-        aria-expanded={showMoreDetails}
-        aria-controls="additional-contribution-details"
-        onClick={() => setShowMoreDetails((current) => !current)}
-      >
-        {showMoreDetails ? 'Hide additional details' : 'Add more detail'}
-      </button>
-
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>
         <fieldset>
           <legend>Deployment details</legend>
@@ -251,7 +258,7 @@ function ContributePage({
             </label>
 
             <label className="form-field" htmlFor="country-code">Country code <span aria-hidden="true">*</span>
-              <input id="country-code" name="countryCode" maxLength={2} placeholder="AU" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value.toUpperCase())} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined} />
+              <input id="country-code" name="countryCode" maxLength={2} placeholder="e.g. AU" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value.toUpperCase())} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined} />
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
@@ -260,14 +267,14 @@ function ContributePage({
               <FieldError id="machine-type-error" message={showError('machineType')} />
             </label>
             <label className="form-field" htmlFor="manufacturer">Machine manufacturer <span aria-hidden="true">*</span>
-              <input id="manufacturer" name="manufacturer" placeholder="Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
+              <input id="manufacturer" name="manufacturer" placeholder="e.g. Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
               <FieldError id="manufacturer-error" message={showError('manufacturer')} />
             </label>
             <label className="form-field" htmlFor="machine-model">Machine model
-              <input id="machine-model" name="machineModel" placeholder="793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
+              <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="quantity">Quantity <span aria-hidden="true">*</span>
-              <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
+              <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" placeholder="e.g. 10" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
               <FieldError id="quantity-error" message={showError('quantity')} />
             </label>
             <label className="form-field" htmlFor="commissioning-date">Commissioning date or year
@@ -276,6 +283,16 @@ function ContributePage({
             </label>
           </div>
         </fieldset>
+
+        <button
+          className="detail-toggle"
+          type="button"
+          aria-expanded={showMoreDetails}
+          aria-controls="additional-contribution-details"
+          onClick={() => setShowMoreDetails((current) => !current)}
+        >
+          {showMoreDetails ? 'Hide additional details' : 'Add more detail'}
+        </button>
 
         {showMoreDetails && <fieldset id="additional-contribution-details">
           <legend>Additional details</legend>
@@ -287,7 +304,7 @@ function ContributePage({
               <input id="commodity" name="commodity" placeholder="Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="machine-model-variant">Machine model variant
-              <input id="machine-model-variant" name="machineModelVariant" placeholder="Optional" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
+              <input id="machine-model-variant" name="machineModelVariant" placeholder="e.g. XDE" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="environment">Mining environment
               <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{referenceData.environments.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
@@ -305,10 +322,10 @@ function ContributePage({
           <legend>Technology details</legend>
           <div className="form-grid">
             <label className="form-field" htmlFor="technology-supplier">Technology supplier
-              <input id="technology-supplier" name="technologySupplier" placeholder="Optional" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} />
+              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
-              <input id="technology-product" name="technologyProduct" placeholder="Optional until verified" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
+              <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
             <fieldset className="chip-field form-field form-field--wide">
               <legend>Automation level</legend>
