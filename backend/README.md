@@ -110,6 +110,8 @@ The suite never runs against the development database. `vitest.config.ts` derive
 
 Set `TEST_DATABASE_URL` to point the suite at a different database instead.
 
+A stale local test database created before migration `002` fails the suite's migration step; drop it (`dropdb amem_dev_test`) and the global setup recreates it.
+
 As a second safeguard, `resetDatabase()` in `src/test/fixtures.ts` refuses to truncate any database whose name is not `test` or does not end in `_test`.
 
 ## Shutdown

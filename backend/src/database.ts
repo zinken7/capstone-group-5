@@ -1,10 +1,14 @@
+import { DrizzleQueryError } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import type { QueryResultRow } from 'pg'
 
 import { config } from './config.js'
 import * as relations from './db/relations.js'
 import * as schema from './db/schema.js'
+
+const databaseSchema = { ...schema, ...relations }
 
 interface DatabaseVersionRow {
   postgresVersion: string
@@ -22,7 +26,7 @@ pool.on('error', (error) => {
  * repositories (#71). PostGIS and complex aggregates may stay as parameterised
  * queries through its sql template; closeDatabase() still closes the one pool.
  */
-export const db = drizzle({ client: pool, schema: { ...schema, ...relations } })
+export const db = drizzle({ client: pool, schema: databaseSchema })
 
 /**
  * Shared parameterised query entry point used by routes and repositories (NFR-05).
@@ -40,14 +44,20 @@ export interface Queryable {
   query<Row extends QueryResultRow>(text: string, params?: readonly unknown[]): Promise<Row[]>
 }
 
+/** Transaction handle passed to repositories: Drizzle on the transaction's connection, plus the parameterised-query entry point. */
+export interface Tx extends Queryable {
+  db: NodePgDatabase<typeof databaseSchema>
+}
+
 /** Runs fn inside BEGIN/COMMIT on one pooled connection; any error rolls the whole transaction back. */
-export async function withTransaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
+export async function withTransaction<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   const client = await pool.connect()
-  const tx: Queryable = {
+  const tx: Tx = {
     async query<Row extends QueryResultRow>(text: string, params: readonly unknown[] = []) {
       const result = await client.query<Row>(text, [...params])
       return result.rows
     },
+    db: drizzle({ client, schema: databaseSchema }),
   }
 
   try {
@@ -57,7 +67,9 @@ export async function withTransaction<T>(fn: (tx: Queryable) => Promise<T>): Pro
     return result
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined)
-    throw error
+    // Drizzle wraps driver failures; rethrow the pg error so callers keep
+    // seeing the constraint names and codes they always have.
+    throw error instanceof DrizzleQueryError && error.cause instanceof Error ? error.cause : error
   } finally {
     client.release()
   }
