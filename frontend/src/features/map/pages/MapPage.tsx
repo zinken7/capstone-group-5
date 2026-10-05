@@ -12,7 +12,12 @@ import { markerRadius } from '../geometry'
 import { useDelayedFlag, useMapData, useMapOptions } from '../useMapData'
 import '../map.css'
 
-const LEGEND_STATUSES = [['operational', 'Operational'], ['commissioning', 'Commissioning'], ['decommissioned', 'Decommissioned only']] as const
+const LEGEND_STATUSES = [
+  ['operational', 'Operational'],
+  ['commissioning', 'Commissioning'],
+  ['announced', 'Announced'],
+  ['decommissioned', 'Decommissioned only'],
+] as const
 const LEGEND_SIZES = [10, 25, 50]
 // Year changes from the slider settle before a request goes out
 const YEAR_DELAY_MS = 250
@@ -83,7 +88,9 @@ function MapPage() {
   const selectSite = (id: number) => {
     setSelectedId(id)
     const marker = markers.find((item) => item.id === id)
-    if (map && marker) flyTo(marker.latitude, marker.longitude, Math.max(map.getZoom(), 5))
+    if (map && marker && map.getSize().x > 0) {
+      map.panTo([marker.latitude, marker.longitude], { animate: true, duration: 0.6 })
+    }
   }
 
   const closeCard = () => {
