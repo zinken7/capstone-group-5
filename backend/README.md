@@ -73,7 +73,8 @@ npm run admin:create -- --email lead@example.com --root       # root administrat
 ```
 
 The command prints a temporary password once; it must be changed at first
-sign-in. Root accounts can only be created this way. With Docker Compose, run it
+sign-in. Root accounts can only be created this way; a root administrator adds
+and deactivates other administrators on the Administrators page (`/admin/users`). With Docker Compose, run it
 inside the backend container:
 `docker compose exec backend npm run admin:create -- --email … [--root]`.
 
