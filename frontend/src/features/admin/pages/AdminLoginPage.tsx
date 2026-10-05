@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { signIn } from '../../../lib/api/admin'
 import { ApiError } from '../../../lib/api/errors'
+import AdminBar from '../components/AdminBar'
 import { useAdminSession } from '../session'
 import '../admin.css'
 
@@ -43,32 +44,36 @@ function AdminLoginPage() {
   }
 
   return (
-    <section className="product-page admin-page admin-page--narrow">
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1>Sign in</h1>
-          <p className="intro">Administrators review community submissions before they appear in public views.</p>
-        </div>
-      </header>
+    <>
+      <AdminBar />
+      <main className="admin-page admin-page--narrow" id="main-content" tabIndex={-1}>
+        <div className="admin-card">
+          <header className="admin-heading admin-heading--card">
+            <div>
+              <h1>Sign in</h1>
+              <p>Administrators review community submissions before they appear in public views.</p>
+            </div>
+          </header>
 
-      <form className="admin-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        {error && <p className="form-summary-error" role="alert">{error}</p>}
-        <div className="form-field">
-          <label htmlFor="admin-email">Email</label>
-          <input id="admin-email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <form className="admin-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
+            {error && <p className="form-summary-error" role="alert">{error}</p>}
+            <div className="form-field">
+              <label htmlFor="admin-email">Email</label>
+              <input id="admin-email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} />
+            </div>
+            <div className="form-field">
+              <label htmlFor="admin-password">Password</label>
+              <input id="admin-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            </div>
+            <div className="form-actions">
+              <button className="button button--primary admin-form__submit" type="submit" disabled={submitting}>
+                {submitting ? 'Signing in…' : 'Sign in'}
+              </button>
+            </div>
+          </form>
         </div>
-        <div className="form-field">
-          <label htmlFor="admin-password">Password</label>
-          <input id="admin-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
-        </div>
-        <div className="form-actions">
-          <button className="button button--primary" type="submit" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </div>
-      </form>
-    </section>
+      </main>
+    </>
   )
 }
 
