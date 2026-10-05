@@ -31,6 +31,9 @@ erDiagram
     ADMIN_USER o|--o{ REVISION : edits
     DEPLOYMENT ||--o{ VERIFICATION_REVIEW : "is reviewed through"
     ADMIN_USER ||--o{ VERIFICATION_REVIEW : performs
+    DEPLOYMENT ||--o{ DEPLOYMENT_CORRECTION : "has proposed"
+    CONTRIBUTOR o|--o{ DEPLOYMENT_CORRECTION : proposes
+    DEPLOYMENT_CORRECTION o|--o{ VERIFICATION_REVIEW : "is decided by"
 
     COMPANY {
         bigint id PK
@@ -125,6 +128,18 @@ erDiagram
         verification_decision decision
         text review_note
         timestamptz reviewed_at
+        bigint correction_id FK "nullable"
+    }
+    DEPLOYMENT_CORRECTION {
+        bigint id PK
+        bigint deployment_id FK
+        bigint contributor_id FK "nullable"
+        jsonb proposed_values
+        jsonb base_values
+        text_array evidence_urls
+        text change_note
+        correction_status status
+        timestamptz submitted_at
     }
     REVISION {
         bigint id PK
@@ -183,6 +198,7 @@ free text:
 | `evidence_type`         | `company_release`, `news`, `academic`, `government`, `report`, `other`                                                                                                                                                                   |
 | `revision_action`       | `create`, `update`, `verification_change`                                                                                                                                                                                                |
 | `admin_role`            | `root`, `admin`                                                                                                                                                                                                                          |
+| `correction_status`     | `pending`, `approved`, `rejected`, `needs_changes`                                                                                                                                                                                       |
 
 ### Automation level mapping
 
@@ -236,6 +252,7 @@ until #62 confirms that meaning.
 - `deployment.installation_type` is `NOT NULL DEFAULT 'unknown'`.
 - A verified deployment requires a technology product and at least one evidence record.  Enforce this in the application transaction or a database trigger.
 - A verification review must reference an active administrator. Review records are append-only; `verification_status` represents the current verification state and is updated transactionally when a review decision changes it.
+- A public correction to a verified deployment is a `deployment_correction` row; the deployment itself is unchanged until an administrator approves it (#114). `proposed_values` and `base_values` hold only the changed fields, keyed by API field name, with their proposed values and their values at submission. A correction changes at least one field or adds an evidence URL. Its row is never edited or deleted: only `status` changes, once, from `pending`. A review that decides a correction carries `correction_id`, and a composite foreign key on `(correction_id, deployment_id)` keeps both on the same deployment. Approval writes an `update` revision attributed to the correction's contributor.
 - A revision names at most one actor: `contributor_id IS NULL OR admin_user_id IS NULL`.  Both NULL means the actor is unknown, for example a bulk import.
 - `admin_user.email` is unique and stored in lower case. Store only a strong password hash (the backend uses scrypt), never a plaintext password.
 - `admin_user.role` is `root` or `admin`. Root accounts are created only from the command line (`npm run admin:create -- --root`) and manage administrator accounts; administrators review submissions.

@@ -349,15 +349,24 @@ Corrects an existing deployment. Site, company and model details remain administ
 
 At least one correctable field or evidence URL must be supplied.
 
-### Response — `200 OK`
+What happens depends on the record's verification status (#114):
+
+- **Verified record:** the correction is stored as a proposal and the record is not changed. It stays in public views with its current values until an administrator decides the correction (`POST /api/admin/corrections/{id}/reviews`). Only the fields that differ from the current record are kept, together with their values at submission time. New evidence URLs are kept with the proposal and are added to the record only if it is approved.
+- **Any other status** (`pending_review`, `unverified`, `rejected`): the correction is applied directly. The record is not public, so nothing is hidden by doing so. An `update` revision stores each previous changed value, the previous verification status and, when evidence is added, the previous evidence list, and the record returns to `pending_review`.
+
+### Response — `202 Accepted` (verified record)
 
 ```json
-{ "id": 10, "verification_status": "pending_review" }
+{ "id": 10, "correction_id": 4, "verification_status": "verified" }
 ```
 
-Invalid corrections return `400`, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`.
+### Response — `200 OK` (any other record)
 
-The deployment row is locked for the transaction. An `update` revision stores each previous changed value, the previous verification status and, when evidence is added, the previous evidence list. The record returns to `pending_review` (FR-48) and is hidden from public read endpoints until reviewed again.
+```json
+{ "id": 12, "verification_status": "pending_review" }
+```
+
+Invalid corrections return `400`, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
 
 ---
 
@@ -412,11 +421,22 @@ has been changed (see [Administrator sign-in](#administrator-sign-in)).
 
 ### `GET /api/admin/reviews`
 
-`200 {"items": [...]}`: every deployment with `verification_status =
-pending_review`, least recently changed first. Each item has `id`, `site_name`,
-`country_code`, `region`, `machine_manufacturer`, `machine_model`,
-`machine_type`, `quantity`, `technology_supplier`, `technology_product`,
-`evidence_count` and `submitted_at` (when the record last changed).
+`200 {"items": [...]}`: everything waiting for a decision, oldest first. That is
+every deployment with `verification_status = pending_review` (`kind:
+"submission"`) and every pending correction to a verified deployment (`kind:
+"correction"`). Each item has:
+
+- `id` (the deployment), `site_name`, `country_code`, `region`,
+  `machine_manufacturer`, `machine_model`, `machine_type`, `quantity`,
+  `technology_supplier`, `technology_product`: the record's current values;
+- `kind` and `correction_id` (`null` for a submission);
+- `changed_fields`: the API field names a correction would change, plus
+  `evidence_urls` when it adds sources (`[]` for a submission);
+- `evidence_count`: the record's evidence for a submission, or the sources
+  supplied with a correction;
+- `contributor_email`, `contributor_organisation`: whoever submitted it, when
+  they said;
+- `submitted_at`: when the record last changed, or when the correction was sent.
 
 ### `GET /api/admin/deployments/{id}`
 
@@ -425,10 +445,19 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
 `valid_to`, `created_at`, `updated_at`), and:
 
 - `evidence`: `url`, `source_type`, `publisher`, `published_date`;
-- `reviews`: `decision`, `note`, `administrator` (email), `reviewed_at`;
+- `reviews`: `decision`, `note`, `administrator` (email), `reviewed_at`, and
+  `correction_id` when the decision was on a correction rather than the record;
 - `revisions`: `action` (`create`, `update`, `verification_change`),
   `previous_values`, `change_note`, `contributor_email`,
-  `contributor_organisation`, `administrator`, `changed_at`.
+  `contributor_organisation`, `administrator`, `changed_at`;
+- `corrections`: every correction proposed for the record, oldest first, with
+  `id`, `status` (`pending`, `approved`, `rejected`, `needs_changes`),
+  `submitted_at`, `contributor_email`, `contributor_organisation`,
+  `change_note`, `evidence_urls`, and `changes`. Each entry in `changes` is
+  `{"field", "before", "proposed", "current"}`: `before` is the value when the
+  correction was sent and `current` the value now, so they differ when the
+  record has changed since. Commissioning values are a date or a year
+  (`"2021-01-01"`, `"2020"`).
 
 `404` for an unknown or malformed id.
 
@@ -454,6 +483,28 @@ previous status are written in one transaction.
 | `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
 | `409` | `{"error": "a technology product is required before the record can be verified"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
+
+### `POST /api/admin/corrections/{id}/reviews`
+
+Decides a correction proposed for a verified record. The request is the same as
+for a record: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`,
+with the note required unless approving.
+
+| Decision | Effect |
+|---|---|
+| `approved` | The proposed values are applied to the record as it is now, its new evidence URLs are added, and an `update` revision attributed to the correction's contributor keeps the previous values. The record stays `verified`. |
+| `rejected`, `needs_changes` | The record is not changed. The contributor can send a new correction. |
+
+The correction's new status and a review row carrying `correction_id` are written
+in the same transaction. A correction is decided once: its row is locked, and the
+database refuses any later change to it.
+
+| Status | Body |
+|---|---|
+| `201` | `{"id": <review id>, "correction_status": "approved", "verification_status": "verified"}` |
+| `400` | `{"error": "invalid review", "fields": {...}}` |
+| `404` | `{"error": "correction not found"}` |
+| `409` | `{"error": "only pending corrections can be decided", "correction_status": "…"}` |
 
 ### `PATCH /api/admin/deployments/{id}`
 
