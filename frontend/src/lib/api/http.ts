@@ -29,6 +29,9 @@ export async function requestJson<T>(path: string, options?: RequestInit): Promi
     throw new ApiError(message, response.status)
   }
 
+  // No content, for example after signing out
+  if (response.status === 204) return undefined as T
+
   try {
     return await response.json() as T
   } catch (cause) {

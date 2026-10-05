@@ -198,6 +198,8 @@ cd backend
 openssl rand -base64 48 | npx vercel env add SESSION_SECRET production
 ```
 
+Using the administration pages is described in [`admin-guide.md`](admin-guide.md).
+
 Create staging administrators against the direct connection. The command prints
 a temporary password once; pass it on privately. Root accounts can only be
 created this way:
