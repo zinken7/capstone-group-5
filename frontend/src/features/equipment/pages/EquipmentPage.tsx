@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useLiveRegister } from '../../../hooks/useLiveRegister'
 import StateMessage from '../../../shared/components/StateMessage'
-import { useLiveSites } from '../../../hooks/useLiveSites'
 import type { EquipmentRecord, EquipmentSort, SortDirection } from '../types'
-import { buildEquipmentRecords } from '../presentation'
 import '../equipment.css'
 
 interface EquipmentPageProps {
@@ -19,8 +18,13 @@ function escapeCsv(value: string | number): string {
 
 function formatCommissioningDate(date: string | undefined): string {
   if (date === undefined) return 'Not recorded'
+  if (/^\d{4}$/.test(date)) return date
   const [year, month, day] = date.split('-')
   return `${day}/${month}/${year}`
+}
+
+function displayStatus(status: EquipmentRecord['status']): string {
+  return status === 'unknown' ? 'Not recorded' : status
 }
 
 function sortDirectionFor(key: EquipmentSort): SortDirection {
@@ -28,8 +32,8 @@ function sortDirectionFor(key: EquipmentSort): SortDirection {
 }
 
 function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
-  const { sites, loading: liveLoading, error: liveError } = useLiveSites()
-  const records: EquipmentRecord[] = suppliedRecords ?? buildEquipmentRecords(sites)
+  const { records: liveRecords, loading: liveLoading, error: liveError } = useLiveRegister(suppliedRecords === undefined)
+  const records: EquipmentRecord[] = suppliedRecords ?? liveRecords
   const loading = suppliedRecords === undefined && liveLoading
   const error = suppliedRecords === undefined ? liveError : null
   const [query, setQuery] = useState('')
@@ -166,6 +170,7 @@ function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
             <option value="commissioning">Commissioning</option>
             <option value="announced">Announced</option>
             <option value="decommissioned">Decommissioned</option>
+            <option value="unknown">Not recorded</option>
           </select>
         </label>
         <label>
@@ -224,7 +229,7 @@ function EquipmentPage({ records: suppliedRecords }: EquipmentPageProps = {}) {
                   <td>{record.machineModel ?? record.machineType}<small>{record.automationLevel}</small></td>
                   <td>{record.manufacturer}</td>
                   <td>{record.supplier}</td>
-                  <td><span className={`status-badge status-badge--${record.status}`}>{record.status}</span></td>
+                  <td><span className={`status-badge status-badge--${record.status}`}>{displayStatus(record.status)}</span></td>
                   <td>{record.environment}</td>
                   <td>{formatCommissioningDate(record.commissioningDate)}</td>
                   <td className="numeric">{record.quantity}</td>
