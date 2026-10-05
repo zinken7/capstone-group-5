@@ -30,7 +30,7 @@ Full frontend run on 5 October 2026:
 
 ```text
 22 test files passed
-144 tests passed
+151 tests passed
 ```
 
 ---
@@ -151,7 +151,7 @@ The following frontend release checks passed on 5 October 2026:
 
 ```text
 npm test
-22 test files passed; 144 tests passed
+22 test files passed; 151 tests passed
 
 npm run typecheck
 Passed
