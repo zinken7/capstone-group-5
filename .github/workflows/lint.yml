@@ -167,13 +167,57 @@ jobs:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: node .github/scripts/ci/results.mjs
 
-  # Gated on the always-running result gate, not on a path-selected job, so
-  # migrate and deploy never depend on change routing. Runs before
-  # deploy-staging, so new code never meets an old schema.
-  migrate-staging:
-    name: Migrate staging database
+  # M1's Vercel Hobby account deploys only commits authored by M1, whether the
+  # deploy comes from Git or the CLI. Check the merge commit once, before
+  # migrating or deploying. If anyone else authored it, skip both, so schema and
+  # code stay in step, and tell M1 on the pull request; M1's next merge deploys
+  # everything. Gated on the always-running result gate, not on a path-selected
+  # job, so it never depends on change routing.
+  check-deploy-author:
+    name: Check deploy author
     needs: backend-lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    outputs:
+      allowed: ${{ steps.author.outputs.allowed }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_AUTHOR: ${{ vars.DEPLOY_AUTHOR }}
+    steps:
+      - name: Check the merge commit author
+        id: author
+        run: |
+          if [ -z "$DEPLOY_AUTHOR" ]; then
+            echo '::error::The DEPLOY_AUTHOR repository variable is not set'
+            exit 1
+          fi
+          login=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.author.login // ""')
+          echo "login=$login" >> "$GITHUB_OUTPUT"
+          if [ "$login" = "$DEPLOY_AUTHOR" ]; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'allowed=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Staging not migrated or deployed: commit authored by ${login:-an unknown user}, not $DEPLOY_AUTHOR"
+          fi
+      - name: Tell M1 on the merged pull request
+        if: steps.author.outputs.allowed == 'false'
+        env:
+          LOGIN: ${{ steps.author.outputs.login }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // ""')
+          if [ -n "$pr" ]; then
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "@$DEPLOY_AUTHOR Staging was not migrated or deployed: this merge commit is authored by @${LOGIN:-unknown}, and the Vercel Hobby account deploys only commits by @$DEPLOY_AUTHOR. Your next merge will deploy it. See docs/staging.md."
+          fi
+
+  # Runs before deploy-staging, so new code never meets an old schema.
+  migrate-staging:
+    name: Migrate staging database
+    needs: [backend-lint, check-deploy-author]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     environment: staging
     concurrency:
@@ -200,14 +244,16 @@ jobs:
           fi
           npm run db:migrate
 
-  # Vercel's Git integration does not deploy main (git.deploymentEnabled in each
-  # vercel.json). The Hobby account blocks Git deployments of commits by anyone
-  # not on it, so production deploys run here with M1's token instead.
+  # Vercel's Git integration is off (git.deploymentEnabled in each vercel.json),
+  # so production deploys run here with M1's token. The timeout ends a deploy
+  # that hangs, for example on a deployment Vercel blocked, so it cannot hold
+  # the queue for the 6-hour default.
   deploy-staging:
     name: Deploy staging ${{ matrix.project }}
-    needs: [backend-lint, migrate-staging]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend-lint, check-deploy-author, migrate-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: staging
     strategy:
       fail-fast: false
