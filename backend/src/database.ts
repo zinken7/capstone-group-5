@@ -39,13 +39,8 @@ export async function query<Row extends QueryResultRow>(
   return result.rows
 }
 
-/** Minimal query interface shared by the pool helper and a transaction client. */
-export interface Queryable {
-  query<Row extends QueryResultRow>(text: string, params?: readonly unknown[]): Promise<Row[]>
-}
-
-/** Transaction handle passed to repositories: Drizzle on the transaction's connection, plus the parameterised-query entry point. */
-export interface Tx extends Queryable {
+/** Transaction handle passed to repositories: Drizzle bound to the transaction's connection. */
+export interface Tx {
   db: NodePgDatabase<typeof databaseSchema>
 }
 
@@ -53,10 +48,6 @@ export interface Tx extends Queryable {
 export async function withTransaction<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   const client = await pool.connect()
   const tx: Tx = {
-    async query<Row extends QueryResultRow>(text: string, params: readonly unknown[] = []) {
-      const result = await client.query<Row>(text, [...params])
-      return result.rows
-    },
     db: drizzle({ client, schema: databaseSchema }),
   }
 

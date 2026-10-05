@@ -39,6 +39,31 @@ Make sure PostgreSQL/PostGIS is running and `DATABASE_URL` is configured, then r
 npm run db:migrate
 ```
 
+## Data access
+
+Backend requests flow route → service → repository → Drizzle → PostgreSQL/PostGIS:
+
+- routes (`src/routes/`) handle HTTP concerns: parsing, validation and response shapes;
+- services (`src/services/`) hold business rules and transactions — `withTransaction` hands repositories a `tx.db` Drizzle client bound to the transaction's connection;
+- repositories (`src/repositories/`) access the database through Drizzle (`db` from `src/database.ts`) and the typed schema in `src/db/`.
+
+API DTOs stay separate from persistence rows: routes shape responses from repository results rather than returning rows directly.
+
+### Typed schema and drift check
+
+`src/db/schema.ts` and `src/db/relations.ts` are generated — do not edit them by hand. They are introspected from a freshly migrated database:
+
+- `npm run db:schema:update` replays `migrations/` into a scratch database, re-introspects it with drizzle-kit and rewrites `src/db/`;
+- `npm run db:schema:check` does the same and fails when the committed files differ. CI runs it on every backend change.
+
+The SQL files in `migrations/` remain the only migration authority, for fresh and existing databases alike, and `npm run db:migrate` applies them. drizzle-kit is used for introspection only; never generate or apply drizzle-kit migrations. To change the schema: write a new SQL migration, run `npm run db:migrate`, then `npm run db:schema:update`, and commit the migration together with the regenerated schema.
+
+Constraints the typed schema cannot represent stay database-native and live only in the migrations: the `updated_at` maintenance, append-only history, active-admin review, evidence/deployment locking and verified-requires-evidence triggers and functions.
+
+### Raw SQL rule
+
+Drizzle is the default data-access path for feature code. Raw SQL is allowed only where PostGIS or complex SQL is materially clearer, must run through Drizzle's parameterised `sql` template (never string concatenation), and needs a justifying comment — the spatial map query in `src/repositories/sites.ts` is the canonical example. The `query()` helper in `src/database.ts` remains for tests and fixtures; do not add new direct `pg` query strings in feature code.
+
 ## Seed data
 
 `seeds/seed_global.sql` loads a synthetic dataset of 200 deployments (133
