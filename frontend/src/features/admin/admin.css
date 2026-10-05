@@ -242,3 +242,13 @@
   gap: 0.35rem;
   margin: 0.4rem 0 0;
 }
+
+.temporary-password code {
+  display: inline-block;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.4rem;
+  background: var(--surface-muted);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  user-select: all;
+}

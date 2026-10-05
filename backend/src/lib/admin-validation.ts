@@ -82,3 +82,23 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
 }
+
+/** Validates a POST /api/admin/users body. Any role in the body is ignored: the API only creates administrators. */
+export function validateNewAdministrator(body: unknown): ValidationResult<{ email: string }> {
+  const object = asObject(body)
+  if (!object) return { ok: false, errors: { body: 'must be a JSON object' } }
+
+  const read = new FieldReader(object)
+  const email = read.email('email')
+  if (email === null && !read.errors.email) read.errors.email = 'is required'
+  return email === null || Object.keys(read.errors).length > 0
+    ? { ok: false, errors: read.errors }
+    : { ok: true, value: { email } }
+}
+
+/** Validates a PATCH /api/admin/users/:id body. */
+export function validateAccountChange(body: unknown): ValidationResult<{ active: boolean }> {
+  const object = asObject(body)
+  if (!object || typeof object.active !== 'boolean') return { ok: false, errors: { active: 'must be true or false' } }
+  return { ok: true, value: { active: object.active } }
+}

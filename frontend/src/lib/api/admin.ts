@@ -1,8 +1,10 @@
 import { requestJson } from './http'
 import { ApiError } from './errors'
 import type {
+  AdminAccount,
   AdminCorrection,
   AdminProfile,
+  NewAdministrator,
   ReviewDecision,
   ReviewQueueItem,
   ReviewRecord,
@@ -198,4 +200,43 @@ export async function correctRecord(id: number, correction: AdminCorrection): Pr
     body: JSON.stringify(body),
   })
   return response.verification_status
+}
+
+interface AccountDto {
+  id: number
+  email: string
+  role: 'root' | 'admin'
+  active: boolean
+  must_change_password: boolean
+  created_at: string
+}
+
+export async function listAdministrators(): Promise<AdminAccount[]> {
+  const { items } = await requestJson<{ items: AccountDto[] }>('admin/users')
+  return items.map((item) => ({
+    id: item.id,
+    email: item.email,
+    role: item.role,
+    active: item.active,
+    mustChangePassword: item.must_change_password,
+    createdAt: item.created_at,
+  }))
+}
+
+/** Adds an administrator; the temporary password in the result is shown once. */
+export async function addAdministrator(email: string): Promise<NewAdministrator> {
+  const dto = await requestJson<{ id: number; email: string; temporary_password: string }>('admin/users', {
+    method: 'POST',
+    headers: MODIFYING_HEADERS,
+    body: JSON.stringify({ email }),
+  })
+  return { id: dto.id, email: dto.email, temporaryPassword: dto.temporary_password }
+}
+
+export async function setAdministratorActive(id: number, active: boolean): Promise<void> {
+  await requestJson(`admin/users/${id}`, {
+    method: 'PATCH',
+    headers: MODIFYING_HEADERS,
+    body: JSON.stringify({ active }),
+  })
 }
