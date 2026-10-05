@@ -6,6 +6,7 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f5f7fb;
   --color-border: #d8dee9;
+  --color-control-border: #748094;
   --color-text-muted: #536078;
   --color-focus: #2563eb;
   --color-success: #166534;
@@ -41,6 +42,7 @@
   --accent: var(--color-accent);
   --surface-muted: var(--color-surface-muted);
   --border: var(--color-border);
+  --control-border: var(--color-control-border);
   --text-strong: var(--color-ink);
   --text-muted: var(--color-text-muted);
   --focus: var(--color-focus);

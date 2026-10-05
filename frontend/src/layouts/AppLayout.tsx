@@ -29,6 +29,7 @@ function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="site-header">
         <NavLink className="brand" to="/map" aria-label="Mining Market Map home">
           <span className="brand-mark" aria-hidden="true">AM</span>
@@ -45,7 +46,7 @@ function AppLayout({ children }: PropsWithChildren) {
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
         </nav>
       </header>
-      <main className="page-content" id="main-content">{children}</main>
+      <main className="page-content" id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
         <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
       </footer>
