@@ -223,6 +223,7 @@ export interface SiteDeployment {
   environment: MiningEnvironment | null
   status: DeploymentStatus | null
   commissioningDate: string | null
+  commissioningYear: number | null
   validFrom: string | null
   validTo: string | null
 }
@@ -264,6 +265,7 @@ export async function findVerifiedDeploymentsBySite(siteId: number): Promise<Sit
       environment: tables.deployment.environment,
       status: tables.deployment.status,
       commissioningDate: tables.deployment.commissioningDate,
+      commissioningYear: tables.deployment.commissioningYear,
       validFrom: tables.deployment.validFrom,
       validTo: tables.deployment.validTo,
     })

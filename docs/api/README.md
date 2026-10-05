@@ -120,6 +120,7 @@ Returns one site's base attributes and its verified deployments. An unknown id r
       "environment": "surface",
       "status": "operational",
       "commissioning_date": "2021-01-01",
+      "commissioning_year": 2021,
       "valid_from": "2021-01-01",
       "valid_to": null
     }
