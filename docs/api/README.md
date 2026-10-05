@@ -124,6 +124,7 @@ Returns one site's base attributes and its verified deployments. An unknown id r
 | Parameter | Matches |
 |---|---|
 | `q` | Case-insensitive text search across site, machine model, manufacturer, supplier and product |
+| `site_id` | One exact site, by its id (a positive whole number; anything else returns `400`). Used by the map's link to a site's register rows |
 | `country` | Site country code |
 | `region` | Region name |
 | `commodity` | Site commodity |
