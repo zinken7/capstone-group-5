@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
@@ -28,23 +28,22 @@ export interface QueueItem {
   technology_product: string | null
   evidence_count: number
   submitted_at: string
-  /** A new or returned record, or a proposed correction to a verified one. */
+  /**
+   * A submission is a record pending review: new, or returned to the queue by a
+   * contributor's direct correction (kind "correction", correction_id null).
+   * A proposed correction to a verified record has its correction_id.
+   */
   kind: 'submission' | 'correction'
   correction_id: number | null
-  /** API field names a correction would change; empty for a submission. */
+  /** API field names changed by the correction; empty for a new submission. */
   changed_fields: string[]
   contributor_email: string | null
   contributor_organisation: string | null
 }
 
-// Who submitted the record, from its create revision; null for imported or anonymous records
-const submitter = (column: 'email' | 'organisation') =>
-  sql<string | null>`(SELECT c.${sql.raw(column)} FROM ${tables.revision} r JOIN ${tables.contributor} c ON c.id = r.contributor_id
-    WHERE r.deployment_id = "deployment"."id" AND r.action = 'create' ORDER BY r.id LIMIT 1)`
-
 /** Records waiting for a decision, least recently changed first. */
 export async function listPendingSubmissions(): Promise<QueueItem[]> {
-  const rows = await db
+  const items = await db
     .select({
       id: tables.deployment.id,
       site_name: tables.site.name,
@@ -58,8 +57,6 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
       technology_product: tables.technologyProduct.productName,
       evidence_count: evidenceCount,
       submitted_at: isoTimestamp(tables.deployment.updatedAt),
-      contributor_email: submitter('email'),
-      contributor_organisation: submitter('organisation'),
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
@@ -70,7 +67,46 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
     .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
     .where(eq(tables.deployment.verificationStatus, 'pending_review'))
     .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
-  return rows.map((row) => ({ ...row, kind: 'submission', correction_id: null, changed_fields: [] }))
+
+  if (items.length === 0) return []
+
+  // Queue metadata comes from the latest contributor revision: the submission
+  // itself, or a correction that returned the record to the queue. An
+  // administrator's own edits and decisions do not change what the item is.
+  const revisions = await db
+    .select({
+      deployment_id: tables.revision.deploymentId,
+      action: tables.revision.action,
+      previous_values: sql<Record<string, unknown> | null>`${tables.revision.previousValues}`,
+      contributor_email: tables.contributor.email,
+      contributor_organisation: tables.contributor.organisation,
+    })
+    .from(tables.revision)
+    .leftJoin(tables.contributor, eq(tables.contributor.id, tables.revision.contributorId))
+    .where(and(
+      inArray(tables.revision.deploymentId, items.map((item) => item.id)),
+      inArray(tables.revision.action, ['create', 'update']),
+      isNull(tables.revision.adminUserId),
+    ))
+    .orderBy(asc(tables.revision.changedAt), asc(tables.revision.id))
+
+  const latestByDeployment = new Map<number, (typeof revisions)[number]>()
+  for (const revision of revisions) latestByDeployment.set(revision.deployment_id, revision)
+
+  return items.map((item) => {
+    const revision = latestByDeployment.get(item.id)
+    const changedFields = revision?.action === 'update' && revision.previous_values
+      ? Object.keys(revision.previous_values).filter((field) => field !== 'verification_status')
+      : []
+    return {
+      ...item,
+      kind: revision?.action === 'update' ? 'correction' : 'submission',
+      correction_id: null,
+      changed_fields: changedFields,
+      contributor_email: revision?.contributor_email ?? null,
+      contributor_organisation: revision?.contributor_organisation ?? null,
+    }
+  })
 }
 
 /** Proposed corrections to verified records, oldest first; the record fields are its current values. */

@@ -1,4 +1,5 @@
-import { contributorOf, describeValue, formatDateTime, humanise } from '../format'
+import { formatDateTime, formatEnumLabel } from '../../../lib/format'
+import { contributorOf, describeValue } from '../corrections'
 import type { ReviewRecord, RevisionHistoryItem } from '../types'
 
 function actor(revision: RevisionHistoryItem): string {
@@ -32,7 +33,7 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
         <ol className="history-list">
           {record.reviews.map((review, index) => (
             <li key={`${review.reviewedAt}-${index}`}>
-              <strong>{review.correctionId === null ? humanise(review.decision) : `Correction ${humanise(review.decision).toLowerCase()}`}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
+              <strong>{review.correctionId === null ? formatEnumLabel(review.decision) : `Correction ${formatEnumLabel(review.decision).toLowerCase()}`}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
               {review.note && <blockquote>{review.note}</blockquote>}
             </li>
           ))}
@@ -45,11 +46,11 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
           <ol className="history-list">
             {decidedCorrections.map((correction) => (
               <li key={correction.id}>
-                <strong>{humanise(correction.status)}</strong>: proposed by {contributorOf(correction)}, {formatDateTime(correction.submittedAt)}
+                <strong>{formatEnumLabel(correction.status)}</strong>: proposed by {contributorOf(correction)}, {formatDateTime(correction.submittedAt)}
                 {correction.changeNote && <blockquote>{correction.changeNote}</blockquote>}
                 <dl className="previous-values">
                   {correction.changes.map((change) => (
-                    <div key={change.field}><dt>{humanise(change.field)}</dt><dd>{describeValue(change.before)} → {describeValue(change.proposed)}</dd></div>
+                    <div key={change.field}><dt>{formatEnumLabel(change.field)}</dt><dd>{describeValue(change.before)} → {describeValue(change.proposed)}</dd></div>
                   ))}
                   {correction.evidenceUrls.length > 0 && <div><dt>Sources</dt><dd>{correction.evidenceUrls.join(', ')}</dd></div>}
                 </dl>
@@ -69,7 +70,7 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
               {revision.action !== 'create' && revision.previousValues && Object.keys(revision.previousValues).length > 0 && (
                 <dl className="previous-values">
                   {Object.entries(revision.previousValues).map(([field, value]) => (
-                    <div key={field}><dt>Previous {humanise(field).toLowerCase()}</dt><dd>{describe(value)}</dd></div>
+                    <div key={field}><dt>Previous {formatEnumLabel(field).toLowerCase()}</dt><dd>{describe(value)}</dd></div>
                   ))}
                 </dl>
               )}

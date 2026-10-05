@@ -1,4 +1,5 @@
 import { requestJson } from './http'
+import { formatEnumLabel } from '../format'
 import {
   type ContributionReferenceData,
   type ReferenceOption,
@@ -12,22 +13,12 @@ interface ReferenceDataResponseDto {
   installation_types: unknown
 }
 
-function displayLabel(value: string): string {
-  const words = value.toLowerCase().split('_')
-  const firstWord = words.shift() ?? ''
-
-  return [
-    firstWord ? firstWord[0].toUpperCase() + firstWord.slice(1) : firstWord,
-    ...words,
-  ].join(' ')
-}
-
 function toOptions(value: unknown, fieldName: string): readonly ReferenceOption[] {
   if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== 'string' || !item.trim())) {
     throw new Error(`Invalid reference data: ${fieldName}`)
   }
 
-  return value.map((item) => [item, displayLabel(item)] as ReferenceOption)
+  return value.map((item) => [item, formatEnumLabel(item)] as ReferenceOption)
 }
 
 /**

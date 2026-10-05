@@ -321,6 +321,33 @@ describe('record review', () => {
     expect(screen.getByText('Previous quantity')).toBeInTheDocument()
   })
 
+  test('shows proposed values for contributor evidence and verification corrections', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        evidence: [{ url: 'https://example.com/new-evidence', source_type: 'news', publisher: null, published_date: null }],
+        revisions: [{
+          action: 'update',
+          previous_values: {
+            evidence_urls: ['https://example.com/old-evidence'],
+            verification_status: 'verified',
+          },
+          change_note: 'Contributor correction',
+          contributor_email: 'field@example.com',
+          contributor_organisation: 'Example Mining',
+          administrator: null,
+          changed_at: '2026-10-05T02:00:00Z',
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('What changed')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: https://example.com/new-evidence')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: pending_review')).toBeInTheDocument()
+  })
+
   test('says when a record does not exist', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),

@@ -55,7 +55,7 @@ function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECOR
   }
 
   return (
-    <form className="admin-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby={`${idPrefix}-heading`}>
+    <form className="admin-panel decision-panel" onSubmit={(event) => void handleSubmit(event)} noValidate aria-labelledby={`${idPrefix}-heading`}>
       <h2 id={`${idPrefix}-heading`}>{heading}</h2>
       {error && <p className="form-summary-error" role="alert">{error}</p>}
       <fieldset className="decision-options">

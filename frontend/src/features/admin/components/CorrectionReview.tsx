@@ -1,5 +1,6 @@
 import { submitCorrectionDecision } from '../../../lib/api/admin'
-import { contributorOf, describeValue, formatDateTime, humanise } from '../format'
+import { formatDateTime, formatEnumLabel } from '../../../lib/format'
+import { contributorOf, describeValue } from '../corrections'
 import type { CorrectionChange, CorrectionItem } from '../types'
 import DecisionForm, { CORRECTION_DECISIONS } from './DecisionForm'
 
@@ -37,7 +38,7 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
             <tbody>
               {correction.changes.map((change) => (
                 <tr key={change.field}>
-                  <th scope="row">{humanise(change.field)}</th>
+                  <th scope="row">{formatEnumLabel(change.field)}</th>
                   <td>
                     {describeValue(change.before)}
                     {changedSince(change) && <small className="admin-warning">Now {describeValue(change.current)}: the record changed after this was submitted</small>}
