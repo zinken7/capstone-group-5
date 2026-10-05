@@ -61,6 +61,11 @@ describe('GET /api/analytics/breakdowns', () => {
     expect(response.body.by_manufacturer.map((item: { key: string }) => item.key)).toEqual(['Caterpillar', 'Sandvik'])
     expect(response.body.by_machine_type.map((item: { key: string }) => item.key)).toEqual(['haul_truck', 'drill'])
     expect(response.body.by_automation_level.at(-1)).toEqual({ key: null, machine_count: 20, share: 20 / 121 })
+    expect(response.body.by_status).toEqual([
+      { key: 'operational', machine_count: 96, share: 96 / 121 },
+      { key: 'decommissioned', machine_count: 20, share: 20 / 121 },
+      { key: 'commissioning', machine_count: 5, share: 5 / 121 },
+    ])
   })
 
   it('ranks manufacturers and suppliers within a machine type', async () => {

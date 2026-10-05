@@ -18,40 +18,30 @@ afterEach(() => {
 
 describe('analytics API client', () => {
   it('serializes shared filters with the backend parameter names', async () => {
-    await getAnalyticsSummary({
-      country: 'AU',
-      region: 'Western Australia',
-      commodity: 'iron_ore',
-      machineType: 'haul_truck',
-      supplier: 'A&B Mining',
-      manufacturer: 'Maker + Co',
-      automationLevel: 'autonomous',
-      environment: 'surface',
-      status: 'operational',
-    })
+    await getAnalyticsSummary({ siteId: '7', q: 'A&B', machineType: 'haul_truck' })
 
-    const url = new URL(String(fetchMock.mock.calls[0]?.[0]), 'http://localhost')
-    expect(url.pathname).toBe('/api/analytics/summary')
-    expect(Object.fromEntries(url.searchParams)).toEqual({
-      country: 'AU',
-      region: 'Western Australia',
-      commodity: 'iron_ore',
-      machine_type: 'haul_truck',
-      supplier: 'A&B Mining',
-      manufacturer: 'Maker + Co',
-      automation_level: 'autonomous',
-      environment: 'surface',
-      status: 'operational',
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/summary?q=A%26B&site_id=7&machine_type=haul_truck')
+  })
+
+  it('maps breakdown and status data for the register totals', async () => {
+    fetchMock.mockResolvedValue(Response.json({
+      machine_count: 12,
+      by_country: [{ key: 'AU', machine_count: 12, share: 1 }],
+      by_machine_type: [],
+      by_manufacturer: [],
+      by_supplier: [],
+      by_automation_level: [],
+      by_status: [{ key: 'operational', machine_count: 12, share: 1 }],
+    }))
+
+    await expect(getAnalyticsBreakdowns()).resolves.toMatchObject({
+      machine_count: 12,
+      by_status: [{ key: 'operational', machine_count: 12, share: 1 }],
     })
   })
 
-  it('calls the breakdown and timeline endpoints without filters', async () => {
-    await getAnalyticsBreakdowns()
+  it('calls the timeline endpoint without filters', async () => {
     await getAnalyticsTimeline()
-
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/analytics/breakdowns',
-      '/api/analytics/timeline',
-    ])
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/timeline')
   })
 })

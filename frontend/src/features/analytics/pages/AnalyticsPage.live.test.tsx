@@ -30,6 +30,7 @@ const breakdowns: AnalyticsBreakdownsDto = {
   by_manufacturer: [{ key: 'Maker', machine_count: 42, share: 1 }],
   by_supplier: [{ key: 'Supplier', machine_count: 42, share: 1 }],
   by_automation_level: [{ key: null, machine_count: 42, share: 1 }],
+  by_status: [{ key: 'operational', machine_count: 42, share: 1 }],
 }
 const timeline: AnalyticsTimelineDto = {
   excluded_count: 0,
@@ -106,7 +107,7 @@ describe('AnalyticsPage live API behaviour', () => {
 
   test('shows an empty state from an empty API response', async () => {
     summaryMock.mockResolvedValue({ machine_count: 0, site_count: 0, country_count: 0 })
-    breakdownsMock.mockResolvedValue({ ...breakdowns, machine_count: 0, by_country: [], by_machine_type: [], by_manufacturer: [], by_supplier: [], by_automation_level: [] })
+    breakdownsMock.mockResolvedValue({ ...breakdowns, machine_count: 0, by_country: [], by_machine_type: [], by_manufacturer: [], by_supplier: [], by_automation_level: [], by_status: [] })
     timelineMock.mockResolvedValue({ excluded_count: 0, excluded_machine_count: 0, years: [] })
 
     render(<AnalyticsPage />)

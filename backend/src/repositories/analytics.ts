@@ -20,6 +20,7 @@ export interface Breakdowns {
   byManufacturer: BreakdownItem[]
   bySupplier: BreakdownItem[]
   byAutomationLevel: BreakdownItem[]
+  byStatus: BreakdownItem[]
 }
 
 /** Grouping expressions over the register's joins; fixed here, never taken from the request. */
@@ -29,6 +30,7 @@ const DIMENSIONS = {
   manufacturer: sql<string | null>`${manufacturer.name}`,
   supplier: sql<string | null>`${supplier.name}`,
   automationLevel: effectiveAutomationLevel,
+  status: sql<string | null>`${tables.deployment.status}::text`,
 } as const
 
 type Dimension = keyof typeof DIMENSIONS
@@ -69,12 +71,13 @@ function byLevel(groups: Array<{ key: string | null; machineCount: number }>) {
 
 /** Machine counts and shares over the filtered verified deployments (FR-23 to FR-26, FR-29). */
 export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakdowns> {
-  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel] = await Promise.all([
+  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel, byStatus] = await Promise.all([
     machinesBy('country', filters),
     machinesBy('machineType', filters),
     machinesBy('manufacturer', filters),
     machinesBy('supplier', filters),
     machinesBy('automationLevel', filters),
+    machinesBy('status', filters),
   ])
   const machineCount = byCountry.reduce((total, group) => total + group.machineCount, 0)
 
@@ -85,6 +88,7 @@ export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakd
     byManufacturer: withShares(ranked(byManufacturer), machineCount),
     bySupplier: withShares(ranked(bySupplier), machineCount),
     byAutomationLevel: withShares(byLevel(byAutomationLevel), machineCount),
+    byStatus: withShares(ranked(byStatus), machineCount),
   }
 }
 
