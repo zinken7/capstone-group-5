@@ -1,6 +1,7 @@
 import { requestJson } from './http'
 import { formatEnumLabel } from '../format'
 import {
+  COUNTRIES,
   type ContributionReferenceData,
   type ReferenceOption,
 } from '../../features/contribute/types'
@@ -11,6 +12,7 @@ interface ReferenceDataResponseDto {
   environments: unknown
   deployment_statuses: unknown
   installation_types: unknown
+  countries?: unknown
 }
 
 function toOptions(value: unknown, fieldName: string): readonly ReferenceOption[] {
@@ -36,5 +38,6 @@ export async function getContributionReferenceData(): Promise<ContributionRefere
     deploymentStatuses: toOptions(response.deployment_statuses, 'deployment_statuses'),
     automationLevels: toOptions(response.automation_levels, 'automation_levels'),
     installationTypes: toOptions(response.installation_types, 'installation_types'),
+    countries: response.countries === undefined ? COUNTRIES : toOptions(response.countries, 'countries'),
   }
 }

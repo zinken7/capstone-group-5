@@ -1,5 +1,6 @@
 .contribute-page {
-  max-width: 72rem;
+  max-width: 50rem;
+  margin-inline: auto;
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }

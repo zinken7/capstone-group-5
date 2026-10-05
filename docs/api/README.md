@@ -289,7 +289,8 @@ Returns the controlled values accepted by the contribution and correction endpoi
   "automation_levels": ["operator_assistance", "teleremote", "semi_autonomous", "autonomous"],
   "environments": ["surface", "underground", "both"],
   "deployment_statuses": ["announced", "commissioning", "operational", "decommissioned"],
-  "installation_types": ["factory_installed", "retrofit", "unknown"]
+  "installation_types": ["factory_installed", "retrofit", "unknown"],
+  "countries": ["AU", "BR", "CA", "CL", "FI", "ID", "PE", "SE", "US", "XR", "ZA"]
 }
 ```
 

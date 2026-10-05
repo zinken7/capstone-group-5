@@ -5,6 +5,7 @@ import { postContribution } from '../../../lib/api/contributions'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import {
+  COUNTRIES,
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
   EMPTY_CONTRIBUTION_FORM,
   type ContributionErrors,
@@ -85,7 +86,15 @@ function ContributePage({
 
   const referenceData = providedReferenceData ?? loadedReferenceData ?? DEFAULT_CONTRIBUTION_REFERENCE_DATA
   const referenceDataIsLoading = referenceDataLoading || loadingReferenceData
-  const referenceDataAvailable = !referenceDataError && Object.values(referenceData).every((options) => options.length > 0)
+  const countryOptions = referenceData.countries ?? COUNTRIES
+  const referenceDataAvailable = !referenceDataError && [
+    referenceData.machineTypes,
+    referenceData.environments,
+    referenceData.deploymentStatuses,
+    referenceData.automationLevels,
+    referenceData.installationTypes,
+    countryOptions,
+  ].every((options) => options.length > 0)
 
   const showError = (field: keyof ContributionErrors) => {
     if (touched.has(field) || Object.keys(errors).length > 0) return validateContribution(values)[field]
@@ -150,6 +159,7 @@ function ContributePage({
       const firstInvalidId = Object.keys(nextErrors)
         .map((field) => firstInvalidField[field])
         .find(Boolean)
+      if (nextErrors.email && !showMoreDetails) setShowMoreDetails(true)
       if (firstInvalidId) {
         window.setTimeout(() => document.getElementById(firstInvalidId)?.focus(), 0)
       }
@@ -257,8 +267,11 @@ function ContributePage({
               <FieldError id="site-name-error" message={showError('siteName')} />
             </label>
 
-            <label className="form-field" htmlFor="country-code">Country code <span aria-hidden="true">*</span>
-              <input id="country-code" name="countryCode" maxLength={2} placeholder="e.g. AU" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value.toUpperCase())} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined} />
+            <label className="form-field" htmlFor="country-code">Country <span aria-hidden="true">*</span>
+              <select id="country-code" name="countryCode" value={values.countryCode} onChange={(event) => updateTextField('countryCode', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('countryCode'))} aria-describedby={showError('countryCode') ? 'country-code-error' : undefined}>
+                <option value="">Select a country</option>
+                {countryOptions.map(([value, label]) => <option key={value} value={value}>{label} ({value})</option>)}
+              </select>
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
@@ -301,7 +314,7 @@ function ContributePage({
               <input id="region" name="region" value={values.region} onChange={(event) => updateTextField('region', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="commodity">Commodity
-              <input id="commodity" name="commodity" placeholder="Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
+              <input id="commodity" name="commodity" placeholder="e.g. Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="machine-model-variant">Machine model variant
               <input id="machine-model-variant" name="machineModelVariant" placeholder="e.g. XDE" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
@@ -332,7 +345,7 @@ function ContributePage({
               <div className="chip-group" role="radiogroup" aria-label="Automation level">
                 <label className="choice-chip">
                   <input type="radio" name="automationLevel" value="" checked={values.automationLevel === ''} onChange={() => updateTextField('automationLevel', '')} />
-                  <span>Not recorded</span>
+                  <span>No automation level recorded</span>
                 </label>
                 {referenceData.automationLevels.map(([value, label]) => (
                   <label className="choice-chip" key={value}>

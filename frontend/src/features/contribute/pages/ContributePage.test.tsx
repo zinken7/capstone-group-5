@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -12,7 +12,7 @@ afterEach(() => {
 async function fillMinimumForm() {
   const user = userEvent.setup()
   await user.type(screen.getByLabelText(/mine site name/i), 'Roy Hill')
-  await user.type(screen.getByLabelText(/country code/i), 'AU')
+  await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
   await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
   await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
   await user.type(screen.getByLabelText(/quantity/i), '10')
@@ -59,7 +59,7 @@ describe('ContributePage', () => {
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     await user.type(screen.getByLabelText(/mine site name/i), 'Roy Hill')
-    await user.type(screen.getByLabelText(/country code/i), 'AU')
+    await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
     await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
     await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
     await user.type(screen.getByLabelText(/quantity/i), '10')
@@ -73,6 +73,38 @@ describe('ContributePage', () => {
     expect(screen.getByText(/valid http or https urls/i)).toBeInTheDocument()
   })
 
+  test('reopens additional details before focusing an invalid hidden email field', async () => {
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
+
+    const user = await fillMinimumForm()
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
+    await user.type(screen.getByLabelText(/contact email/i), 'not-an-email')
+    await user.click(screen.getByRole('button', { name: /hide additional details/i }))
+    await user.click(screen.getByRole('button', { name: /submit deployment/i }))
+
+    const email = await screen.findByLabelText(/contact email/i)
+    await waitFor(() => expect(email).toHaveFocus())
+    expect(screen.getByText(/valid email address/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hide additional details/i })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  test('keeps the responsive form structure and controlled detail fields discoverable', async () => {
+    const user = userEvent.setup()
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
+
+    const page = screen.getByRole('heading', { name: /contribute a deployment/i }).closest('section')
+    const form = screen.getByRole('button', { name: /submit deployment/i }).closest('form')
+    expect(page).toHaveClass('contribute-page')
+    expect(form).toHaveClass('contribution-form')
+    expect(screen.getByLabelText(/country/i).tagName).toBe('SELECT')
+
+    const toggle = screen.getByRole('button', { name: /add more detail/i })
+    await user.click(toggle)
+    expect(toggle.nextElementSibling).toHaveAttribute('id', 'additional-contribution-details')
+    expect(screen.getByPlaceholderText('e.g. Iron ore')).toBeInTheDocument()
+    expect(screen.getByText('No automation level recorded')).toBeInTheDocument()
+  })
+
   test('rejects impossible calendar dates while accepting year-only dates', async () => {
     const user = userEvent.setup()
     render(<ContributePage
@@ -81,7 +113,7 @@ describe('ContributePage', () => {
     />)
 
     await user.type(screen.getByLabelText(/mine site name/i), 'Roy Hill')
-    await user.type(screen.getByLabelText(/country code/i), 'AU')
+    await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
     await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
     await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
     await user.type(screen.getByLabelText(/quantity/i), '10')

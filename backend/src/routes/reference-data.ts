@@ -2,6 +2,7 @@ import { Router } from 'express'
 
 import {
   AUTOMATION_LEVELS,
+  COUNTRY_CODES,
   DEPLOYMENT_STATUSES,
   INSTALLATION_TYPES,
   MACHINE_TYPES,
@@ -17,6 +18,7 @@ router.get('/reference-data', (_req, res) => {
     environments: MINING_ENVIRONMENTS,
     deployment_statuses: DEPLOYMENT_STATUSES,
     installation_types: INSTALLATION_TYPES,
+    countries: COUNTRY_CODES,
   })
 })
 
