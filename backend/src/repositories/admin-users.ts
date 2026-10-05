@@ -1,4 +1,7 @@
-import { query } from '../database.js'
+import { eq } from 'drizzle-orm'
+
+import { db } from '../database.js'
+import * as tables from '../db/schema.js'
 
 export type AdminRole = 'root' | 'admin'
 
@@ -11,10 +14,14 @@ export interface AdminUser {
   mustChangePassword: boolean
 }
 
-const columns = `
-  id::int AS id, email, password_hash AS "passwordHash", role, active,
-  must_change_password AS "mustChangePassword"
-`
+const columns = {
+  id: tables.adminUser.id,
+  email: tables.adminUser.email,
+  passwordHash: tables.adminUser.passwordHash,
+  role: tables.adminUser.role,
+  active: tables.adminUser.active,
+  mustChangePassword: tables.adminUser.mustChangePassword,
+}
 
 /** Emails are stored and compared in lower case. */
 export function normaliseEmail(email: string): string {
@@ -22,12 +29,12 @@ export function normaliseEmail(email: string): string {
 }
 
 export async function findAdminByEmail(email: string): Promise<AdminUser | null> {
-  const rows = await query<AdminUser>(`SELECT ${columns} FROM admin_user WHERE email = $1`, [normaliseEmail(email)])
+  const rows = await db.select(columns).from(tables.adminUser).where(eq(tables.adminUser.email, normaliseEmail(email)))
   return rows[0] ?? null
 }
 
 export async function findAdminById(id: number): Promise<AdminUser | null> {
-  const rows = await query<AdminUser>(`SELECT ${columns} FROM admin_user WHERE id = $1`, [id])
+  const rows = await db.select(columns).from(tables.adminUser).where(eq(tables.adminUser.id, id))
   return rows[0] ?? null
 }
 
@@ -38,21 +45,24 @@ export async function insertAdmin(admin: {
   role: AdminRole
   mustChangePassword: boolean
 }): Promise<number | null> {
-  const rows = await query<{ id: number }>(
-    `INSERT INTO admin_user (email, password_hash, role, must_change_password)
-     VALUES ($1, $2, $3::admin_role, $4)
-     ON CONFLICT (email) DO NOTHING
-     RETURNING id::int AS id`,
-    [normaliseEmail(admin.email), admin.passwordHash, admin.role, admin.mustChangePassword],
-  )
+  const rows = await db
+    .insert(tables.adminUser)
+    .values({
+      email: normaliseEmail(admin.email),
+      passwordHash: admin.passwordHash,
+      role: admin.role,
+      mustChangePassword: admin.mustChangePassword,
+    })
+    .onConflictDoNothing({ target: tables.adminUser.email })
+    .returning({ id: tables.adminUser.id })
   return rows[0]?.id ?? null
 }
 
 export async function updateAdminPassword(id: number, passwordHash: string): Promise<void> {
-  await query(
-    'UPDATE admin_user SET password_hash = $2, must_change_password = false WHERE id = $1',
-    [id, passwordHash],
-  )
+  await db
+    .update(tables.adminUser)
+    .set({ passwordHash, mustChangePassword: false })
+    .where(eq(tables.adminUser.id, id))
 }
 
 export interface AdminAccount {

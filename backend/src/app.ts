@@ -44,7 +44,12 @@ app.get('/health/database', async (_request, response) => {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.error('Database health check failed:', message)
+    // A wrapped Drizzle query failure names only the SQL; the pg reason is the cause
+    if (error instanceof Error && error.cause !== undefined) {
+      console.error('Database health check failed:', message, 'caused by:', error.cause)
+    } else {
+      console.error('Database health check failed:', message)
+    }
 
     response.status(503).json({
       status: 'error',
@@ -59,6 +64,15 @@ app.use((error: unknown, _request: Request, response: Response, next: NextFuncti
   if (status === 400 || status === 413) {
     response.status(status).json({ error: status === 413 ? 'request body too large' : 'invalid JSON body' })
     return
+  }
+  next(error)
+})
+
+// A wrapped Drizzle query failure names only the SQL; log the pg reason from
+// its cause before Express sends the default 500.
+app.use((error: unknown, _request: Request, _response: Response, next: NextFunction) => {
+  if (error instanceof Error && error.cause !== undefined) {
+    console.error('Request failed:', error.message, 'caused by:', error.cause)
   }
   next(error)
 })

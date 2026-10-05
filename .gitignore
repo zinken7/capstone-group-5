@@ -18,3 +18,5 @@ build/
 # Backend
 /backend/node_modules/
 /backend/dist/
+# drizzle-kit pull output outside npm run db:schema:update / db:schema:check
+/backend/.drizzle-pull/
