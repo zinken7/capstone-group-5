@@ -149,11 +149,15 @@ function LiveEquipmentPage() {
     ]).then(([page, nextSummary, nextBreakdowns]) => {
       if (!active) return
       setRecords(page.records)
-      setSummary(nextSummary)
+      setSummary({
+        machineCount: nextSummary.machine_count,
+        siteCount: nextSummary.site_count,
+        countryCount: nextSummary.country_count,
+      })
       setBreakdowns({
-        byCountry: nextBreakdowns.byCountry,
-        bySupplier: nextBreakdowns.bySupplier,
-        byStatus: nextBreakdowns.byStatus,
+        byCountry: nextBreakdowns.by_country.map(({ key, machine_count }) => ({ key, machineCount: machine_count })),
+        bySupplier: nextBreakdowns.by_supplier.map(({ key, machine_count }) => ({ key, machineCount: machine_count })),
+        byStatus: nextBreakdowns.by_status.map(({ key, machine_count }) => ({ key, machineCount: machine_count })),
       })
       setTotal(page.total)
       setError(null)

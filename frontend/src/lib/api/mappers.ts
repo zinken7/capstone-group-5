@@ -8,8 +8,13 @@ export function mapMapResponse(dto: MapResponseDto): MapResult {
       name: properties.name,
       longitude: geometry.coordinates[0],
       latitude: geometry.coordinates[1],
+      countryCode: properties.country_code,
+      region: properties.region,
+      commodity: properties.commodity,
       status: properties.status,
       technologySuppliers: properties.technology_suppliers,
+      machineCount: properties.machine_count,
+      deploymentCount: properties.deployment_count,
     })),
   }
 }
@@ -35,6 +40,7 @@ export function mapSiteDetail(dto: SiteDetailDto): SiteDetail {
       environment: deployment.environment,
       status: deployment.status,
       commissioningDate: deployment.commissioning_date,
+      commissioningYear: deployment.commissioning_year,
       validFrom: deployment.valid_from,
       validTo: deployment.valid_to,
     })),

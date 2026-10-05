@@ -1,90 +1,228 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, test } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+
 import MapPage from './MapPage'
-import { densityFixtureSites, fixtureSites } from '../data/fixtureSites'
 
-describe('MapPage supplier filtering', () => {
-  test('shows all sites before filtering', () => {
-    render(<MapPage sites={fixtureSites} />)
+// The real outlines are 100 kB of TopoJSON; an empty layer still carries the attribution
+vi.mock('../basemap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../basemap')>()),
+  loadCountries: async () => ({ type: 'FeatureCollection', features: [] }),
+}))
 
-    expect(
-      screen.getByRole('heading', {
-        name: /autonomous mining equipment market map/i,
-      }),
-    ).toBeInTheDocument()
+const currentYear = new Date().getFullYear()
 
-    expect(screen.getByText('1 site shown')).toBeInTheDocument()
+const feature = (id: number, name: string, countryCode: string, coordinates: [number, number], machines: number, status = 'operational') => ({
+  type: 'Feature',
+  geometry: { type: 'Point', coordinates },
+  properties: {
+    id, name, country_code: countryCode, region: countryCode === 'AU' ? 'Pilbara' : 'Norrbotten', commodity: 'iron_ore',
+    status, technology_suppliers: countryCode === 'AU' ? ['Caterpillar'] : ['Sandvik'], machine_count: machines, deployment_count: 1,
+  },
+})
 
-    expect(
-      screen.getByRole('checkbox', { name: /show decommissioned records/i }),
-    ).toBeInTheDocument()
+const ROY_HILL = feature(1, 'Roy Hill', 'AU', [118.7, -22.3], 96)
+const KIRUNA = feature(2, 'Kiruna', 'SE', [20.2, 67.9], 12)
+const mapResponse = (features: unknown[], excluded = 0) => Response.json({ type: 'FeatureCollection', excluded_count: excluded, features })
 
-    expect(
-      screen.getByRole('combobox', {
-        name: /technology supplier/i,
-      }),
-    ).toBeInTheDocument()
+const REFERENCE_DATA = {
+  machine_types: ['haul_truck', 'lhd', 'shovel'],
+  automation_levels: ['operator_assistance', 'teleremote', 'semi_autonomous', 'autonomous'],
+  environments: ['surface', 'underground', 'both'],
+  deployment_statuses: ['announced', 'commissioning', 'operational', 'decommissioned'],
+  installation_types: ['factory_installed', 'retrofit', 'unknown'],
+}
+
+const SITE_DETAIL = {
+  id: 1, name: 'Roy Hill', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', mine_status: 'operating',
+  latitude: -22.3, longitude: 118.7,
+  deployments: [
+    {
+      id: 10, machine_manufacturer: 'Caterpillar', machine_model: '793F', machine_type: 'haul_truck', quantity: 96,
+      technology_supplier: 'Caterpillar', automation_level: 'autonomous', environment: 'surface', status: 'operational',
+      commissioning_date: '2021-01-01', commissioning_year: 2021, valid_from: '2021-01-01', valid_to: null,
+    },
+    {
+      id: 14, machine_manufacturer: 'Caterpillar', machine_model: '777F', machine_type: 'haul_truck', quantity: 20,
+      technology_supplier: 'Caterpillar', automation_level: null, environment: 'surface', status: 'decommissioned',
+      commissioning_date: '2015-03-01', commissioning_year: 2015, valid_from: '2015-03-01', valid_to: '2020-12-31',
+    },
+  ],
+}
+
+type Handler = (url: URL) => Response | Promise<Response>
+let mapCalls: URLSearchParams[] = []
+
+/** Stubs the API. The unfiltered map request feeds the filter options; filtered ones go to `onMap`. */
+function stubApi(onMap: Handler = () => mapResponse([ROY_HILL, KIRUNA]), extra: Record<string, Handler> = {}) {
+  mapCalls = []
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const url = new URL(String(input), 'http://localhost')
+    if (url.pathname === '/api/map') {
+      if (!url.search) return mapResponse([ROY_HILL, KIRUNA])
+      mapCalls.push(url.searchParams)
+      return onMap(url)
+    }
+    const handler = extra[url.pathname] ?? {
+      '/api/reference-data': () => Response.json(REFERENCE_DATA),
+      '/api/analytics/timeline': () => Response.json({ years: [{ year: 2014, newly_commissioned: 20, in_service: 20 }, { year: currentYear, newly_commissioned: 0, in_service: 108 }] }),
+      '/api/sites/1': () => Response.json(SITE_DETAIL),
+    }[url.pathname]
+    return handler ? handler(url) : Response.json({ error: `unexpected request ${url.pathname}` }, { status: 500 })
+  }))
+}
+
+const lastMapCall = () => Object.fromEntries(mapCalls[mapCalls.length - 1] ?? [])
+
+function renderMap() {
+  return render(<MemoryRouter><MapPage /></MemoryRouter>)
+}
+
+beforeEach(() => {
+  stubApi()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('MapPage', () => {
+  test('shows the sites in service at the end of the current year, with totals and an alphabetical list', async () => {
+    renderMap()
+
+    const list = await screen.findByRole('region', { name: /sites in view/i })
+    expect(lastMapCall()).toEqual({ year: String(currentYear) })
+    expect(within(list).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Kiruna'),
+      expect.stringContaining('Roy Hill'),
+    ])
+    const totals = screen.getByLabelText('Totals for the current view')
+    expect(within(totals).getByText('108')).toBeInTheDocument()
+    expect(within(totals).getByText('countries')).toBeInTheDocument()
+    expect(document.querySelector('.map-panel__count')).toHaveTextContent('2 sites · 108 machines in service')
   })
 
-  test('filters sites by technology supplier', async () => {
+  test('offers every machine type from the reference data and sends the chosen filters', async () => {
     const user = userEvent.setup()
+    renderMap()
+    const machineType = await screen.findByLabelText('Machine type')
+    await waitFor(() => expect(within(machineType).getByRole('option', { name: 'Shovel' })).toBeInTheDocument())
 
-    render(<MapPage sites={fixtureSites} />)
+    await user.selectOptions(machineType, 'shovel')
+    await user.click(screen.getByRole('radio', { name: 'Autonomous' }))
+    await user.selectOptions(screen.getByLabelText('Country'), 'SE')
+    await user.click(screen.getByRole('checkbox', { name: /include decommissioned deployments/i }))
 
-    await user.click(screen.getByRole('checkbox', { name: /show decommissioned records/i }))
+    await waitFor(() => expect(lastMapCall()).toEqual({
+      machine_type: 'shovel', automation_level: 'autonomous', country: 'SE', year: String(currentYear), include_decommissioned: 'true',
+    }))
 
-    const supplierFilter = screen.getByRole('combobox', {
-      name: /technology supplier/i,
+    await user.click(screen.getByRole('button', { name: /clear all/i }))
+    await waitFor(() => expect(lastMapCall()).toEqual({ year: String(currentYear) }))
+    expect(screen.getByRole('button', { name: /clear all/i })).toBeDisabled()
+  })
+
+  test('requests a year once the slider settles and says how many deployments have no year', async () => {
+    stubApi((url) => mapResponse([ROY_HILL], url.searchParams.get('year') === '2020' ? 2 : 0))
+    renderMap()
+    const slider = await screen.findByLabelText('Deployments in service at the end of')
+
+    fireEvent.change(slider, { target: { value: '2020' } })
+
+    await waitFor(() => expect(lastMapCall()).toEqual({ year: '2020' }))
+    expect(await screen.findByText('2 deployments have no commissioning year and are not on the map.')).toBeInTheDocument()
+    expect(slider).toHaveAttribute('min', '2014')
+  })
+
+  test('keeps the current sites and counts steady while new results load', async () => {
+    let release: (response: Response) => void = () => undefined
+    let calls = 0
+    stubApi(() => {
+      calls += 1
+      return calls === 1 ? mapResponse([ROY_HILL, KIRUNA]) : new Promise<Response>((resolve) => { release = resolve })
     })
-
-    await user.selectOptions(supplierFilter, 'TerraNav Systems')
-
-    expect(screen.getByText('2 sites shown')).toBeInTheDocument()
-
-    expect(
-      screen.queryByText(/no matching sites/i),
-    ).not.toBeInTheDocument()
-  })
-
-  test('can reveal decommissioned sites', async () => {
     const user = userEvent.setup()
+    renderMap()
+    await screen.findByRole('button', { name: /kiruna/i })
 
-    render(<MapPage sites={fixtureSites} />)
+    await user.selectOptions(screen.getByLabelText('Country'), 'AU')
 
-    await user.click(screen.getByRole('checkbox', { name: /show decommissioned records/i }))
-
-    expect(screen.getByText('2 sites shown')).toBeInTheDocument()
+    // A slow request earns a loading bar after a short delay; the old sites stay meanwhile
+    expect(screen.queryByText('Updating the map…')).not.toBeInTheDocument()
+    expect(await screen.findByText('Updating the map…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /kiruna/i })).toBeInTheDocument()
+    expect(document.querySelector('.map-panel__count')).toHaveTextContent('2 sites · 108 machines in service')
+    release(mapResponse([ROY_HILL]))
+    await waitFor(() => expect(screen.queryByRole('button', { name: /kiruna/i })).not.toBeInTheDocument())
+    expect(screen.queryByText('Updating the map…')).not.toBeInTheDocument()
   })
 
-  test('includes a 51+ fixture for the high-density state', () => {
-    render(<MapPage sites={densityFixtureSites} />)
-
-    expect(screen.getByText('Pilbara High Density Demo Site').closest('li')).toHaveTextContent('60 verified machines')
-    expect(document.querySelector('path[fill="#7c3aed"]')).toBeInTheDocument()
-  })
-
-  test('shows an empty state when no machine type matches', async () => {
+  test('opens a site card from the list with what is in service and links to the register', async () => {
     const user = userEvent.setup()
+    renderMap()
 
-    render(<MapPage sites={fixtureSites} />)
+    const site = await screen.findByRole('button', { name: /roy hill/i })
+    await user.click(site)
 
-    const machineTypeFilter = screen.getByRole('combobox', {
-      name: /machine type/i,
+    const card = await screen.findByRole('article', { name: 'Roy Hill' })
+    expect(site).toHaveAttribute('aria-pressed', 'true')
+    expect(await within(card).findByText('Caterpillar 793F')).toBeInTheDocument()
+    expect(within(card).queryByText('Caterpillar 777F')).not.toBeInTheDocument()
+    expect(within(card).getByText(/1 decommissioned deployment \(20 machines\) is hidden/)).toBeInTheDocument()
+    expect(within(card).getByRole('link', { name: /view in register/i })).toHaveAttribute('href', '/equipment?site_id=1')
+
+    await user.click(within(card).getByRole('button', { name: /close site details/i }))
+    expect(screen.queryByRole('article', { name: 'Roy Hill' })).not.toBeInTheDocument()
+    expect(site).toHaveFocus()
+  })
+
+  test('lists ended deployments in the card when decommissioned deployments are included', async () => {
+    const user = userEvent.setup()
+    renderMap()
+
+    await user.click(await screen.findByRole('checkbox', { name: /include decommissioned deployments/i }))
+    await user.click(await screen.findByRole('button', { name: /roy hill/i }))
+
+    const card = await screen.findByRole('article', { name: 'Roy Hill' })
+    expect(await within(card).findByText('Caterpillar 777F')).toBeInTheDocument()
+    expect(within(card).queryByText(/is hidden/)).not.toBeInTheDocument()
+  })
+
+  test('shows an error with a retry, and an empty state that clears the filters', async () => {
+    let calls = 0
+    stubApi(() => {
+      calls += 1
+      if (calls === 1) return Response.json({ error: 'service unavailable' }, { status: 503 })
+      return mapResponse([])
     })
+    const user = userEvent.setup()
+    renderMap()
 
-    await user.selectOptions(machineTypeFilter, 'lhd')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The map could not load: service unavailable')
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
 
-    expect(screen.getByText('0 sites shown')).toBeInTheDocument()
+    expect(await screen.findByText('No sites match these filters')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear all filters' })).toBeInTheDocument()
+  })
 
-    expect(
-      screen.getByText(/no matching sites/i),
-    ).toBeInTheDocument()
+  test('collapses and reopens the panel', async () => {
+    const user = userEvent.setup()
+    renderMap()
+    await screen.findByRole('button', { name: /roy hill/i })
 
-    expect(
-      screen.getByText(
-        /try a different supplier name or clear the filter/i,
-      ),
-    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Hide filters and sites' }))
+    expect(screen.queryByLabelText('Machine type')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /show filters and sites/i }))
+    expect(screen.getByLabelText('Machine type')).toBeInTheDocument()
+  })
+
+  test('draws a Natural Earth base map and requests no map tiles', async () => {
+    renderMap()
+    await screen.findByRole('button', { name: /roy hill/i })
+
+    await waitFor(() => expect(document.querySelector('.leaflet-control-attribution')).toHaveTextContent('Natural Earth'))
+    expect(document.querySelector('.leaflet-tile, img[src*="openstreetmap"]')).toBeNull()
   })
 })

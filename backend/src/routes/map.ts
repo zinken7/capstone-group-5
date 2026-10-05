@@ -30,6 +30,18 @@ function parseBbox(raw: string | undefined): BoundingBox | null | undefined {
   return { minLon, minLat, maxLon, maxLat }
 }
 
+/** Null when no year was given, undefined when the given year is malformed. */
+function parseYear(raw: string | undefined): number | null | undefined {
+  if (raw === undefined) return null
+  return /^\d{4}$/.test(raw) && Number(raw) >= 1900 ? Number(raw) : undefined
+}
+
+/** "true" or "false"; undefined when the value is anything else. */
+function parseFlag(raw: string | undefined): boolean | undefined {
+  if (raw === undefined || raw === 'false') return false
+  return raw === 'true' ? true : undefined
+}
+
 router.get('/map', async (req, res, next) => {
   const bbox = parseBbox(stringParam(req.query.bbox))
   if (bbox === undefined) {
@@ -43,11 +55,29 @@ router.get('/map', async (req, res, next) => {
     return
   }
 
+  const year = parseYear(stringParam(req.query.year))
+  if (year === undefined) {
+    res.status(400).json({ error: 'invalid year parameter' })
+    return
+  }
+  if (date !== undefined && year !== null) {
+    res.status(400).json({ error: 'use either date or year, not both' })
+    return
+  }
+
+  const includeDecommissioned = parseFlag(stringParam(req.query.include_decommissioned))
+  if (includeDecommissioned === undefined) {
+    res.status(400).json({ error: 'invalid include_decommissioned parameter' })
+    return
+  }
+
   try {
     // All filtering runs in SQL; this only assembles the GeoJSON
     const { sites, excludedCount } = await findMapSites({
       bbox,
       date,
+      year: year ?? undefined,
+      includeDecommissioned,
       supplier: stringParam(req.query.supplier),
       country: stringParam(req.query.country),
       region: stringParam(req.query.region),
@@ -69,8 +99,13 @@ router.get('/map', async (req, res, next) => {
         properties: {
           id: site.id,
           name: site.name,
+          country_code: site.countryCode,
+          region: site.region,
+          commodity: site.commodity,
           status: site.status,
           technology_suppliers: site.technologySuppliers,
+          machine_count: site.machineCount,
+          deployment_count: site.deploymentCount,
         },
       })),
     })

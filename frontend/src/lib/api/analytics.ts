@@ -1,64 +1,32 @@
 import { requestJson } from './http'
-import type { RegisterFilters } from './register'
 
-export interface AnalyticsSummary {
-  machineCount: number
-  siteCount: number
-  countryCount: number
+export interface AnalyticsFilters {
+  q?: string
+  siteId?: string
+  country?: string
+  region?: string
+  commodity?: string
+  machineType?: string
+  supplier?: string
+  manufacturer?: string
+  automationLevel?: string
+  environment?: string
+  status?: string
 }
 
-export interface AnalyticsBreakdownItem {
-  key: string | null
-  machineCount: number
-  share: number
-}
-
-export interface AnalyticsBreakdowns {
-  machineCount: number
-  byCountry: AnalyticsBreakdownItem[]
-  byMachineType: AnalyticsBreakdownItem[]
-  byManufacturer: AnalyticsBreakdownItem[]
-  bySupplier: AnalyticsBreakdownItem[]
-  byAutomationLevel: AnalyticsBreakdownItem[]
-  byStatus: AnalyticsBreakdownItem[]
-}
-
-function queryString(filters: RegisterFilters): string {
-  const params = new URLSearchParams()
-  const values: Array<[keyof RegisterFilters, string]> = [
-    ['q', 'q'],
-    ['siteId', 'site_id'],
-    ['country', 'country'],
-    ['region', 'region'],
-    ['commodity', 'commodity'],
-    ['supplier', 'supplier'],
-    ['manufacturer', 'manufacturer'],
-    ['machineType', 'machine_type'],
-    ['automationLevel', 'automation_level'],
-    ['environment', 'environment'],
-    ['status', 'status'],
-  ]
-  for (const [field, key] of values) {
-    const value = filters[field]
-    if (value) params.set(key, value)
-  }
-  const encoded = params.toString()
-  return encoded ? `?${encoded}` : ''
-}
-
-interface AnalyticsSummaryDto {
+export interface AnalyticsSummaryDto {
   machine_count: number
   site_count: number
   country_count: number
 }
 
-interface AnalyticsBreakdownItemDto {
+export interface AnalyticsBreakdownItemDto {
   key: string | null
   machine_count: number
   share: number
 }
 
-interface AnalyticsBreakdownsDto {
+export interface AnalyticsBreakdownsDto {
   machine_count: number
   by_country: AnalyticsBreakdownItemDto[]
   by_machine_type: AnalyticsBreakdownItemDto[]
@@ -68,29 +36,49 @@ interface AnalyticsBreakdownsDto {
   by_status: AnalyticsBreakdownItemDto[]
 }
 
-export async function getAnalyticsSummary(filters: RegisterFilters = {}): Promise<AnalyticsSummary> {
-  const response = await requestJson<AnalyticsSummaryDto>(`analytics/summary${queryString(filters)}`)
-  return {
-    machineCount: response.machine_count,
-    siteCount: response.site_count,
-    countryCount: response.country_count,
-  }
+export interface AnalyticsTimelineYearDto {
+  year: number
+  newly_commissioned: number
+  in_service: number
 }
 
-export async function getAnalyticsBreakdowns(filters: RegisterFilters = {}): Promise<AnalyticsBreakdowns> {
-  const response = await requestJson<AnalyticsBreakdownsDto>(`analytics/breakdowns${queryString(filters)}`)
-  const map = (items: AnalyticsBreakdownItemDto[]) => items.map((item) => ({
-    key: item.key,
-    machineCount: item.machine_count,
-    share: item.share,
-  }))
-  return {
-    machineCount: response.machine_count,
-    byCountry: map(response.by_country),
-    byMachineType: map(response.by_machine_type),
-    byManufacturer: map(response.by_manufacturer),
-    bySupplier: map(response.by_supplier),
-    byAutomationLevel: map(response.by_automation_level),
-    byStatus: map(response.by_status),
+export interface AnalyticsTimelineDto {
+  excluded_count: number
+  excluded_machine_count: number
+  years: AnalyticsTimelineYearDto[]
+}
+
+function queryString(filters: AnalyticsFilters): string {
+  const params = new URLSearchParams()
+  const entries: Array<[keyof AnalyticsFilters, string]> = [
+    ['q', 'q'],
+    ['siteId', 'site_id'],
+    ['country', 'country'],
+    ['region', 'region'],
+    ['commodity', 'commodity'],
+    ['machineType', 'machine_type'],
+    ['supplier', 'supplier'],
+    ['manufacturer', 'manufacturer'],
+    ['automationLevel', 'automation_level'],
+    ['environment', 'environment'],
+    ['status', 'status'],
+  ]
+  for (const [field, key] of entries) {
+    const value = filters[field]
+    if (value) params.set(key, value)
   }
+  const encoded = params.toString()
+  return encoded ? `?${encoded}` : ''
+}
+
+export function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promise<AnalyticsSummaryDto> {
+  return requestJson<AnalyticsSummaryDto>(`analytics/summary${queryString(filters)}`)
+}
+
+export function getAnalyticsBreakdowns(filters: AnalyticsFilters = {}): Promise<AnalyticsBreakdownsDto> {
+  return requestJson<AnalyticsBreakdownsDto>(`analytics/breakdowns${queryString(filters)}`)
+}
+
+export function getAnalyticsTimeline(filters: AnalyticsFilters = {}): Promise<AnalyticsTimelineDto> {
+  return requestJson<AnalyticsTimelineDto>(`analytics/timeline${queryString(filters)}`)
 }
