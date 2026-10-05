@@ -43,12 +43,11 @@ function AppLayout({ children }: PropsWithChildren) {
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment Register</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/analytics">Analytics</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
-          <a href="/map#about-data">About the data</a>
           <NavLink className="primary-nav__cta" to="/contribute">Submit a deployment</NavLink>
         </nav>
       </header>
       <main className="page-content" id="main-content">{children}</main>
-      <footer className="site-footer" id="about-data">
+      <footer className="site-footer">
         <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
       </footer>
     </div>

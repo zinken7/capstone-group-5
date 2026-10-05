@@ -70,7 +70,7 @@ select {
 .site-footer { padding: 1rem clamp(1rem, 4vw, 3rem); border-top: 1px solid var(--border); color: var(--text-muted); background: white; font-size: 0.82rem; }
 .site-footer p { margin: 0; }
 
-.product-page, .map-page {
+.product-page {
   display: grid;
   width: 100%;
   gap: 1.5rem;
