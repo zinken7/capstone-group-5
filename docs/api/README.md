@@ -229,6 +229,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
 }
 ```
 
+- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
 - `by_country`, `by_machine_type`, `by_manufacturer` and `by_supplier` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
 - `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
@@ -251,10 +252,12 @@ Accepts the shared filters and returns one row per year, from the first commissi
 }
 ```
 
+- The series ends at the current year; deployments dated later are not counted yet.
+- `announced` deployments are not commissioned yet, so they are left out of both measures and of the excluded counts. Use `GET /api/analytics/summary?status=announced` for their total.
 - `newly_commissioned` (FR-30) sums `quantity` for deployments commissioned that year.
 - `in_service` (FR-22) sums `quantity` for deployments commissioned in or before that year whose `valid_to` is empty or on or after 31 December of that year, the same inclusive validity rule as the map's date filter.
 - The commissioning year comes from `commissioning_year`, so year-only records are placed without inventing a date.
-- Deployments with neither a commissioning date nor a year are left out and counted in `excluded_count` and `excluded_machine_count`, as the map reports `excluded_count` (FR-19). `years` is empty when no matching deployment is dated.
+- Other deployments with neither a commissioning date nor a year are left out and counted in `excluded_count` and `excluded_machine_count`, as the map reports `excluded_count` (FR-19). `years` is empty when no matching deployment is dated.
 - Repeated filter parameters return `400`.
 
 ---
