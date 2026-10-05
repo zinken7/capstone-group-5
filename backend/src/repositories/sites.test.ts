@@ -114,6 +114,7 @@ describe('findVerifiedDeploymentsBySite', () => {
       environment: 'surface',
       status: 'operational',
       commissioningDate: '2021-01-01',
+      commissioningYear: 2021,
       validFrom: '2021-01-01',
       validTo: null,
     })
