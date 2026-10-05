@@ -63,20 +63,6 @@ export interface RegisterPage {
   offset: number
 }
 
-function displayLabel(value: string): string {
-  return value
-    .split('_')
-    .map((word) => word ? word[0].toUpperCase() + word.slice(1) : word)
-    .join(' ')
-}
-
-function environmentLabel(value: string | null): EquipmentRecord['environment'] {
-  if (value === 'surface') return 'Surface'
-  if (value === 'underground') return 'Underground'
-  if (value === 'both') return 'Both'
-  return 'Not recorded'
-}
-
 function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
   const record: EquipmentRecord = {
     id: String(item.id),
@@ -84,11 +70,11 @@ function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
     country: item.country_code || 'Not recorded',
     region: item.region ?? 'Not recorded',
     machineModel: item.machine_model ?? undefined,
-    machineType: displayLabel(item.machine_type),
+    machineType: item.machine_type,
     manufacturer: item.machine_manufacturer ?? 'Not recorded',
     supplier: item.technology_supplier ?? 'Not recorded',
-    automationLevel: item.automation_level === null ? 'Not recorded' : displayLabel(item.automation_level),
-    environment: environmentLabel(item.environment),
+    automationLevel: item.automation_level ?? '',
+    environment: item.environment ?? '',
     status: item.status ?? 'unknown',
     quantity: item.quantity,
     commissioningDate: item.commissioning_date ?? (item.commissioning_year === null ? undefined : String(item.commissioning_year)),
@@ -100,7 +86,7 @@ function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
     record.commodity = item.commodity ?? undefined
     record.modelVariant = item.model_variant ?? undefined
     record.technologyProduct = item.technology_product ?? undefined
-    record.installationType = item.installation_type ? displayLabel(item.installation_type) : undefined
+    record.installationType = item.installation_type ?? undefined
     record.validFrom = item.valid_from ?? undefined
     record.validTo = item.valid_to ?? undefined
   }

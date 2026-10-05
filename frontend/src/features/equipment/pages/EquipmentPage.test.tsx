@@ -205,6 +205,59 @@ describe('EquipmentPage', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/register?sort=site&order=asc&limit=25&offset=0', expect.anything())
   })
 
+  test('formats raw live register enums at the view boundary', async () => {
+    const registerResponse = {
+      total: 1,
+      limit: 25,
+      offset: 0,
+      items: [{
+        id: 20204,
+        site_id: 7,
+        site_name: 'Raw enum site',
+        country_code: 'AU',
+        region: 'Pilbara',
+        commodity: 'iron_ore',
+        machine_manufacturer: 'Caterpillar',
+        machine_model: null,
+        model_variant: null,
+        machine_type: 'lhd',
+        quantity: 2,
+        technology_supplier: 'Caterpillar',
+        technology_product: 'Cat Command',
+        automation_level: 'semi_autonomous',
+        environment: 'both',
+        installation_type: 'factory_installed',
+        status: 'operational',
+        commissioning_date: '2024',
+        commissioning_year: 2024,
+        valid_from: null,
+        valid_to: null,
+      }],
+    }
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json({
+        ...referenceData,
+        machine_types: ['lhd'],
+        automation_levels: ['semi_autonomous'],
+        environments: ['both'],
+        installation_types: ['factory_installed'],
+      }))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json(registerResponse))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<EquipmentPage />)
+
+    expect((await screen.findAllByText('LHD')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Semi-autonomous')).length).toBeGreaterThan(0)
+    const correctButton = screen.getByRole('button', { name: /correct raw enum site/i })
+    await userEvent.setup().click(correctButton)
+    expect(screen.getByRole('combobox', { name: /mining environment/i })).toHaveValue('both')
+  })
+
   test('opens the correction dialog and submits a pending-review correction', async () => {
     const user = userEvent.setup()
     const registerResponse = {
