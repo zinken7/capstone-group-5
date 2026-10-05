@@ -113,7 +113,7 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
         ${where}
       ),
       span AS (
-        SELECT generate_series(MIN(start_year), GREATEST(MAX(start_year), EXTRACT(YEAR FROM CURRENT_DATE)::int)) AS year
+        SELECT generate_series(MIN(start_year), EXTRACT(YEAR FROM CURRENT_DATE)::int) AS year
         FROM dated
         WHERE start_year IS NOT NULL
       )

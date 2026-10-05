@@ -82,8 +82,11 @@ describe('findTimeline', () => {
     expect(years.find((row) => row.year === 2020)).toEqual({ year: 2020, newlyCommissioned: 0, inService: 20 })
     expect(years.find((row) => row.year === 2021)).toEqual({ year: 2021, newlyCommissioned: 96, inService: 96 })
 
+    const [{ currentYear } = { currentYear: 0 }] = await query<{ currentYear: number }>(
+      'SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int AS "currentYear"',
+    )
     const last = years.at(-1)
-    expect(last?.year).toBeGreaterThanOrEqual(2026)
+    expect(last?.year).toBe(currentYear)
     expect(last?.inService).toBe(96)
     expect(years.map((row) => row.year)).toEqual(Array.from({ length: years.length }, (_, index) => 2015 + index))
   })
@@ -102,6 +105,17 @@ describe('findTimeline', () => {
     const timeline = await findTimeline({})
     expect(timeline.years.find((row) => row.year === 2019)).toEqual({ year: 2019, newlyCommissioned: 5, inService: 25 })
     expect(timeline.excludedCount).toBe(0)
+  })
+
+  it('stops at the current year even when a deployment is dated later', async () => {
+    await query('UPDATE deployment SET commissioning_year = EXTRACT(YEAR FROM CURRENT_DATE)::int + 2 WHERE id = 11')
+
+    const { years } = await findTimeline({})
+    const [{ currentYear } = { currentYear: 0 }] = await query<{ currentYear: number }>(
+      'SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int AS "currentYear"',
+    )
+    expect(years.at(-1)?.year).toBe(currentYear)
+    expect(years.reduce((total, row) => total + row.newlyCommissioned, 0)).toBe(116)
   })
 
   it('applies the shared filters', async () => {
