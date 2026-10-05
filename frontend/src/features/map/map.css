@@ -47,6 +47,8 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  /* Room for the scrollbar is kept even before it appears, e.g. when More filters opens */
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   border-right: 1px solid var(--border);
   background: var(--color-surface);
@@ -249,6 +251,7 @@
 
 .map-sites ul {
   position: relative;
+  scrollbar-gutter: stable;
   flex: 1;
   margin: 0;
   padding: 0 var(--space-2) var(--space-3);
@@ -509,6 +512,7 @@
 }
 
 .map-card-slot {
+  scrollbar-gutter: stable;
   top: var(--space-4);
   right: 4.5rem;
   width: min(24rem, calc(100% - 6rem));
