@@ -121,7 +121,7 @@ select {
 }
 
 .page-heading { display: flex; justify-content: space-between; gap: 1.5rem; align-items: flex-end; }
-.button { min-height: 2.7rem; padding: 0.6rem 1rem; border: 0; border-radius: 0.5rem; font-weight: 750; cursor: pointer; }
+.button { min-height: 44px; padding: 0.6rem 1rem; border: 0; border-radius: 0.5rem; font-weight: 750; cursor: pointer; }
 .button--primary { color: white; background: var(--brand); }
 .button--primary:hover { background: var(--brand-dark); }
 .button--secondary { color: var(--text-strong); background: var(--surface-muted); border: 1px solid var(--control-border); }
@@ -138,7 +138,7 @@ select {
 .form-field--wide { grid-column: 1 / -1; }
 .form-field input, .form-field textarea, .form-field select {
   width: 100%;
-  min-height: 2.65rem;
+  min-height: 44px;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--control-border);
   border-radius: 0.45rem;
@@ -148,9 +148,12 @@ select {
   font-weight: 400;
 }
 .form-field textarea { min-height: 5rem; }
-.form-field input:focus, .form-field textarea:focus, .form-field select:focus,
-.disclosure-check input:focus-visible, .button:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+.form-field input:focus-visible,
+.form-field textarea:focus-visible,
+.form-field select:focus-visible,
+.disclosure-check input:focus-visible,
+.button:focus-visible {
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 .form-field input[aria-invalid="true"], .form-field textarea[aria-invalid="true"], .form-field select[aria-invalid="true"] { border-color: #b42318; }
@@ -177,7 +180,7 @@ select {
 .status-badge--decommissioned, .status-badge--unknown, .status-badge--unverified { color: var(--color-neutral); }
 .status-badge--verified { color: var(--color-success); }
 .status-badge--pending-review { color: var(--color-warning); }
-.status-badge--rejected { color: #991b1b; }
+.status-badge--rejected { color: var(--color-danger); }
 .coming-soon { display: flex; align-items: flex-start; gap: 1rem; padding: clamp(1.2rem, 3vw, 2rem); border: 1px dashed #9aa9b8; border-radius: 0.8rem; background: var(--surface-muted); }
 .coming-soon > span { display: grid; flex: 0 0 auto; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: white; background: var(--accent); font-weight: 800; }
 .coming-soon h2, .coming-soon p { margin: 0; }
@@ -194,8 +197,8 @@ select {
 
 h1 {
   margin: 0;
-  font-size: clamp(2rem, 4.5vw, 3.2rem);
-  line-height: 1.08;
+  font-size: 1.75rem;
+  line-height: 1.2;
 }
 
 .intro {
