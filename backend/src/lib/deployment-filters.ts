@@ -1,6 +1,7 @@
 /** Filters shared by the register, export and analytics endpoints; all match verified deployments only. */
 export interface DeploymentFilters {
   q?: string
+  siteId?: number
   country?: string
   region?: string
   commodity?: string
@@ -39,6 +40,16 @@ export function parseDeploymentFilters(query: Record<string, unknown>): ParseRes
     }
     const value = raw.trim()
     if (value) filters[key] = value
+  }
+
+  // An exact site, for links from the map; must be a positive whole number
+  const siteId = query.site_id
+  if (siteId !== undefined) {
+    const value = typeof siteId === 'string' ? siteId.trim() : null
+    if (value === null || (value && !/^[1-9]\d*$/.test(value)) || !Number.isSafeInteger(Number(value))) {
+      return { ok: false, error: 'invalid site_id parameter' }
+    }
+    if (value) filters.siteId = Number(value)
   }
 
   return { ok: true, value: filters }
