@@ -63,9 +63,13 @@ describe('AnalyticsPage live API behaviour', () => {
     const timelineCard = screen.getByRole('heading', { name: 'Machines in service over time' }).closest('section')
     expect(timelineCard).not.toBeNull()
     const timelineView = within(timelineCard as HTMLElement)
-    await userEvent.click(timelineView.getByRole('button', { name: 'Show as table' }))
+    const toggle = timelineView.getByRole('button', { name: 'Show as table' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(toggle)
+    expect(timelineView.getByRole('button', { name: 'Show chart' })).toHaveAttribute('aria-pressed', 'true')
     expect(timelineView.getByRole('columnheader', { name: 'Machines' })).toBeInTheDocument()
     expect(timelineView.getByText('2024')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'All countries' })).toBeInTheDocument()
   })
 
   test('sends a changed filter to every analytics endpoint', async () => {
