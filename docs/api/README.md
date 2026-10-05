@@ -255,7 +255,7 @@ Accepts the shared filters and returns one row per year, from the first commissi
 - The series ends at the current year; deployments dated later are not counted yet.
 - `announced` deployments are not commissioned yet, so they are left out of both measures and of the excluded counts. Use `GET /api/analytics/summary?status=announced` for their total.
 - `newly_commissioned` (FR-30) sums `quantity` for deployments commissioned that year.
-- `in_service` (FR-22) sums `quantity` for deployments commissioned in or before that year whose `valid_to` is empty or on or after 31 December of that year, the same inclusive validity rule as the map's date filter.
+- `in_service` (FR-22) sums `quantity` for deployments commissioned in or before that year whose validity window contains 31 December of that year: `valid_from` empty or on or before it, and `valid_to` empty or on or after it. This is the same inclusive rule as the map's date filter, so a relocated record counts only from its own `valid_from`.
 - The commissioning year comes from `commissioning_year`, so year-only records are placed without inventing a date.
 - Other deployments with neither a commissioning date nor a year are left out and counted in `excluded_count` and `excluded_machine_count`, as the map reports `excluded_count` (FR-19). `years` is empty when no matching deployment is dated.
 - Repeated filter parameters return `400`.
