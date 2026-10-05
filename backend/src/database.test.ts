@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 
 // Connection string comes from the environment or the root .env (loaded by config.ts)
 const { closeDatabase, query, withTransaction } = await import('./database.js')
+const { company } = await import('./db/schema.js')
 const { resetDatabase } = await import('./test/fixtures.js')
 
 afterAll(async () => {
@@ -35,8 +36,8 @@ describe('withTransaction', () => {
     await resetDatabase()
 
     const result = await withTransaction(async (tx) => {
-      await tx.query('INSERT INTO company (name) VALUES ($1)', ['Epiroc'])
-      await tx.query('INSERT INTO company (name) VALUES ($1)', ['Komatsu'])
+      await tx.db.insert(company).values({ name: 'Epiroc' })
+      await tx.db.insert(company).values({ name: 'Komatsu' })
       return 'done'
     })
 
@@ -48,7 +49,7 @@ describe('withTransaction', () => {
     await resetDatabase()
 
     await expect(withTransaction(async (tx) => {
-      await tx.query('INSERT INTO company (name) VALUES ($1)', ['Epiroc'])
+      await tx.db.insert(company).values({ name: 'Epiroc' })
       throw new Error('boom')
     })).rejects.toThrow('boom')
 
