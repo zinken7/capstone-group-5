@@ -113,7 +113,9 @@ erDiagram
         bigint id PK
         text email UK
         text password_hash
+        admin_role role
         boolean active
+        boolean must_change_password
         timestamptz created_at
     }
     VERIFICATION_REVIEW {
@@ -180,6 +182,7 @@ free text:
 | `verification_decision` | `approved`, `rejected`, `needs_changes`                                                                                                                                                                                                  |
 | `evidence_type`         | `company_release`, `news`, `academic`, `government`, `report`, `other`                                                                                                                                                                   |
 | `revision_action`       | `create`, `update`, `verification_change`                                                                                                                                                                                                |
+| `admin_role`            | `root`, `admin`                                                                                                                                                                                                                          |
 
 ### Automation level mapping
 
@@ -234,7 +237,9 @@ until #62 confirms that meaning.
 - A verified deployment requires a technology product and at least one evidence record.  Enforce this in the application transaction or a database trigger.
 - A verification review must reference an active administrator. Review records are append-only; `verification_status` represents the current verification state and is updated transactionally when a review decision changes it.
 - A revision names at most one actor: `contributor_id IS NULL OR admin_user_id IS NULL`.  Both NULL means the actor is unknown, for example a bulk import.
-- `admin_user.email` is unique. Store only a strong password hash (for example, Argon2id or bcrypt), never a plaintext password.
+- `admin_user.email` is unique and stored in lower case. Store only a strong password hash (the backend uses scrypt), never a plaintext password.
+- `admin_user.role` is `root` or `admin`. Root accounts are created only from the command line (`npm run admin:create -- --root`) and manage administrator accounts; administrators review submissions.
+- `admin_user.must_change_password` is true while an account still has a generated temporary password; every other administrator action is refused until it is changed.
 - `contributor` holds only an email address and, where offered, an organisation (NFR-09).  No domain-affiliation flag is held in the MVP; one arrives only if FR-52 and FR-53 are taken up.
 - `company.name` is unique.
 - `region` is unique on `(name, country_code)`.
