@@ -26,9 +26,12 @@ describe('AppLayout', () => {
     expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).queryByRole('link', { name: /admin/i })).not.toBeInTheDocument()
   })
 
-  test.each(['/admin', '/admin/login', '/admin/deployments/12'])('leaves the sign-in link out of the administration pages: %s', (path) => {
+  test.each(['/admin', '/admin/login', '/admin/deployments/12'])('gives the administration pages no public header or footer: %s', (path) => {
     render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
 
+    expect(screen.getByText('Page')).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Administrator sign-in' })).not.toBeInTheDocument()
   })
 

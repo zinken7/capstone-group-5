@@ -33,7 +33,9 @@
 .table-link:disabled { color: var(--text-muted); cursor: not-allowed; text-decoration: none; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.8rem; background: white; }
 .table-scroll:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-table { width: 100%; min-width: 62rem; border-collapse: collapse; }
+table { width: 100%; border-collapse: collapse; }
+/* Only the register's wide table scrolls sideways; other tables on the site must not inherit its width */
+.table-scroll table { min-width: 62rem; }
 th, td { padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 th { color: #405068; background: #f3f6f8; font-size: 0.78rem; letter-spacing: 0.035em; text-transform: uppercase; }
 .table-sort-button { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2rem; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }

@@ -17,19 +17,20 @@ function AdminUsersPage() {
   const isRoot = state.status === 'signed-in' && state.profile.role === 'root'
 
   return (
-    <section className="product-page admin-page">
+    <>
       <AdminBar />
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1>Administrators</h1>
-          <p className="intro">Add reviewers and remove their access. Root accounts are managed from the command line.</p>
-        </div>
-      </header>
-      {isRoot
-        ? <AccountManager />
-        : <StateMessage variant="error" title="Root administrators only" message="Ask a root administrator to add or remove administrators." />}
-    </section>
+      <main className="admin-page" id="main-content">
+        <header className="admin-heading">
+          <div>
+            <h1>Administrators</h1>
+            <p>Add reviewers and remove their access. Root accounts are managed from the command line.</p>
+          </div>
+        </header>
+        {isRoot
+          ? <AccountManager />
+          : <StateMessage variant="error" title="Root administrators only" message="Ask a root administrator to add or remove administrators." />}
+      </main>
+    </>
   )
 }
 
@@ -87,8 +88,8 @@ function AccountManager() {
   }
 
   return (
-    <div className="admin-record">
-      <form className="admin-panel" onSubmit={(event) => void handleAdd(event)} noValidate aria-labelledby="add-heading">
+    <div className="admin-stack">
+      <form className="admin-panel admin-add" onSubmit={(event) => void handleAdd(event)} noValidate aria-labelledby="add-heading">
         <h2 id="add-heading">Add an administrator</h2>
         {error && <p className="form-summary-error" role="alert">{error}</p>}
         <div className="form-field">
@@ -126,7 +127,7 @@ function AccountManager() {
       {list.status === 'error' && <StateMessage variant="error" title="Administrators unavailable" message={list.message} />}
       {list.status === 'ready' && (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--stack">
             <caption className="visually-hidden">Administrator accounts</caption>
             <thead>
               <tr>
@@ -140,14 +141,14 @@ function AccountManager() {
             <tbody>
               {list.accounts.map((account) => (
                 <tr key={account.id}>
-                  <td>{account.email}</td>
-                  <td>{account.role === 'root' ? 'Root' : 'Administrator'}</td>
-                  <td>
-                    {account.active ? 'Active' : 'Deactivated'}
+                  <td className="admin-users__email"><strong>{account.email}</strong></td>
+                  <td data-label="Role">{account.role === 'root' ? 'Root' : 'Administrator'}</td>
+                  <td data-label="Status">
+                    <span className={account.active ? 'admin-state admin-state--active' : 'admin-state'}>{account.active ? 'Active' : 'Deactivated'}</span>
                     {account.active && account.mustChangePassword && <small>Temporary password not changed yet</small>}
                   </td>
-                  <td>{formatDateTime(account.createdAt)}</td>
-                  <td>
+                  <td data-label="Added">{formatDateTime(account.createdAt)}</td>
+                  <td className="admin-users__action">
                     {account.role === 'root'
                       ? <small>Managed from the command line</small>
                       : (
