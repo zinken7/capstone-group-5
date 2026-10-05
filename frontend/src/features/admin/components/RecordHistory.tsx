@@ -1,4 +1,4 @@
-import { formatDateTime, humanise } from '../format'
+import { contributorOf, describeValue, formatDateTime, humanise } from '../format'
 import type { ReviewRecord, RevisionHistoryItem } from '../types'
 
 function actor(revision: RevisionHistoryItem): string {
@@ -22,6 +22,7 @@ const ACTIONS: Record<RevisionHistoryItem['action'], string> = {
 }
 
 function RecordHistory({ record }: { record: ReviewRecord }) {
+  const decidedCorrections = record.corrections.filter((correction) => correction.status !== 'pending')
   return (
     <section className="admin-panel" aria-labelledby="history-heading">
       <h2 id="history-heading">History</h2>
@@ -31,11 +32,31 @@ function RecordHistory({ record }: { record: ReviewRecord }) {
         <ol className="history-list">
           {record.reviews.map((review, index) => (
             <li key={`${review.reviewedAt}-${index}`}>
-              <strong>{humanise(review.decision)}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
+              <strong>{review.correctionId === null ? humanise(review.decision) : `Correction ${humanise(review.decision).toLowerCase()}`}</strong> by {review.administrator}, {formatDateTime(review.reviewedAt)}
               {review.note && <blockquote>{review.note}</blockquote>}
             </li>
           ))}
         </ol>
+      )}
+
+      {decidedCorrections.length > 0 && (
+        <>
+          <h3>Decided corrections</h3>
+          <ol className="history-list">
+            {decidedCorrections.map((correction) => (
+              <li key={correction.id}>
+                <strong>{humanise(correction.status)}</strong>: proposed by {contributorOf(correction)}, {formatDateTime(correction.submittedAt)}
+                {correction.changeNote && <blockquote>{correction.changeNote}</blockquote>}
+                <dl className="previous-values">
+                  {correction.changes.map((change) => (
+                    <div key={change.field}><dt>{humanise(change.field)}</dt><dd>{describeValue(change.before)} → {describeValue(change.proposed)}</dd></div>
+                  ))}
+                  {correction.evidenceUrls.length > 0 && <div><dt>Sources</dt><dd>{correction.evidenceUrls.join(', ')}</dd></div>}
+                </dl>
+              </li>
+            ))}
+          </ol>
+        </>
       )}
 
       <h3>Revisions</h3>

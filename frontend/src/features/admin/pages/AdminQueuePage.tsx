@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { getReviewQueue } from '../../../lib/api/admin'
 import StateMessage from '../../../shared/components/StateMessage'
 import AdminBar from '../components/AdminBar'
-import { formatDateTime, humanise } from '../format'
+import { contributorOf, formatDateTime, humanise } from '../format'
 import { useAdminSession } from '../session'
 import type { ReviewQueueItem } from '../types'
 import '../admin.css'
@@ -48,24 +48,36 @@ function AdminQueuePage() {
             <thead>
               <tr>
                 <th scope="col">Site</th>
+                <th scope="col">Kind</th>
                 <th scope="col">Machine</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Technology</th>
-                <th scope="col">Evidence</th>
+                <th scope="col">Sources</th>
                 <th scope="col">Last changed</th>
                 <th scope="col"><span className="visually-hidden">Action</span></th>
               </tr>
             </thead>
             <tbody>
               {queue.items.map((item) => (
-                <tr key={item.id}>
+                <tr key={`${item.kind}-${item.correctionId ?? item.id}`}>
                   <td><strong>{item.siteName}</strong><small>{[item.region, item.countryCode].filter(Boolean).join(', ')}</small></td>
+                  <td>
+                    <strong>{item.kind === 'correction' ? 'Correction' : 'Submission'}</strong>
+                    {item.kind === 'correction' && <small>{item.changedFields.map(humanise).join(', ')}</small>}
+                    <small>{contributorOf(item)}</small>
+                  </td>
                   <td>{[item.machineManufacturer, item.machineModel].filter(Boolean).join(' ')}<small>{humanise(item.machineType)}</small></td>
                   <td>{item.quantity}</td>
                   <td>{item.technologyProduct ? `${item.technologySupplier ?? ''} ${item.technologyProduct}`.trim() : <span className="admin-warning">Not recorded</span>}</td>
                   <td>{item.evidenceCount > 0 ? item.evidenceCount : <span className="admin-warning">None</span>}</td>
                   <td>{formatDateTime(item.submittedAt)}</td>
-                  <td><Link className="button button--secondary" to={`/admin/deployments/${item.id}`} aria-label={`Review ${item.siteName} record ${item.id}`}>Review</Link></td>
+                  <td>
+                    <Link
+                      className="button button--secondary"
+                      to={`/admin/deployments/${item.id}`}
+                      aria-label={item.kind === 'correction' ? `Review correction ${item.correctionId} to ${item.siteName} record ${item.id}` : `Review ${item.siteName} record ${item.id}`}
+                    >Review</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

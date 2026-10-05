@@ -19,6 +19,13 @@ export interface ReviewQueueItem {
   technologyProduct: string | null
   evidenceCount: number
   submittedAt: string
+  /** A new or returned record, or a proposed correction to a verified one. */
+  kind: 'submission' | 'correction'
+  correctionId: number | null
+  /** API field names a correction would change; empty for a submission. */
+  changedFields: string[]
+  contributorEmail: string | null
+  contributorOrganisation: string | null
 }
 
 export interface EvidenceItem {
@@ -33,6 +40,28 @@ export interface ReviewHistoryItem {
   note: string | null
   administrator: string
   reviewedAt: string
+  /** Set when the decision was on a proposed correction rather than the record. */
+  correctionId: number | null
+}
+
+export interface CorrectionChange {
+  field: string
+  /** When the correction was submitted */
+  before: unknown
+  proposed: unknown
+  /** The record now; differs from before when the record changed since */
+  current: unknown
+}
+
+export interface CorrectionItem {
+  id: number
+  status: 'pending' | 'approved' | 'rejected' | 'needs_changes'
+  submittedAt: string
+  contributorEmail: string | null
+  contributorOrganisation: string | null
+  changeNote: string | null
+  evidenceUrls: string[]
+  changes: CorrectionChange[]
 }
 
 export interface RevisionHistoryItem {
@@ -70,6 +99,7 @@ export interface ReviewRecord {
   evidence: EvidenceItem[]
   reviews: ReviewHistoryItem[]
   revisions: RevisionHistoryItem[]
+  corrections: CorrectionItem[]
 }
 
 export type ReviewDecision = 'approved' | 'rejected' | 'needs_changes'

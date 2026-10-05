@@ -17,3 +17,13 @@ export function formatCommissioning(date: string | null, year: number | null): s
   if (date) return date
   return year === null ? 'Not recorded' : String(year)
 }
+
+/** A stored or proposed field value: enum values read as words, missing values as "Not recorded". */
+export function describeValue(value: unknown): string {
+  if (value === null || value === undefined) return 'Not recorded'
+  return typeof value === 'string' ? humanise(value) : String(value)
+}
+
+export function contributorOf(source: { contributorEmail: string | null; contributorOrganisation: string | null }): string {
+  return [source.contributorEmail, source.contributorOrganisation].filter(Boolean).join(', ') || 'Anonymous contributor'
+}
