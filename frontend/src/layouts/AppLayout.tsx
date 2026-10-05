@@ -6,6 +6,7 @@ const pageTitles: [string, string][] = [
   ['/admin/deployments/', 'Admin · Review record'],
   ['/admin/password', 'Admin · Change password'],
   ['/admin/login', 'Admin · Sign in'],
+  ['/admin/users', 'Admin · Administrators'],
   ['/admin', 'Admin · Review queue'],
   ['/map', 'Map'],
   ['/equipment', 'Equipment register'],

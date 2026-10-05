@@ -13,6 +13,7 @@ describe('AppLayout', () => {
     ['/map', 'Map · Mining Market Map'],
     ['/equipment', 'Equipment register · Mining Market Map'],
     ['/admin/deployments/12', 'Admin · Review record · Mining Market Map'],
+    ['/admin/users', 'Admin · Administrators · Mining Market Map'],
   ])('sets a route-specific document title for %s', (path, title) => {
     render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
     expect(document.title).toBe(title)
