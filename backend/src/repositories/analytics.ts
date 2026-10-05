@@ -1,7 +1,10 @@
-import { query } from '../database.js'
+import { and, eq, sql } from 'drizzle-orm'
+
+import { db } from '../database.js'
+import * as tables from '../db/schema.js'
 import { AUTOMATION_LEVELS } from '../lib/controlled-values.js'
 import type { DeploymentFilters } from '../lib/deployment-filters.js'
-import { FROM_VERIFIED_DEPLOYMENTS, buildWhere } from './deployments.js'
+import { buildWhere, effectiveAutomationLevel, manufacturer, supplier } from './deployments.js'
 
 /** One group of a breakdown; key is null for the unknown or unclassified group. */
 export interface BreakdownItem {
@@ -19,29 +22,31 @@ export interface Breakdowns {
   byAutomationLevel: BreakdownItem[]
 }
 
-/** Grouping expressions over FROM_VERIFIED_DEPLOYMENTS; fixed here, never taken from the request. */
+/** Grouping expressions over the register's joins; fixed here, never taken from the request. */
 const DIMENSIONS = {
-  country: 's.country_code',
-  machineType: 'm.machine_type::text',
-  manufacturer: 'mc.name',
-  supplier: 'sc.name',
-  automationLevel: 'COALESCE(d.automation_level, p.automation_level)::text',
+  country: sql<string | null>`${tables.site.countryCode}`,
+  machineType: sql<string | null>`${tables.machineModel.machineType}::text`,
+  manufacturer: sql<string | null>`${manufacturer.name}`,
+  supplier: sql<string | null>`${supplier.name}`,
+  automationLevel: effectiveAutomationLevel,
 } as const
 
 type Dimension = keyof typeof DIMENSIONS
 
+// Each query repeats the register's joins, as deployments.ts does, because buildWhere relies on them
+
 async function machinesBy(dimension: Dimension, filters: DeploymentFilters): Promise<Array<{ key: string | null; machineCount: number }>> {
-  const params: unknown[] = []
-  const rows = await query<{ key: string | null; machine_count: number }>(
-    `
-    SELECT ${DIMENSIONS[dimension]} AS key, SUM(d.quantity)::int AS machine_count
-    ${FROM_VERIFIED_DEPLOYMENTS}
-    ${buildWhere(filters, params)}
-    GROUP BY 1
-    `,
-    params,
-  )
-  return rows.map((row) => ({ key: row.key, machineCount: row.machine_count }))
+  const key = DIMENSIONS[dimension]
+  return await db.select({ key, machineCount: sql<number>`SUM(${tables.deployment.quantity})::int` })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(buildWhere(filters))
+    .groupBy(key)
 }
 
 function withShares(groups: Array<{ key: string | null; machineCount: number }>, total: number): BreakdownItem[] {
@@ -96,58 +101,58 @@ export interface Timeline {
   excludedMachineCount: number
 }
 
+/** Announced deployments are not commissioned yet, so no timeline measure counts them */
+const notAnnounced = sql`${tables.deployment.status} IS DISTINCT FROM 'announced'`
+const startYear = sql<number | null>`COALESCE(${tables.deployment.commissioningYear}::int, EXTRACT(YEAR FROM ${tables.deployment.commissioningDate})::int)`
+// valid_to is inclusive, so a deployment is in service on 31 December of every year up to this one
+const lastYearInService = sql<number | null>`EXTRACT(YEAR FROM ${tables.deployment.validTo} + 1)::int - 1`
+
 /** Per year to the current year: machines newly commissioned (FR-30) and in service on 31 December (FR-22). */
 export async function findTimeline(filters: DeploymentFilters): Promise<Timeline> {
-  const params: unknown[] = []
-  const where = buildWhere(filters, params)
-
-  const [years, excluded] = await Promise.all([
-    query<{ year: number; newly_commissioned: number; in_service: number }>(
-      `
-      WITH dated AS (
-        SELECT
-          d.quantity,
-          COALESCE(d.commissioning_year::int, EXTRACT(YEAR FROM d.commissioning_date)::int) AS start_year,
-          d.valid_to
-        ${FROM_VERIFIED_DEPLOYMENTS}
-        ${where}
-          -- Announced deployments are not commissioned yet, so neither measure counts them
-          AND d.status IS DISTINCT FROM 'announced'
-      ),
-      span AS (
-        SELECT generate_series(MIN(start_year), EXTRACT(YEAR FROM CURRENT_DATE)::int) AS year
-        FROM dated
-        WHERE start_year IS NOT NULL
-      )
-      SELECT
-        span.year,
-        COALESCE(SUM(dated.quantity) FILTER (WHERE dated.start_year = span.year), 0)::int AS newly_commissioned,
-        COALESCE(SUM(dated.quantity) FILTER (
-          WHERE dated.valid_to IS NULL OR dated.valid_to >= make_date(span.year, 12, 31)
-        ), 0)::int AS in_service
-      FROM span
-      LEFT JOIN dated ON dated.start_year <= span.year
-      GROUP BY span.year
-      ORDER BY span.year
-      `,
-      params,
-    ),
-    query<{ excluded_count: number; excluded_machine_count: number }>(
-      `
-      SELECT COUNT(*)::int AS excluded_count, COALESCE(SUM(d.quantity), 0)::int AS excluded_machine_count
-      ${FROM_VERIFIED_DEPLOYMENTS}
-      ${where}
-        AND d.status IS DISTINCT FROM 'announced'
-        AND d.commissioning_year IS NULL
-        AND d.commissioning_date IS NULL
-      `,
-      params,
-    ),
+  const [groups, excluded, [today]] = await Promise.all([
+    db.select({ startYear, lastYearInService, machines: sql<number>`SUM(${tables.deployment.quantity})::int` })
+      .from(tables.deployment)
+      .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+      .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+      .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+      .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+      .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+      .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+      .where(and(buildWhere(filters), notAnnounced, sql`${startYear} IS NOT NULL`))
+      .groupBy(startYear, lastYearInService),
+    db.select({
+      count: sql<number>`COUNT(*)::int`,
+      machines: sql<number>`COALESCE(SUM(${tables.deployment.quantity}), 0)::int`,
+    })
+      .from(tables.deployment)
+      .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+      .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+      .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+      .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+      .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+      .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+      .where(and(buildWhere(filters), notAnnounced, sql`${startYear} IS NULL`)),
+    db.execute<{ year: number }>(sql`SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int AS year`).then((result) => result.rows),
   ])
 
+  const currentYear = today?.year ?? new Date().getFullYear()
+  const firstYear = Math.min(...groups.map((group) => group.startYear ?? currentYear))
+  const years: TimelineYear[] = []
+  for (let year = firstYear; groups.length > 0 && year <= currentYear; year += 1) {
+    let newlyCommissioned = 0
+    let inService = 0
+    for (const group of groups) {
+      if (group.startYear === year) newlyCommissioned += group.machines
+      if (group.startYear !== null && group.startYear <= year && (group.lastYearInService === null || group.lastYearInService >= year)) {
+        inService += group.machines
+      }
+    }
+    years.push({ year, newlyCommissioned, inService })
+  }
+
   return {
-    years: years.map((row) => ({ year: row.year, newlyCommissioned: row.newly_commissioned, inService: row.in_service })),
-    excludedCount: excluded[0]?.excluded_count ?? 0,
-    excludedMachineCount: excluded[0]?.excluded_machine_count ?? 0,
+    years,
+    excludedCount: excluded[0]?.count ?? 0,
+    excludedMachineCount: excluded[0]?.machines ?? 0,
   }
 }
