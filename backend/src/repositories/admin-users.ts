@@ -54,3 +54,30 @@ export async function updateAdminPassword(id: number, passwordHash: string): Pro
     [id, passwordHash],
   )
 }
+
+export interface AdminAccount {
+  id: number
+  email: string
+  role: AdminRole
+  active: boolean
+  must_change_password: boolean
+  created_at: string
+}
+
+/** Every account, root accounts first. */
+export async function listAdmins(): Promise<AdminAccount[]> {
+  return query<AdminAccount>(`
+    SELECT id::int AS id, email, role::text AS role, active, must_change_password, created_at
+    FROM admin_user
+    ORDER BY role = 'root' DESC, email
+  `)
+}
+
+/** Activates or deactivates an administrator; root accounts are never changed here. */
+export async function setAdminActive(id: number, active: boolean): Promise<boolean> {
+  const rows = await query<{ id: number }>(
+    `UPDATE admin_user SET active = $2 WHERE id = $1 AND role = 'admin' RETURNING id::int AS id`,
+    [id, active],
+  )
+  return rows.length > 0
+}

@@ -5,9 +5,13 @@ import { changePassword, createAdmin } from '../services/admin-auth.js'
 
 export const TEST_ADMIN_PASSWORD = 'a much longer password'
 
-/** Creates an administrator with a changed password, signs in, and returns the id and session cookie. */
-export async function signedInAdmin(app: Application, email = 'reviewer@example.com'): Promise<{ id: number; cookie: string }> {
-  const created = await createAdmin(email, 'admin')
+/** Creates an account with a changed password, signs in, and returns the id and session cookie. */
+export async function signedInAdmin(
+  app: Application,
+  email = 'reviewer@example.com',
+  role: 'root' | 'admin' = 'admin',
+): Promise<{ id: number; cookie: string }> {
+  const created = await createAdmin(email, role)
   if (created.kind !== 'created') throw new Error('admin was not created')
   await changePassword(created.id, created.temporaryPassword, TEST_ADMIN_PASSWORD)
 
