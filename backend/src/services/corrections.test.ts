@@ -23,9 +23,10 @@ function input(body: Record<string, unknown>) {
 }
 
 /** Polls until the given number of sessions are blocked on a row lock. */
-async function waitForLockWaiters(client: Client, count: number): Promise<void> {
+async function waitForLockWaiters(count: number): Promise<void> {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const { rows } = await client.query<{ waiting: number }>(
+    // Pool queries autocommit; inside one transaction pg_stat_activity would stay a frozen snapshot
+    const rows = await query<{ waiting: number }>(
       `SELECT COUNT(*)::int AS waiting FROM pg_stat_activity
        WHERE datname = current_database() AND wait_event_type = 'Lock'`,
     )
@@ -72,7 +73,7 @@ describe('correctDeployment', () => {
         correctDeployment(10, input({ quantity: 100 })),
         correctDeployment(10, input({ quantity: 120 })),
       ])
-      await waitForLockWaiters(holder, 2)
+      await waitForLockWaiters(2)
       await holder.query('COMMIT')
       outcomes = await pending
     } finally {
