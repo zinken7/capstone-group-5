@@ -7,11 +7,11 @@ import * as tables from '../db/schema.js'
 import type { DeploymentFilters } from '../lib/deployment-filters.js'
 
 // company joins twice: once as the machine manufacturer, once as the technology supplier
-const manufacturer = alias(tables.company, 'manufacturer')
-const supplier = alias(tables.company, 'supplier')
+export const manufacturer = alias(tables.company, 'manufacturer')
+export const supplier = alias(tables.company, 'supplier')
 
 /** The deployment's own level wins; the product level is the fallback. */
-const effectiveAutomationLevel = sql<string | null>`COALESCE(${tables.deployment.automationLevel}, ${tables.technologyProduct.automationLevel})::text`
+export const effectiveAutomationLevel = sql<string | null>`COALESCE(${tables.deployment.automationLevel}, ${tables.technologyProduct.automationLevel})::text`
 
 export const REGISTER_SORTS = {
   site: tables.site.name,
@@ -74,7 +74,7 @@ function likePattern(text: string): string {
 }
 
 /** Builds the WHERE condition; values bind as parameters, never into the SQL text (NFR-05). */
-function buildWhere(filters: DeploymentFilters): SQL | undefined {
+export function buildWhere(filters: DeploymentFilters): SQL | undefined {
   const conditions: SQL[] = [eq(tables.deployment.verificationStatus, 'verified')]
 
   if (filters.q !== undefined) {
