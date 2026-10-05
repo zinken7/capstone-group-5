@@ -55,7 +55,9 @@ API DTOs stay separate from persistence rows: routes shape responses from reposi
 `src/db/schema.ts` and `src/db/relations.ts` are generated — do not edit them by hand. They are introspected from a freshly migrated database:
 
 - `npm run db:schema:update` replays `migrations/` into a scratch database, re-introspects it with drizzle-kit and rewrites `src/db/`;
-- `npm run db:schema:check` does the same and fails when the committed files differ. CI runs it on every backend change.
+- `npm run db:schema:check` does the same and fails when the committed files differ, printing the diff. CI runs it on every backend change.
+
+Introspection only runs against PostgreSQL 17 with PostGIS 3.5 — the CI image (`postgis/postgis:17-3.5`) — because different PostgreSQL versions introspect the same schema differently. Both commands use `DATABASE_URL` when it already points at those versions; otherwise they start the Docker Compose `db` service (the same image) and use that, which needs `POSTGRES_USER`/`POSTGRES_PASSWORD` in the root `.env`. Any other server, such as a local PostgreSQL 16, is refused with instructions.
 
 The SQL files in `migrations/` remain the only migration authority, for fresh and existing databases alike, and `npm run db:migrate` applies them. drizzle-kit is used for introspection only; never generate or apply drizzle-kit migrations. To change the schema: write a new SQL migration, run `npm run db:migrate`, then `npm run db:schema:update`, and commit the migration together with the regenerated schema.
 

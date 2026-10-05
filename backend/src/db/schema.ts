@@ -1,6 +1,7 @@
-import { pgTable, unique, bigint, text, index, foreignKey, geometry, timestamp, check, integer, date, smallint, jsonb, uniqueIndex, numeric, boolean, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, unique, bigint, text, index, foreignKey, geometry, timestamp, check, boolean, integer, date, smallint, jsonb, uniqueIndex, numeric, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
+export const adminRole = pgEnum("admin_role", ['root', 'admin'])
 export const automationLevel = pgEnum("automation_level", ['operator_assistance', 'teleremote', 'semi_autonomous', 'autonomous'])
 export const companyRole = pgEnum("company_role", ['owner', 'operator', 'contractor'])
 export const deploymentStatus = pgEnum("deployment_status", ['announced', 'commissioning', 'operational', 'decommissioned'])
@@ -95,6 +96,20 @@ export const technologyProduct = pgTable("technology_product", {
 	unique("technology_product_supplier_product_unique").on(table.supplierId, table.productName),
 ]);
 
+export const adminUser = pgTable("admin_user", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "admin_user_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	email: text().notNull(),
+	passwordHash: text("password_hash").notNull(),
+	active: boolean().default(true).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	role: adminRole().default('admin').notNull(),
+	mustChangePassword: boolean("must_change_password").default(false).notNull(),
+}, (table) => [
+	unique("admin_user_email_key").on(table.email),
+	check("admin_user_password_hash_check", sql`btrim(password_hash) <> ''::text`),
+]);
+
 export const deployment = pgTable("deployment", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "deployment_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
@@ -145,6 +160,31 @@ export const deployment = pgTable("deployment", {
 	check("deployment_verified_requires_technology_product", sql`(verification_status <> 'verified'::verification_status) OR (technology_product_id IS NOT NULL)`),
 	check("deployment_validity_ordered", sql`(valid_to IS NULL) OR (valid_from IS NULL) OR (valid_to >= valid_from)`),
 	check("deployment_commissioning_precision", sql`(commissioning_date IS NULL) OR ((commissioning_year IS NOT NULL) AND ((commissioning_year)::numeric = EXTRACT(year FROM commissioning_date)))`),
+]);
+
+export const verificationReview = pgTable("verification_review", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "verification_review_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	adminUserId: bigint("admin_user_id", { mode: "number" }).notNull(),
+	decision: verificationDecision().notNull(),
+	reviewNote: text("review_note"),
+	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("verification_review_admin_user_idx").using("btree", table.adminUserId.asc().nullsLast().op("int8_ops")),
+	index("verification_review_deployment_reviewed_idx").using("btree", table.deploymentId.asc().nullsLast().op("int8_ops"), table.reviewedAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "verification_review_deployment_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.adminUserId],
+			foreignColumns: [adminUser.id],
+			name: "verification_review_admin_user_id_fkey"
+		}),
 ]);
 
 export const revision = pgTable("revision", {
@@ -230,41 +270,4 @@ export const evidence = pgTable("evidence", {
 		}),
 	unique("evidence_deployment_url_unique").on(table.deploymentId, table.url),
 	check("evidence_url_check", sql`btrim(url) <> ''::text`),
-]);
-
-export const verificationReview = pgTable("verification_review", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "verification_review_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	deploymentId: bigint("deployment_id", { mode: "number" }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	adminUserId: bigint("admin_user_id", { mode: "number" }).notNull(),
-	decision: verificationDecision().notNull(),
-	reviewNote: text("review_note"),
-	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	index("verification_review_admin_user_idx").using("btree", table.adminUserId.asc().nullsLast().op("int8_ops")),
-	index("verification_review_deployment_reviewed_idx").using("btree", table.deploymentId.asc().nullsLast().op("int8_ops"), table.reviewedAt.asc().nullsLast().op("int8_ops")),
-	foreignKey({
-			columns: [table.deploymentId],
-			foreignColumns: [deployment.id],
-			name: "verification_review_deployment_id_fkey"
-		}),
-	foreignKey({
-			columns: [table.adminUserId],
-			foreignColumns: [adminUser.id],
-			name: "verification_review_admin_user_id_fkey"
-		}),
-]);
-
-export const adminUser = pgTable("admin_user", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "admin_user_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	email: text().notNull(),
-	passwordHash: text("password_hash").notNull(),
-	active: boolean().default(true).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	unique("admin_user_email_key").on(table.email),
-	check("admin_user_password_hash_check", sql`btrim(password_hash) <> ''::text`),
 ]);

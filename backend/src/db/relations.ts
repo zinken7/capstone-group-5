@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { region, site, siteCompanyRole, company, technologyProduct, deployment, machineModel, revision, contributor, adminUser, evidence, verificationReview } from "./schema.js";
+import { region, site, siteCompanyRole, company, technologyProduct, deployment, machineModel, verificationReview, adminUser, revision, contributor, evidence } from "./schema.js";
 
 export const siteRelations = relations(site, ({one, many}) => ({
 	region: one(region, {
@@ -52,9 +52,9 @@ export const deploymentRelations = relations(deployment, ({one, many}) => ({
 		fields: [deployment.technologyProductId],
 		references: [technologyProduct.id]
 	}),
+	verificationReviews: many(verificationReview),
 	revisions: many(revision),
 	evidences: many(evidence),
-	verificationReviews: many(verificationReview),
 }));
 
 export const machineModelRelations = relations(machineModel, ({one, many}) => ({
@@ -63,6 +63,22 @@ export const machineModelRelations = relations(machineModel, ({one, many}) => ({
 		fields: [machineModel.manufacturerId],
 		references: [company.id]
 	}),
+}));
+
+export const verificationReviewRelations = relations(verificationReview, ({one}) => ({
+	deployment: one(deployment, {
+		fields: [verificationReview.deploymentId],
+		references: [deployment.id]
+	}),
+	adminUser: one(adminUser, {
+		fields: [verificationReview.adminUserId],
+		references: [adminUser.id]
+	}),
+}));
+
+export const adminUserRelations = relations(adminUser, ({many}) => ({
+	verificationReviews: many(verificationReview),
+	revisions: many(revision),
 }));
 
 export const revisionRelations = relations(revision, ({one}) => ({
@@ -84,25 +100,9 @@ export const contributorRelations = relations(contributor, ({many}) => ({
 	revisions: many(revision),
 }));
 
-export const adminUserRelations = relations(adminUser, ({many}) => ({
-	revisions: many(revision),
-	verificationReviews: many(verificationReview),
-}));
-
 export const evidenceRelations = relations(evidence, ({one}) => ({
 	deployment: one(deployment, {
 		fields: [evidence.deploymentId],
 		references: [deployment.id]
-	}),
-}));
-
-export const verificationReviewRelations = relations(verificationReview, ({one}) => ({
-	deployment: one(deployment, {
-		fields: [verificationReview.deploymentId],
-		references: [deployment.id]
-	}),
-	adminUser: one(adminUser, {
-		fields: [verificationReview.adminUserId],
-		references: [adminUser.id]
 	}),
 }));
