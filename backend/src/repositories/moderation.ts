@@ -37,11 +37,23 @@ export interface QueueItem {
   technology_product: string | null
   evidence_count: number
   submitted_at: string
+  /** A new or returned record, or a proposed correction to a verified one. */
+  kind: 'submission' | 'correction'
+  correction_id: number | null
+  /** API field names a correction would change; empty for a submission. */
+  changed_fields: string[]
+  contributor_email: string | null
+  contributor_organisation: string | null
 }
 
+// Who submitted the record, from its create revision; null for imported or anonymous records
+const submitter = (column: 'email' | 'organisation') =>
+  sql<string | null>`(SELECT c.${sql.raw(column)} FROM ${tables.revision} r JOIN ${tables.contributor} c ON c.id = r.contributor_id
+    WHERE r.deployment_id = "deployment"."id" AND r.action = 'create' ORDER BY r.id LIMIT 1)`
+
 /** Records waiting for a decision, least recently changed first. */
-export async function listPendingReviews(): Promise<QueueItem[]> {
-  return await db
+export async function listPendingSubmissions(): Promise<QueueItem[]> {
+  const rows = await db
     .select({
       id: tables.deployment.id,
       site_name: tables.site.name,
@@ -55,6 +67,8 @@ export async function listPendingReviews(): Promise<QueueItem[]> {
       technology_product: tables.technologyProduct.productName,
       evidence_count: evidenceCount,
       submitted_at: isoTimestamp(tables.deployment.updatedAt),
+      contributor_email: submitter('email'),
+      contributor_organisation: submitter('organisation'),
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
@@ -65,6 +79,47 @@ export async function listPendingReviews(): Promise<QueueItem[]> {
     .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
     .where(eq(tables.deployment.verificationStatus, 'pending_review'))
     .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
+  return rows.map((row) => ({ ...row, kind: 'submission', correction_id: null, changed_fields: [] }))
+}
+
+/** Proposed corrections to verified records, oldest first; the record fields are its current values. */
+export async function listPendingCorrections(): Promise<QueueItem[]> {
+  const rows = await db
+    .select({
+      id: tables.deployment.id,
+      correction_id: tables.deploymentCorrection.id,
+      site_name: tables.site.name,
+      country_code: tables.site.countryCode,
+      region: tables.region.name,
+      machine_manufacturer: manufacturer.name,
+      machine_model: tables.machineModel.modelName,
+      machine_type: tables.machineModel.machineType,
+      quantity: tables.deployment.quantity,
+      technology_supplier: supplier.name,
+      technology_product: tables.technologyProduct.productName,
+      // The sources supplied with the correction, not the record's existing evidence
+      evidence_count: sql<number>`cardinality(${tables.deploymentCorrection.evidenceUrls})`,
+      submitted_at: isoTimestamp(tables.deploymentCorrection.submittedAt),
+      proposed_values: sql<Record<string, unknown>>`${tables.deploymentCorrection.proposedValues}`,
+      contributor_email: tables.contributor.email,
+      contributor_organisation: tables.contributor.organisation,
+    })
+    .from(tables.deploymentCorrection)
+    .innerJoin(tables.deployment, eq(tables.deployment.id, tables.deploymentCorrection.deploymentId))
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(tables.contributor, eq(tables.contributor.id, tables.deploymentCorrection.contributorId))
+    .where(eq(tables.deploymentCorrection.status, 'pending'))
+    .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id))
+  return rows.map(({ proposed_values, ...row }) => ({
+    ...row,
+    kind: 'correction',
+    changed_fields: [...Object.keys(proposed_values), ...(row.evidence_count > 0 ? ['evidence_urls'] : [])],
+  }))
 }
 
 export interface ReviewRecord {
@@ -93,7 +148,8 @@ export interface ReviewRecord {
   created_at: string
   updated_at: string
   evidence: { url: string; source_type: string; publisher: string | null; published_date: string | null }[]
-  reviews: { decision: string; note: string | null; administrator: string; reviewed_at: string }[]
+  reviews: { decision: string; note: string | null; administrator: string; reviewed_at: string; correction_id: number | null }[]
+  corrections: CorrectionView[]
   revisions: {
     action: string
     previous_values: Record<string, unknown> | null
@@ -105,7 +161,34 @@ export interface ReviewRecord {
   }[]
 }
 
-/** One record in any verification status, with its evidence and full history. */
+export interface CorrectionView {
+  id: number
+  status: string
+  submitted_at: string
+  contributor_email: string | null
+  contributor_organisation: string | null
+  change_note: string | null
+  evidence_urls: string[]
+  /** before: when the correction was submitted; current: the record now, which differs if it changed since. */
+  changes: { field: string; before: unknown; proposed: unknown; current: unknown }[]
+}
+
+type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections'>
+
+/** A record's current value for each field a correction can propose, in the stored proposal format. */
+function currentValue(record: RecordFields, field: string): unknown {
+  switch (field) {
+    case 'quantity': return record.quantity
+    case 'environment': return record.environment
+    case 'deployment_status': return record.status
+    case 'automation_level': return record.automation_level
+    case 'installation_type': return record.installation_type
+    case 'commissioning_date': return record.commissioning_date ?? record.commissioning_year?.toString() ?? null
+    default: return null
+  }
+}
+
+/** One record in any verification status, with its evidence, corrections and full history. */
 export async function findReviewRecord(id: number): Promise<ReviewRecord | null> {
   const rows = await db
     .select({
@@ -145,7 +228,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
   const record = rows[0]
   if (!record) return null
 
-  const [evidence, reviews, revisions] = await Promise.all([
+  const [evidence, reviews, revisions, corrections] = await Promise.all([
     db
       .select({
         url: tables.evidence.url,
@@ -162,6 +245,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
         note: tables.verificationReview.reviewNote,
         administrator: tables.adminUser.email,
         reviewed_at: isoTimestamp(tables.verificationReview.reviewedAt),
+        correction_id: tables.verificationReview.correctionId,
       })
       .from(tables.verificationReview)
       .innerJoin(tables.adminUser, eq(tables.adminUser.id, tables.verificationReview.adminUserId))
@@ -182,8 +266,38 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       .leftJoin(tables.adminUser, eq(tables.adminUser.id, tables.revision.adminUserId))
       .where(eq(tables.revision.deploymentId, id))
       .orderBy(asc(tables.revision.changedAt), asc(tables.revision.id)),
+    db
+      .select({
+        id: tables.deploymentCorrection.id,
+        status: tables.deploymentCorrection.status,
+        submitted_at: isoTimestamp(tables.deploymentCorrection.submittedAt),
+        contributor_email: tables.contributor.email,
+        contributor_organisation: tables.contributor.organisation,
+        change_note: tables.deploymentCorrection.changeNote,
+        evidence_urls: tables.deploymentCorrection.evidenceUrls,
+        proposed_values: sql<Record<string, unknown>>`${tables.deploymentCorrection.proposedValues}`,
+        base_values: sql<Record<string, unknown>>`${tables.deploymentCorrection.baseValues}`,
+      })
+      .from(tables.deploymentCorrection)
+      .leftJoin(tables.contributor, eq(tables.contributor.id, tables.deploymentCorrection.contributorId))
+      .where(eq(tables.deploymentCorrection.deploymentId, id))
+      .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id)),
   ])
-  return { ...record, evidence, reviews, revisions }
+  return {
+    ...record,
+    evidence,
+    reviews,
+    revisions,
+    corrections: corrections.map(({ proposed_values, base_values, ...correction }) => ({
+      ...correction,
+      changes: Object.entries(proposed_values).map(([field, proposed]) => ({
+        field,
+        before: base_values[field] ?? null,
+        proposed,
+        current: currentValue(record, field),
+      })),
+    })),
+  }
 }
 
 /** Locks the record for a decision and returns what the decision rules need. */
@@ -209,6 +323,8 @@ export async function insertReview(tx: Tx, review: {
   adminUserId: number
   decision: string
   note: string | null
+  /** Set when the decision is on a proposed correction rather than the record itself. */
+  correctionId?: number | null
 }): Promise<number> {
   const rows = await tx.db
     .insert(tables.verificationReview)
@@ -218,6 +334,7 @@ export async function insertReview(tx: Tx, review: {
       // Validated against the controlled values upstream; the database enum still rejects anything else
       decision: review.decision as (typeof tables.verificationReview.$inferInsert)['decision'],
       reviewNote: review.note,
+      correctionId: review.correctionId ?? null,
     })
     .returning({ id: tables.verificationReview.id })
   const row = rows[0]
