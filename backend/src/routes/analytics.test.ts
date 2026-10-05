@@ -30,6 +30,12 @@ describe('GET /api/analytics/summary', () => {
     expect(response.body).toEqual({ machine_count: 5, site_count: 1, country_count: 1 })
   })
 
+  it('applies site_id like the other shared filters', async () => {
+    const response = await request(app).get('/api/analytics/summary?site_id=1')
+
+    expect(response.body).toEqual({ machine_count: 116, site_count: 1, country_count: 1 })
+  })
+
   it('returns zeros when nothing matches', async () => {
     const response = await request(app).get('/api/analytics/summary?country=CA')
 
