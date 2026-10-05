@@ -9,6 +9,10 @@ export interface MapQuery {
   supplier?: string
   /** YYYY-MM-DD */
   date?: string
+  /** In service on 31 December of this year; use instead of date */
+  year?: number
+  /** With date or year, also keep sites whose deployments had ended */
+  includeDecommissioned?: boolean
   country?: string
   region?: string
   machineType?: string
@@ -27,8 +31,13 @@ export interface MapFeatureDto {
   properties: {
     id: number
     name: string
+    country_code: string
+    region: string | null
+    commodity: string | null
     status: DeploymentStatus
     technology_suppliers: string[]
+    machine_count: number
+    deployment_count: number
   }
 }
 
@@ -49,7 +58,8 @@ export interface SiteDeploymentDto {
   environment: MiningEnvironment
   status: DeploymentStatus
   commissioning_date: string | null
-  valid_from: string
+  commissioning_year: number | null
+  valid_from: string | null
   valid_to: string | null
 }
 
@@ -71,8 +81,14 @@ export interface MapMarker {
   name: string
   latitude: number
   longitude: number
+  countryCode: string
+  region: string | null
+  commodity: string | null
   status: DeploymentStatus
   technologySuppliers: string[]
+  /** Machines and deployments in the map's view: in service at the date or year when one is given */
+  machineCount: number
+  deploymentCount: number
 }
 
 export interface MapResult {
@@ -91,7 +107,8 @@ export interface SiteDeployment {
   environment: MiningEnvironment
   status: DeploymentStatus
   commissioningDate: string | null
-  validFrom: string
+  commissioningYear: number | null
+  validFrom: string | null
   validTo: string | null
 }
 

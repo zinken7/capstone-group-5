@@ -13,8 +13,13 @@ const mapDto: MapResponseDto = {
     properties: {
       id: 1,
       name: 'Roy Hill',
+      country_code: 'AU',
+      region: 'Pilbara',
+      commodity: 'iron_ore',
       status: 'decommissioned',
       technology_suppliers: ['Caterpillar', 'RCT'],
+      machine_count: 20,
+      deployment_count: 1,
     },
   }],
 }
@@ -40,8 +45,13 @@ describe('getMap', () => {
         name: 'Roy Hill',
         longitude: 118.7,
         latitude: -22.3,
+        countryCode: 'AU',
+        region: 'Pilbara',
+        commodity: 'iron_ore',
         status: 'decommissioned',
         technologySuppliers: ['Caterpillar', 'RCT'],
+        machineCount: 20,
+        deploymentCount: 1,
       }],
     })
     expect(fetchMock.mock.calls[0][0]).toBe('/api/map')
@@ -73,6 +83,15 @@ describe('getMap', () => {
       commodity: 'iron_ore',
       environment: 'surface',
     })
+  })
+
+  it('sends the year and the decommissioned flag only when they are set', async () => {
+    fetchMock.mockImplementation(async () => Response.json(mapDto))
+    await getMap({ year: 2026, includeDecommissioned: true })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/map?year=2026&include_decommissioned=true')
+
+    await getMap({ year: 2026, includeDecommissioned: false })
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/map?year=2026')
   })
 
   it('omits undefined query parameters', async () => {
