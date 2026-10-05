@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 
 const pageTitles: [string, string][] = [
@@ -16,6 +16,7 @@ const pageTitles: [string, string][] = [
 
 function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
+  const inAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/')
 
   useEffect(() => {
     // Only routes explicitly ending in `/` own nested paths. Public pages and
@@ -48,6 +49,8 @@ function AppLayout({ children }: PropsWithChildren) {
       <main className="page-content" id="main-content">{children}</main>
       <footer className="site-footer">
         <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
+        {/* The way in for administrators; the pages behind it still require a sign-in */}
+        {!inAdmin && <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>}
       </footer>
     </div>
   )
