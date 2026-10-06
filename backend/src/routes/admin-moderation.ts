@@ -118,6 +118,10 @@ router.patch('/admin/deployments/:id', ...requireAdmin(), async (req, res, next)
       res.status(404).json({ error: 'deployment not found' })
       return
     }
+    if (outcome.kind === 'missing_technology_product') {
+      res.status(409).json({ error: 'a technology product is required before its automation level can be classified' })
+      return
+    }
     if (outcome.kind === 'unchanged') {
       res.status(400).json({ error: 'correction does not change the record' })
       return

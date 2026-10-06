@@ -90,6 +90,7 @@ export interface ReviewRecord {
   quantity: number
   technologySupplier: string | null
   technologyProduct: string | null
+  technologyAutomationLevel?: string | null
   automationLevel: string | null
   environment: string | null
   installationType: string
@@ -114,6 +115,8 @@ export interface AdminCorrection {
   automationLevel?: string
   /** Requests the backend to remove an existing automation level. */
   clearAutomationLevel?: boolean
+  technologyAutomationLevel?: string
+  clearTechnologyAutomationLevel?: boolean
   installationType?: string
   commissioningDate?: string
   latitude?: number

@@ -37,6 +37,7 @@ function currentValueForField(record: ReviewRecord, field: string): unknown {
     commissioning_date: record.commissioningDate ?? record.commissioningYear,
     technology_supplier: record.technologySupplier,
     technology_product: record.technologyProduct,
+    technology_automation_level: record.technologyAutomationLevel,
     evidence_urls: record.evidence.map((item) => item.url),
     verification_status: record.verificationStatus,
   }
@@ -115,6 +116,7 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['Machine type', formatEnumLabel(record.machineType)],
     ['Quantity', formatNumber(record.quantity)],
     ['Technology', record.technologyProduct ? `${record.technologySupplier ?? ''} ${record.technologyProduct}`.trim() : 'Not recorded'],
+    ['Product automation level', formatEnumLabel(record.technologyAutomationLevel)],
     ['Automation level', formatEnumLabel(record.automationLevel)],
     ['Mining environment', formatEnumLabel(record.environment)],
     ['Deployment status', formatEnumLabel(record.status)],

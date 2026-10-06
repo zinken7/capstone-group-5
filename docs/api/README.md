@@ -321,9 +321,16 @@ Returns the controlled values accepted by the contribution and correction endpoi
   "environments": ["surface", "underground", "both"],
   "deployment_statuses": ["announced", "commissioning", "operational", "decommissioned"],
   "installation_types": ["factory_installed", "retrofit", "unknown"],
-  "countries": ["AU", "BR", "CA", "CL", "FI", "ID", "PE", "SE", "US", "XR", "ZA"]
+  "countries": ["AU", "BR", "CA", "CL", "FI", "ID", "PE", "SE", "US", "XR", "ZA"],
+  "technology_products": [
+    { "supplier": "Sandvik", "product": "AutoMine", "automation_level": "semi_autonomous" }
+  ]
 }
 ```
+
+`technology_products` contains products already named in the dataset. A non-null
+`automation_level` is the administrator-maintained product classification; the
+contribution form uses it as a default when the supplier and product match.
 
 ---
 
@@ -571,7 +578,11 @@ Takes the fields of the public correction (`quantity`, `environment`,
 `technology_supplier` and `technology_product`, which must be given together,
 `latitude` and `longitude` together for a contributed site, and
 `clear_automation_level: true`, which removes the deployment's automation
-level (FR-57); it cannot be combined with `automation_level`.
+level (FR-57); it cannot be combined with `automation_level`. The separate
+`technology_automation_level` field classifies the named technology product;
+`clear_technology_automation_level: true` removes that product classification
+and cannot be combined with `technology_automation_level`. A product is
+required before either product-level operation can be applied.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",

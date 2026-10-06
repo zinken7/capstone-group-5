@@ -284,6 +284,19 @@ describe('PATCH /api/admin/deployments/:id', () => {
     expect(latest?.previous_values).toEqual({ automation_level: 'teleremote' })
   })
 
+  it('classifies the technology product separately from the deployment level', async () => {
+    const response = await correct(12, { technology_automation_level: 'autonomous' })
+    expect(response.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM technology_product WHERE id = 3')).toEqual([{ automation_level: 'autonomous' }])
+
+    const record = (await request(app).get('/api/admin/deployments/12').set('Cookie', cookie)).body
+    expect(record.technology_automation_level).toBe('autonomous')
+    const [revision] = await query<{ previous_values: Record<string, unknown> }>(
+      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id DESC LIMIT 1',
+    )
+    expect(revision?.previous_values).toEqual({ technology_automation_level: 'semi_autonomous' })
+  })
+
   it('treats clearing a level that is already empty as no change', async () => {
     const response = await correct(12, { clear_automation_level: true })
 

@@ -26,6 +26,7 @@ describe('getContributionReferenceData', () => {
       environments: ['surface', 'underground', 'both'],
       deployment_statuses: ['operational'],
       installation_types: ['factory_installed', 'retrofit', 'unknown'],
+      technology_products: [{ supplier: 'Sandvik', product: 'AutoMine', automation_level: 'semi_autonomous' }],
     }))
 
     const result = await getContributionReferenceData()
@@ -39,6 +40,7 @@ describe('getContributionReferenceData', () => {
       ['haul_truck', 'Haul truck'],
       ['loader', 'Loader'],
     ])
+    expect(result.technologyProducts).toEqual([{ supplier: 'Sandvik', product: 'AutoMine', automationLevel: 'semi_autonomous' }])
   })
 
   it('uses country-specific labels when countries come from the API', async () => {

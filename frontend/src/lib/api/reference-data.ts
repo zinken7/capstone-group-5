@@ -4,6 +4,7 @@ import {
   COUNTRIES,
   type ContributionReferenceData,
   type ReferenceOption,
+  type TechnologyProductReference,
 } from '../../features/contribute/types'
 
 interface ReferenceDataResponseDto {
@@ -13,6 +14,7 @@ interface ReferenceDataResponseDto {
   deployment_statuses: unknown
   installation_types: unknown
   countries?: unknown
+  technology_products?: unknown
 }
 
 function toOptions(value: unknown, fieldName: string): readonly ReferenceOption[] {
@@ -28,6 +30,22 @@ function toCountryOptions(value: unknown): readonly ReferenceOption[] {
     code,
     COUNTRIES.find(([countryCode]) => countryCode === code)?.[1] ?? formatCountry(code),
   ] as ReferenceOption)
+}
+
+function toTechnologyProducts(value: unknown): readonly TechnologyProductReference[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new Error('Invalid reference data: technology_products')
+
+  return value.map((item, index) => {
+    if (typeof item !== 'object' || item === null) throw new Error(`Invalid reference data: technology_products[${index}]`)
+    const supplier = 'supplier' in item && typeof item.supplier === 'string' ? item.supplier.trim() : ''
+    const product = 'product' in item && typeof item.product === 'string' ? item.product.trim() : ''
+    const automationLevel = 'automation_level' in item && (item.automation_level === null || typeof item.automation_level === 'string')
+      ? item.automation_level
+      : undefined
+    if (!supplier || !product || automationLevel === undefined) throw new Error(`Invalid reference data: technology_products[${index}]`)
+    return { supplier, product, automationLevel }
+  })
 }
 
 /**
@@ -46,5 +64,6 @@ export async function getContributionReferenceData(): Promise<ContributionRefere
     automationLevels: toOptions(response.automation_levels, 'automation_levels'),
     installationTypes: toOptions(response.installation_types, 'installation_types'),
     countries: response.countries === undefined ? COUNTRIES : toCountryOptions(response.countries),
+    technologyProducts: toTechnologyProducts(response.technology_products),
   }
 }

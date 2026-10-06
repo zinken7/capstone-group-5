@@ -135,6 +135,19 @@
   pointer-events: none;
 }
 
+.choice-chip > span {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.choice-chip small {
+  max-inline-size: 18rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
 .evidence-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

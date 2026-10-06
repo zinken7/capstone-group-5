@@ -166,6 +166,7 @@ export interface ReviewRecord {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  technology_automation_level: string | null
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -237,6 +238,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       quantity: tables.deployment.quantity,
       technology_supplier: supplier.name,
       technology_product: tables.technologyProduct.productName,
+      technology_automation_level: sql<string | null>`${tables.technologyProduct.automationLevel}::text`,
       automation_level: tables.deployment.automationLevel,
       environment: tables.deployment.environment,
       installation_type: tables.deployment.installationType,
@@ -385,10 +387,10 @@ export async function setVerificationStatus(tx: Tx, id: number, status: string):
 }
 
 /** Supplier and product names of a technology product, for revision history. */
-export async function findTechnologyNames(tx: Tx, productId: number | null): Promise<{ supplier: string; product: string } | null> {
+export async function findTechnologyNames(tx: Tx, productId: number | null): Promise<{ supplier: string; product: string; automationLevel: string | null } | null> {
   if (productId === null) return null
   const rows = await tx.db
-    .select({ supplier: tables.company.name, product: tables.technologyProduct.productName })
+    .select({ supplier: tables.company.name, product: tables.technologyProduct.productName, automationLevel: sql<string | null>`${tables.technologyProduct.automationLevel}::text` })
     .from(tables.technologyProduct)
     .innerJoin(tables.company, eq(tables.company.id, tables.technologyProduct.supplierId))
     .where(eq(tables.technologyProduct.id, productId))

@@ -115,6 +115,7 @@ interface RecordDto {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  technology_automation_level?: string | null
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -164,6 +165,7 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     quantity: dto.quantity,
     technologySupplier: dto.technology_supplier,
     technologyProduct: dto.technology_product,
+    technologyAutomationLevel: dto.technology_automation_level ?? null,
     automationLevel: dto.automation_level,
     environment: dto.environment,
     installationType: dto.installation_type,
@@ -233,6 +235,8 @@ export async function correctRecord(id: number, correction: AdminCorrection): Pr
     deployment_status: correction.deploymentStatus,
     automation_level: correction.automationLevel,
     clear_automation_level: correction.clearAutomationLevel,
+    technology_automation_level: correction.technologyAutomationLevel,
+    clear_technology_automation_level: correction.clearTechnologyAutomationLevel,
     installation_type: correction.installationType,
     commissioning_date: correction.commissioningDate,
     latitude: correction.latitude,
