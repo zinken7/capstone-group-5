@@ -46,6 +46,12 @@ interface ChartRow {
 
 const STATUS_FILTERS = ['operational', 'commissioning', 'announced', 'decommissioned']
 const CHART_COLORS = ['#27348b', '#2563eb', '#0f766e', '#a4571b', '#6b21a8', '#64748b', '#c2410c']
+const AUTOMATION_COLORS: Record<string, string> = {
+  autonomous: '#166534',
+  teleremote: '#1d4ed8',
+  semi_autonomous: '#a16207',
+  operator_assistance: '#6b21a8',
+}
 
 function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -116,15 +122,25 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
     onChange(next)
   }
 
-  const select = (label: string, field: keyof AnalyticsFilters, options: readonly (readonly [string, string])[]) => (
+  const select = (label: string, field: keyof AnalyticsFilters, options: readonly (readonly [string, string])[]) => {
+    const allLabels: Partial<Record<keyof AnalyticsFilters, string>> = {
+      country: 'All countries',
+      machineType: 'All machine types',
+      supplier: 'All suppliers',
+      manufacturer: 'All manufacturers',
+      automationLevel: 'All automation levels',
+      environment: 'All environments',
+    }
+    return (
     <label className="analytics-filter" key={field}>
       <span>{label}</span>
       <select value={filters[field] ?? ''} onChange={(event) => set(field, event.target.value)}>
-        <option value="">All</option>
+        <option value="">{allLabels[field] ?? 'All'}</option>
         {options.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
       </select>
     </label>
-  )
+    )
+  }
 
   return (
     <section className="analytics-filters" aria-label="Analytics filters">
@@ -139,7 +155,7 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
   )
 }
 
-function ChartCard({ title, description, rows, loading, error, children, onFilter, actions }: {
+function ChartCard({ title, description, rows, loading, error, children, onFilter, actions, className = '' }: {
   title: string
   description: string
   rows: ChartRow[]
@@ -148,16 +164,17 @@ function ChartCard({ title, description, rows, loading, error, children, onFilte
   children: ReactNode
   onFilter?: (key: string) => void
   actions?: ReactNode
+  className?: string
 }) {
   const [table, setTable] = useState(false)
   const headingId = `analytics-${slugify(title)}-heading`
   return (
-    <section className="chart-card" aria-labelledby={headingId} aria-busy={loading}>
+    <section className={`chart-card ${className}`.trim()} aria-labelledby={headingId} aria-busy={loading}>
       <header className="chart-card__header">
         <div><h2 id={headingId}>{title}</h2><p>{description}</p></div>
         <div className="chart-card__actions">
           {actions}
-          <button className="button button--secondary chart-toggle" type="button" onClick={() => setTable((current) => !current)}>{table ? 'Show chart' : 'Show as table'}</button>
+          <button className="button button--secondary chart-toggle" type="button" aria-pressed={table} onClick={() => setTable((current) => !current)}>{table ? 'Show chart' : 'Show as table'}</button>
         </div>
       </header>
       {loading && <div className="chart-skeleton" role="status">Loading chart…</div>}
@@ -177,24 +194,39 @@ function HorizontalBars({ rows, color = '#27348b', onFilter, chartName }: { rows
     const key = rows[index]?.key
     if (onFilter && key) onFilter(key)
   }
-  return <>
-    <div className="chart-visual" role="img" aria-label={`${chartName} bar chart showing ${data.map((row) => `${row.label}: ${formatNumber(row.value)} machines, ${Math.round(row.share * 100)} percent`).join('; ')}`}>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 92, left: 12, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d8dee9" />
-          <XAxis type="number" tickFormatter={(value: number) => formatNumber(value)} />
-          <YAxis dataKey="label" type="category" width={132} tick={{ fontSize: 12 }} />
-          <Tooltip formatter={(value: unknown) => [formatTooltipValue(value), 'Machines']} />
-          <Bar dataKey="value" fill={color} radius={[0, 5, 5, 0]} onClick={onFilter ? handleBarClick : undefined}>
-            <LabelList dataKey="display" position="right" />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+
+  return (
+    <div className="chart-visual-wrapper" style={{ minHeight: height }}>
+      {onFilter && <div className="chart-category-controls" aria-label={`${chartName} filters`}>
+        {rows.map((row, index) => row.key ? (
+          <button
+            className="chart-category-control"
+            key={`${row.label}-${index}`}
+            type="button"
+            style={{ height: 38 }}
+            aria-label={`Filter by ${row.label}`}
+            onClick={() => onFilter(row.key as string)}
+          >
+            {row.label}
+          </button>
+        ) : <span className="chart-category-label" key={`${row.label}-${index}`}>{row.label}</span>)}
+      </div>}
+      <div className="chart-visual" role="img" aria-label={`${chartName} bar chart showing ${data.map((row) => `${row.label}: ${formatNumber(row.value)} machines, ${Math.round(row.share * 100)} percent`).join('; ')}`}>
+        <ResponsiveContainer width="100%" height={height}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 92, left: 12, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d8dee9" />
+            <XAxis type="number" tickCount={5} allowDecimals={false} domain={[0, 'auto']} tickFormatter={(value: number) => formatNumber(value)} />
+            <YAxis dataKey="label" type="category" width={132} tick={onFilter ? false : { fontSize: 12 }} />
+            <Tooltip formatter={(value: unknown) => [formatTooltipValue(value), 'Machines']} />
+            <Bar dataKey="value" fill={color} radius={[0, 5, 5, 0]} onClick={onFilter ? handleBarClick : undefined}>
+              {rows.map((row, index) => <Cell key={`${row.label}-${index}`} fill={row.key ? (AUTOMATION_COLORS[row.key] ?? color) : color} />)}
+              <LabelList dataKey="display" position="right" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-    <ul className="chart-bar-options" aria-label={`${chartName} values`}>
-      {rows.map((row, index) => <li key={`${row.label}-${index}`}>{onFilter && row.key ? <button type="button" onClick={() => onFilter(row.key as string)}>{row.label}: {formatNumber(row.value)} ({Math.round(row.share * 100)}%)</button> : <span>{row.label}: {formatNumber(row.value)} ({Math.round(row.share * 100)}%)</span>}</li>)}
-    </ul>
-  </>
+  )
 }
 
 function SupplierDonut({ rows }: { rows: ChartRow[] }) {
@@ -290,9 +322,9 @@ function AnalyticsPage({ summary: suppliedSummary }: AnalyticsPageProps = {}) {
               </div>
               <p className="analytics-footnote">Verified records only. Counts follow the filters above; machines are counted by deployment quantity.</p>
               <div className="chart-grid analytics-chart-grid">
-                <ChartCard title={timelineMode === 'in_service' ? 'Machines in service over time' : 'Newly commissioned machines by year'} description={timeline?.excluded_count ? `${formatNumber(timeline.excluded_machine_count)} machines in ${formatNumber(timeline.excluded_count)} records have no commissioning year and are excluded.` : 'Year-end in-service quantity from the analytics API.'} rows={timelineChartRows} loading={loading} error={chartError} actions={<button className="button button--secondary chart-toggle" type="button" onClick={() => setTimelineMode((mode) => mode === 'in_service' ? 'newly_commissioned' : 'in_service')}>{timelineMode === 'in_service' ? 'Show new per year' : 'Show in service'}</button>}><div className="chart-visual" role="img" aria-label={`${timelineMode === 'in_service' ? 'Machines in service' : 'Newly commissioned machines'} by year area chart`}><ResponsiveContainer width="100%" height={280}><AreaChart data={timelineData} margin={{ top: 12, right: 18, left: 4, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="#d8dee9" /><XAxis dataKey="year" /><YAxis tickFormatter={(value: number) => formatNumber(value)} /><Tooltip formatter={(value: unknown) => [formatTooltipValue(value), timelineMode === 'in_service' ? 'In service' : 'Newly commissioned']} /><Area type="monotone" dataKey="value" stroke="#27348b" fill="#dbe3ff" strokeWidth={3} /></AreaChart></ResponsiveContainer></div></ChartCard>
+              <ChartCard className="chart-card--timeline" title={timelineMode === 'in_service' ? 'Machines in service over time' : 'Newly commissioned machines by year'} description={timeline?.excluded_count ? `${formatNumber(timeline.excluded_machine_count)} machines in ${formatNumber(timeline.excluded_count)} records have no commissioning year and are excluded.` : 'Year-end in-service quantity from the analytics API.'} rows={timelineChartRows} loading={loading} error={chartError} actions={<button className="button button--secondary chart-toggle" type="button" onClick={() => setTimelineMode((mode) => mode === 'in_service' ? 'newly_commissioned' : 'in_service')}>{timelineMode === 'in_service' ? 'Show new per year' : 'Show in service'}</button>}><div className="chart-visual" role="img" aria-label={`${timelineMode === 'in_service' ? 'Machines in service' : 'Newly commissioned machines'} by year area chart`}><ResponsiveContainer width="100%" height={280}><AreaChart data={timelineData} margin={{ top: 12, right: 18, left: 4, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="#d8dee9" /><XAxis dataKey="year" /><YAxis tickCount={5} allowDecimals={false} tickFormatter={(value: number) => formatNumber(value)} /><Tooltip formatter={(value: unknown) => [formatTooltipValue(value), timelineMode === 'in_service' ? 'In service' : 'Newly commissioned']} /><Area type="monotone" dataKey="value" stroke="#27348b" fill="#dbe3ff" strokeWidth={3} /></AreaChart></ResponsiveContainer></div></ChartCard>
                 <ChartCard title="Machines by country" description="Select a country in the chart or table to filter all cards." rows={countryRows} loading={loading} error={chartError} onFilter={selectFilter('country')}><HorizontalBars rows={countryRows} chartName="Machines by country" onFilter={selectFilter('country')} /></ChartCard>
-                <ChartCard title="Machines by automation level" description="Unknown levels are shown as Unclassified." rows={automationRows} loading={loading} error={chartError}><HorizontalBars rows={automationRows} color="#1d4ed8" chartName="Machines by automation level" /></ChartCard>
+                <ChartCard className="chart-card--automation" title="Machines by automation level" description="Unknown levels are shown as Unclassified." rows={automationRows} loading={loading} error={chartError}><HorizontalBars rows={automationRows} color="#27348b" chartName="Machines by automation level" /></ChartCard>
                 <ChartCard title="Machines by technology supplier" description="Top six suppliers plus Other, with count and share." rows={supplierChartRows} loading={loading} error={chartError}><SupplierDonut rows={supplierChartRows} /></ChartCard>
                 <ChartCard title="Machines by type" description="Top ten machine types; expand the remaining groups when needed." rows={showOtherTypes ? totalRows : topTypes} loading={loading} error={chartError} onFilter={selectFilter('machineType')}><HorizontalBars rows={showOtherTypes ? totalRows : topTypes} color="#0f766e" chartName="Machines by type" onFilter={selectFilter('machineType')} />{otherTypes.length > 0 && <button className="table-link chart-more" type="button" onClick={() => setShowOtherTypes((current) => !current)}>{showOtherTypes ? 'Show top 10 only' : `Show the other ${otherTypes.length} types`}</button>}</ChartCard>
                 <ChartCard title="Machine manufacturer share" description="Manufacturer counts and percentages within the filtered result." rows={manufacturerRows} loading={loading} error={chartError}><HorizontalBars rows={manufacturerRows} color="#a4571b" chartName="Machine manufacturer share" /></ChartCard>
