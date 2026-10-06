@@ -282,7 +282,9 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
     .where(eq(tables.deployment.id, id))
-    .for('update')
+    // Lock only the deployment row. Locking every joined table makes
+    // PostgreSQL reject this query because technology_product is an outer join.
+    .for('update', { of: tables.deployment })
   return rows[0] ?? null
 }
 
