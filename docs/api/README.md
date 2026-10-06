@@ -213,6 +213,8 @@ Accepts the shared filters, `sort` and `order`. `limit` and `offset` are ignored
 
 The column order matches `GET /api/register`. CSV uses RFC 4180 quoting with CRLF line endings; `null` is an empty cell. Text beginning with `=`, `+`, `-`, `@`, tab or carriage return is prefixed with `'` to prevent spreadsheet formula execution.
 
+The exported records are licensed under CC BY 4.0 (NFR-08); see [`LICENSE-DATA.md`](../../LICENSE-DATA.md).
+
 ---
 
 ## `GET /api/analytics/summary`

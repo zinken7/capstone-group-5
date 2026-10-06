@@ -59,7 +59,7 @@ function AppLayout({ children }: PropsWithChildren) {
       </header>
       <main className="page-content" id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
-        <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views.</p>
+        <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views. Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noreferrer" target="_blank">CC BY 4.0</a>.</p>
         {/* The way in for administrators; the pages behind it still require a sign-in */}
         <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>
       </footer>
