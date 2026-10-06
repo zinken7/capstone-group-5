@@ -14,7 +14,8 @@ export interface EquipmentRecord {
   supplier: string
   technologyProduct?: string
   automationLevel: string
-  environment: 'Surface' | 'Underground' | 'Both' | 'Not recorded'
+  /** Raw API enum; formatEnumLabel is applied by the table/dialog views. */
+  environment: string
   installationType?: string
   status: DeploymentStatus | 'unknown'
   quantity: number
