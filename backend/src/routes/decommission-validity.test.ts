@@ -160,6 +160,46 @@ describe('administrators can correct the validity window (FR-11)', () => {
     expect((await validity(10))?.valid_to).toBeNull()
   })
 
+  it('clears an end date, so a reopened record is back in service', async () => {
+    const { year } = await today()
+    await adminCorrect(10, { deployment_status: 'decommissioned' })
+    expect(await mapSiteIds(year + 1)).toEqual([])
+
+    const reopened = await adminCorrect(10, { deployment_status: 'operational', clear_valid_to: true })
+    expect(reopened.status).toBe(200)
+    expect(await validity(10)).toEqual({ status: 'operational', valid_from: '2021-01-01', valid_to: null })
+    expect(await mapSiteIds(year + 1)).toEqual([1])
+
+    const [revision] = await query<{ previous_values: Record<string, unknown> }>(
+      'SELECT previous_values FROM revision WHERE deployment_id = 10 ORDER BY id DESC LIMIT 1',
+    )
+    expect(revision?.previous_values).toMatchObject({ deployment_status: 'decommissioned', valid_to: expect.any(String) })
+  })
+
+  it('clears a start date, which leaves the window without a lower bound', async () => {
+    const response = await adminCorrect(11, { clear_valid_from: true })
+
+    expect(response.status).toBe(200)
+    expect((await validity(11))?.valid_from).toBeNull()
+  })
+
+  it('treats an omitted or false clear flag as no change, and rejects a bad one', async () => {
+    const omitted = await adminCorrect(14, { quantity: 21 })
+    expect(omitted.status).toBe(200)
+    const unflagged = await adminCorrect(14, { clear_valid_to: false })
+    expect(unflagged.status).toBe(400)
+    expect(unflagged.body.fields).toEqual({ body: 'must change at least one field or add evidence' })
+    expect((await validity(14))?.valid_to).toBe('2020-12-31')
+
+    const notBoolean = await adminCorrect(14, { clear_valid_to: 'yes' })
+    expect(notBoolean.status).toBe(400)
+    expect(notBoolean.body.fields).toEqual({ clear_valid_to: 'must be true or false' })
+
+    const combined = await adminCorrect(14, { clear_valid_from: true, valid_from: '2015-01-01' })
+    expect(combined.status).toBe(400)
+    expect(combined.body.fields).toEqual({ clear_valid_from: 'cannot be combined with valid_from' })
+  })
+
   it('rejects a date that is not a real calendar date', async () => {
     const response = await adminCorrect(10, { valid_from: '2021-02-30' })
 
@@ -172,5 +212,9 @@ describe('administrators can correct the validity window (FR-11)', () => {
 
     expect(response.status).toBe(400)
     expect((await validity(12))?.valid_to).toBeNull()
+
+    const cleared = await request(app).patch('/api/deployments/14').send({ clear_valid_to: true, disclosure_accepted: true })
+    expect(cleared.status).toBe(400)
+    expect((await validity(14))?.valid_to).toBe('2020-12-31')
   })
 })

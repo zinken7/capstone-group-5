@@ -63,6 +63,10 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   if (validFrom !== null) changes.validFrom = validFrom
   if (validTo !== null) changes.validTo = validTo
   if (validFrom !== null && validTo !== null && validTo < validFrom) read.errors.valid_to = 'must not be before valid_from'
+  const clearFrom = readClearFlag(object, read, 'clear_valid_from', 'valid_from')
+  const clearTo = readClearFlag(object, read, 'clear_valid_to', 'valid_to')
+  if (clearFrom) changes.validFrom = null
+  if (clearTo) changes.validTo = null
 
   const supplier = read.text('technology_supplier', 200)
   const product = read.text('technology_product', 200)
@@ -80,12 +84,27 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
     'commissioning_date', 'valid_from', 'valid_to', 'technology_supplier', 'technology_product', 'evidence_urls',
-  ].some((field) => read.has(field))
+  ].some((field) => read.has(field)) || clearFrom || clearTo
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
+}
+
+/** Reads a flag that clears a field; omitted means no change, and it cannot be sent with a value for that field. */
+function readClearFlag(object: Record<string, unknown>, read: FieldReader, flag: string, field: string): boolean {
+  const value = object[flag]
+  if (value === undefined) return false
+  if (typeof value !== 'boolean') {
+    read.errors[flag] = 'must be true or false'
+    return false
+  }
+  if (value && read.has(field)) {
+    read.errors[flag] = `cannot be combined with ${field}`
+    return false
+  }
+  return value
 }
 
 /** Validates a POST /api/admin/users body. Any role in the body is ignored: the API only creates administrators. */
