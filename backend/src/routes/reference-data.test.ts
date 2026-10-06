@@ -37,5 +37,6 @@ describe('GET /api/reference-data', () => {
     expect(response.body.installation_types).toEqual(['factory_installed', 'retrofit', 'unknown'])
     expect(response.body.deployment_statuses).toContain('operational')
     expect(response.body.machine_types).toContain('haul_truck')
+    expect(response.body.countries).toContain('AU')
   })
 })

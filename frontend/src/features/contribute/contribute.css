@@ -1,5 +1,8 @@
 .contribute-page {
-  max-width: 72rem;
+  max-width: 50rem;
+  margin-inline: auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 .contribution-notice {
@@ -21,7 +24,8 @@
 
 .detail-toggle {
   justify-self: start;
-  padding: 0;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.1rem;
   border: 0;
   color: var(--brand);
   background: transparent;
@@ -42,6 +46,7 @@
   display: grid;
   gap: 1rem;
   margin-top: 1rem;
+  min-inline-size: 0;
 }
 
 .contribution-form fieldset {
@@ -58,6 +63,19 @@
   padding: 0 0.4rem;
   color: var(--text-strong);
   font-weight: 800;
+}
+
+.contribution-form .form-grid,
+.contribution-form .form-field,
+.contribution-form .chip-group,
+.contribution-form .evidence-list {
+  min-inline-size: 0;
+}
+
+.contribution-form input,
+.contribution-form select,
+.contribution-form textarea {
+  max-inline-size: 100%;
 }
 
 .evidence-list {
@@ -83,6 +101,7 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   margin-top: 0.45rem;
+  max-inline-size: 100%;
 }
 
 .choice-chip {
