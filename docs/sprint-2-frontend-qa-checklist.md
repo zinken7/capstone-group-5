@@ -4,11 +4,11 @@
 
 This checklist records the release checks for the current public and administrator workflows. It replaces the earlier Sprint 2 snapshot while keeping the same file path so existing links remain valid.
 
-**Review branch used for this check:** `fix/70-accessibility-qa`
+**Review branch used for this check:** `fix/159-frontend-gaps`
 
 **Release gate:** #70
 
-**Last reviewed:** 5 October 2026
+**Last reviewed:** 7 October 2026
 
 The checks below cover source inspection and the automated UI suite. Items under “Final deployed checks” still need to be repeated against the deployed environment because local tests cannot prove the state of the hosted API or database.
 
@@ -26,11 +26,11 @@ The checks below cover source inspection and the automated UI suite. Items under
 - [x] Contribution form validation, reference-data loading, disclosure and submission states are covered.
 - [x] Administrator sign-in, forced password change, queue, record review, correction, decision and account-management paths are covered.
 
-Full frontend run on 5 October 2026:
+Full frontend run on 7 October 2026:
 
 ```text
-22 test files passed
-151 tests passed
+25 test files passed
+184 tests passed
 ```
 
 ---
@@ -135,6 +135,14 @@ Full frontend run on 5 October 2026:
 
 ## Final Deployed Checks
 
+The authenticated contribution → administrator approval → public Equipment
+Register walkthrough is recorded in
+[`release-qa-evidence-2026-10-06.md`](../release-qa-evidence-2026-10-06.md).
+It proves the pending-review confirmation, approval and public register result
+for the labelled release-QA record. The Map/Analytics result, rejection and
+correction paths, migration/seed output and deployed accessibility scan still
+need their own evidence before these checklist items can be marked complete.
+
 - [ ] Complete one deployment submission, approve it in the administrator queue, and confirm that it appears in the public Map, Register and Analytics views.
 - [ ] Complete one rejection or needs-changes decision and confirm that the record remains absent from public views.
 - [ ] Submit and review one correction, confirming that the verified record stays public and unchanged while the proposal is pending, then updates only after approval.
@@ -147,11 +155,11 @@ Full frontend run on 5 October 2026:
 
 ## Quality Commands
 
-The following frontend release checks passed on 5 October 2026:
+The following frontend release checks passed on 7 October 2026:
 
 ```text
 npm test
-22 test files passed; 151 tests passed
+25 test files passed; 184 tests passed
 
 npm run typecheck
 Passed
