@@ -10,6 +10,9 @@ export interface DeploymentChanges {
   automationLevel?: string
   installationType?: string
   commissioning?: Commissioning
+  /** Administrators only (FR-11); the public correction form never sets these */
+  validFrom?: string
+  validTo?: string
 }
 
 export interface CorrectionInput {

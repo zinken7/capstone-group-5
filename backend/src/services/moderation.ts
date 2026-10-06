@@ -146,6 +146,7 @@ async function applyCorrection(tx: Tx, correction: LockedCorrection, current: Cu
 export type AdminCorrectionOutcome =
   | { kind: 'not_found' }
   | { kind: 'unchanged' }
+  | { kind: 'invalid_window' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
 /** Applies an administrator's correction, keeping the previous values and the verification status. */
@@ -156,6 +157,9 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
 
     const { previous, updates } = diffChanges(current, input.changes)
     alignValidity(current, { previous, updates })
+    const from = 'valid_from' in updates ? updates.valid_from : current.validFrom
+    const to = 'valid_to' in updates ? updates.valid_to : current.validTo
+    if (typeof from === 'string' && typeof to === 'string' && to < from) return { kind: 'invalid_window' }
 
     if (input.technology) {
       const supplierId = await findOrCreateCompany(tx, input.technology.supplier)

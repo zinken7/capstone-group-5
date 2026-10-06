@@ -119,6 +119,10 @@ router.patch('/admin/deployments/:id', ...requireAdmin(), async (req, res, next)
       res.status(400).json({ error: 'correction does not change the record' })
       return
     }
+    if (outcome.kind === 'invalid_window') {
+      res.status(400).json({ error: 'invalid correction', fields: { valid_to: 'must not be before valid_from' } })
+      return
+    }
     res.status(200).json({ id: outcome.id, verification_status: outcome.verificationStatus })
   } catch (error) {
     next(error)

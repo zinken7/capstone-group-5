@@ -40,6 +40,8 @@ export function diffChanges(current: CurrentDeployment, changes: DeploymentChang
   compare('deployment_status', 'status', changes.status, current.status)
   compare('automation_level', 'automation_level', changes.automationLevel, current.automationLevel)
   compare('installation_type', 'installation_type', changes.installationType, current.installationType)
+  compare('valid_from', 'valid_from', changes.validFrom, current.validFrom)
+  compare('valid_to', 'valid_to', changes.validTo, current.validTo)
 
   const commissioning = changes.commissioning
   if (commissioning && (commissioning.date !== current.commissioningDate || commissioning.year !== current.commissioningYear)) {

@@ -92,6 +92,16 @@ export class FieldReader {
     return value
   }
 
+  /** A real calendar date in YYYY-MM-DD form. */
+  fullDate(field: string): string | null {
+    const value = this.text(field, 10)
+    if (value === null) return null
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
+    if (parsed && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value) return value
+    this.errors[field] = 'must be a date (YYYY-MM-DD)'
+    return null
+  }
+
   commissioning(field: string): Commissioning | null {
     const value = this.text(field, 10)
     if (value === null) return null

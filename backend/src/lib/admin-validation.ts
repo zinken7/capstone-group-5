@@ -52,12 +52,17 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const automationLevel = read.choice('automation_level', AUTOMATION_LEVELS)
   const installationType = read.choice('installation_type', INSTALLATION_TYPES)
   const commissioning = read.commissioning('commissioning_date')
+  const validFrom = read.fullDate('valid_from')
+  const validTo = read.fullDate('valid_to')
   if (quantity !== null) changes.quantity = quantity
   if (environment !== null) changes.environment = environment
   if (status !== null) changes.status = status
   if (automationLevel !== null) changes.automationLevel = automationLevel
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
+  if (validFrom !== null) changes.validFrom = validFrom
+  if (validTo !== null) changes.validTo = validTo
+  if (validFrom !== null && validTo !== null && validTo < validFrom) read.errors.valid_to = 'must not be before valid_from'
 
   const supplier = read.text('technology_supplier', 200)
   const product = read.text('technology_product', 200)
@@ -74,7 +79,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
-    'commissioning_date', 'technology_supplier', 'technology_product', 'evidence_urls',
+    'commissioning_date', 'valid_from', 'valid_to', 'technology_supplier', 'technology_product', 'evidence_urls',
   ].some((field) => read.has(field))
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'

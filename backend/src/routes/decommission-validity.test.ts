@@ -131,3 +131,46 @@ describe('the validity window follows the commissioning date (#156)', () => {
     expect((await validity(10))?.valid_from).toBeNull()
   })
 })
+
+describe('administrators can correct the validity window (FR-11)', () => {
+  it('sets an end date, which takes the record off the map from that year', async () => {
+    const { year } = await today()
+    const response = await adminCorrect(10, { valid_to: `${year - 1}-12-31` })
+
+    expect(response.status).toBe(200)
+    expect((await validity(10))?.valid_to).toBe(`${year - 1}-12-31`)
+    expect(await mapSiteIds(year)).toEqual([])
+    expect(await mapSiteIds(year - 1)).toEqual([1])
+  })
+
+  it('keeps an explicit end date when decommissioning in the same correction', async () => {
+    await adminCorrect(10, { deployment_status: 'decommissioned', valid_to: '2024-05-01' })
+
+    expect((await validity(10))?.valid_to).toBe('2024-05-01')
+  })
+
+  it('rejects an end before the start, given together or against the record', async () => {
+    const together = await adminCorrect(10, { valid_from: '2024-01-01', valid_to: '2023-01-01' })
+    expect(together.status).toBe(400)
+    expect(together.body.fields).toEqual({ valid_to: 'must not be before valid_from' })
+
+    const againstRecord = await adminCorrect(10, { valid_to: '2020-01-01' })
+    expect(againstRecord.status).toBe(400)
+    expect(againstRecord.body).toEqual({ error: 'invalid correction', fields: { valid_to: 'must not be before valid_from' } })
+    expect((await validity(10))?.valid_to).toBeNull()
+  })
+
+  it('rejects a date that is not a real calendar date', async () => {
+    const response = await adminCorrect(10, { valid_from: '2021-02-30' })
+
+    expect(response.status).toBe(400)
+    expect(response.body.fields).toEqual({ valid_from: 'must be a date (YYYY-MM-DD)' })
+  })
+
+  it('does not let a public correction change the window', async () => {
+    const response = await request(app).patch('/api/deployments/12').send({ valid_to: '2020-01-01', disclosure_accepted: true })
+
+    expect(response.status).toBe(400)
+    expect((await validity(12))?.valid_to).toBeNull()
+  })
+})
