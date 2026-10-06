@@ -253,7 +253,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
 }
 ```
 
-- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
+- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for records currently marked operational. This is not the same set as the map's default view, which follows the validity window (`valid_from`..`valid_to`) for the year rather than the status field.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
 - `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier`, `by_status`, `by_commodity` and `by_region` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
 - `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
@@ -378,6 +378,7 @@ The record stays out of public map, site detail, register and analytics response
 - Companies, regions, sites, machine models and technology products are reused case-insensitively when they match; otherwise they are created.
 - A supplier without a product does not create a placeholder product.
 - `commissioning_date: "YYYY"` stores only `commissioning_year`; a full date stores both and sets `valid_from`.
+- A submission with `deployment_status: "decommissioned"` gets `valid_to` set to the submission date (never before `valid_from`), so it is not shown as in service once verified (#156).
 - A contributor row is created only when email or organisation is supplied.
 - A `create` revision stores the submission snapshot without contact details.
 
@@ -559,12 +560,31 @@ database refuses any later change to it.
 Takes the fields of the public correction (`quantity`, `environment`,
 `deployment_status`, `automation_level`, `installation_type`,
 `commissioning_date`, `evidence_urls`, `change_note`) plus
-`technology_supplier` and `technology_product`, which must be given together.
+`technology_supplier` and `technology_product`, which must be given together,
+and `valid_from` and `valid_to` as `YYYY-MM-DD` dates (FR-11). An end before the
+start, given together or against the record, returns `400` with
+`{"fields": {"valid_to": "must not be before valid_from"}}`.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
 "verification_status"}`, `400` for invalid input or a correction that changes
 nothing, `404` for an unknown record.
+
+### Validity window on corrections (#156)
+
+Every path that changes a record (a direct public correction, an approved
+proposal and an administrator's correction) keeps `valid_from`..`valid_to` in
+step, because the map and the timeline decide what is in service from it:
+
+- When `deployment_status` becomes `decommissioned` and no `valid_to` is
+  recorded, `valid_to` is set to today, never before `valid_from`. An explicit
+  `valid_to` from an administrator, or one already recorded, is kept. A proposal
+  sets nothing until it is approved.
+- When `commissioning_date` changes and `valid_from` was the old commissioning
+  date, `valid_from` moves with it. A `valid_from` set separately, as after a
+  relocation, is left alone, and a year-only date never invents a start.
+
+The previous values go into the `update` revision with the other changed fields.
 
 ## Administrator accounts (root only)
 
