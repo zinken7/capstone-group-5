@@ -5,6 +5,41 @@ export function markerRadius(machines: number): number {
   return Math.max(5, Math.sqrt(Math.max(machines, 0)) * 1.45)
 }
 
+export interface FitPadding {
+  paddingTopLeft: [number, number]
+  paddingBottomRight: [number, number]
+}
+
+/**
+ * Padding for the selected-site mobile state. The bottom sheet and compact
+ * year control are overlays on the map, so the selected marker must be kept
+ * inside the remaining strip above them rather than merely centred.
+ */
+export function selectedMapPaddingForSize(size: { x: number; y: number }): FitPadding {
+  const horizontal = Math.max(16, Math.round(size.x * 0.04))
+  const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+  const sheetHeight = Math.min(Math.round(size.y * 0.44), 18 * 16, Math.max(0, size.y - 8 * 16))
+  const yearHeight = Math.min(72, Math.max(56, Math.round(size.y * 0.12)))
+  const bottom = sheetHeight + yearHeight + 16
+  return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+}
+
+/**
+ * CircleMarker radii are screen pixels, so the data scale stays identical on
+ * every device. Only the fit padding changes to reserve room for mobile
+ * overlays and keep the visible map area useful.
+ */
+export function fitPaddingForSize(size: { x: number; y: number }): FitPadding {
+  if (size.x <= 900) {
+    const horizontal = Math.max(24, Math.round(size.x * 0.06))
+    const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+    const bottom = Math.max(120, Math.round(Math.min(size.y * 0.3, 192)))
+    return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+  }
+
+  return { paddingTopLeft: [48, 96], paddingBottomRight: [48, 160] }
+}
+
 /** [[south, west], [north, east]] around every marker, or null when there are none. */
 export function boundsOf(markers: readonly Pick<MapMarker, 'latitude' | 'longitude'>[]): [[number, number], [number, number]] | null {
   if (markers.length === 0) return null
