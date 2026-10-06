@@ -97,7 +97,7 @@ Malformed `bbox`, `date`, `year` or `include_decommissioned` parameters return `
 
 ## `GET /api/sites/{id}`
 
-Returns one site's base attributes and its verified deployments. An unknown id returns `404 {"error":"site not found"}`.
+Returns one site's base attributes and its verified deployments. An unknown id, or a site with no verified deployment yet (for example one created by a contribution still awaiting review), returns the same `404 {"error":"site not found"}`, so unpublished sites cannot be discovered by trying ids (FR-43).
 
 ```json
 {
