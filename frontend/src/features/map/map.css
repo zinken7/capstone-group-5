@@ -520,6 +520,10 @@
   overflow-y: auto;
 }
 
+.map-legend-toggle {
+  display: none;
+}
+
 .map-legend {
   bottom: var(--space-4);
   left: var(--space-4);
@@ -860,5 +864,68 @@
 
   .map-year {
     width: calc(100% - 2rem);
+  }
+
+  /* On phones, selected-site details become a bottom sheet. The legend is
+     collapsed into a button while the sheet is open, so neither overlay
+     covers the other. */
+  .map-stage--selected {
+    --map-sheet-height: min(44%, 18rem, calc(100% - 8rem));
+  }
+
+  .map-stage--selected .map-card-slot {
+    z-index: 1120;
+    top: auto;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    left: var(--space-2);
+    width: auto;
+    height: var(--map-sheet-height);
+    max-height: calc(100% - 8rem);
+    overflow-y: auto;
+  }
+
+  .map-stage--selected .map-year {
+    bottom: calc(var(--map-sheet-height) + var(--space-2));
+    left: var(--space-2);
+    width: calc(100% - var(--space-4));
+    padding: var(--space-2) var(--space-3);
+    transform: none;
+  }
+
+  .map-stage--selected .map-year__note {
+    display: none;
+  }
+
+  .map-stage--selected .map-year__ends {
+    display: none;
+  }
+
+  .map-stage--selected .map-legend-toggle {
+    z-index: 1110;
+    top: 5.25rem;
+    right: auto;
+    left: var(--space-2);
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: var(--type-xs);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .map-stage--selected .map-legend--mobile-collapsed {
+    display: none;
+  }
+
+  .map-stage--selected .map-legend--mobile-open {
+    z-index: 1110;
+    top: 8rem;
+    right: auto;
+    bottom: auto;
+    left: var(--space-2);
+    max-height: min(18vh, 8rem);
+    overflow-y: auto;
   }
 }

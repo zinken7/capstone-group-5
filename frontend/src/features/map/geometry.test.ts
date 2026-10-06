@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { boundsOf, endedBy, inServiceAt, markerRadius, startYearOf } from './geometry'
+import { boundsOf, endedBy, fitPaddingForSize, inServiceAt, markerRadius, selectedMapPaddingForSize, startYearOf } from './geometry'
 
 const deployment = {
   status: 'operational' as const,
@@ -18,6 +18,28 @@ describe('markerRadius', () => {
   it('never shrinks below a clickable size, including for a site with no machines in service', () => {
     expect(markerRadius(0)).toBe(5)
     expect(markerRadius(1)).toBe(5)
+  })
+})
+
+describe('fitPaddingForSize', () => {
+  it('keeps the desktop fit unchanged', () => {
+    expect(fitPaddingForSize({ x: 1200, y: 700 })).toEqual({
+      paddingTopLeft: [48, 96], paddingBottomRight: [48, 160],
+    })
+  })
+
+  it('reserves proportional overlay space on a phone-sized map', () => {
+    const padding = fitPaddingForSize({ x: 390, y: 544 })
+    expect(padding.paddingTopLeft[0]).toBe(24)
+    expect(padding.paddingBottomRight[1]).toBeGreaterThan(160)
+  })
+})
+
+describe('selectedMapPaddingForSize', () => {
+  it.each([{ x: 390, y: 544 }, { x: 320, y: 544 }])('keeps the selected marker and year control above the sheet at $xpx', (size) => {
+    const padding = selectedMapPaddingForSize(size)
+    expect(padding.paddingTopLeft[1] + padding.paddingBottomRight[1]).toBeLessThan(size.y)
+    expect(padding.paddingBottomRight[1]).toBeGreaterThan(280)
   })
 })
 
