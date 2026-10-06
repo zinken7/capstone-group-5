@@ -163,6 +163,7 @@ describe('MapPage', () => {
     const user = userEvent.setup()
     
     const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
+    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside')
     const flyTo = vi.spyOn(LeafletMap.prototype, 'flyTo')
     vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(390, 544))
 
@@ -172,6 +173,10 @@ describe('MapPage', () => {
     await user.click(site)
 
     expect(panTo).toHaveBeenCalled()
+    expect(panInside).toHaveBeenCalledWith([-22.3, 118.7], expect.objectContaining({
+      paddingTopLeft: expect.any(Array),
+      paddingBottomRight: expect.any(Array),
+    }))
     expect(flyTo).not.toHaveBeenCalled()
 
     const card = await screen.findByRole('article', { name: 'Roy Hill' })

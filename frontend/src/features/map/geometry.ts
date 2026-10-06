@@ -11,6 +11,20 @@ export interface FitPadding {
 }
 
 /**
+ * Padding for the selected-site mobile state. The bottom sheet and compact
+ * year control are overlays on the map, so the selected marker must be kept
+ * inside the remaining strip above them rather than merely centred.
+ */
+export function selectedMapPaddingForSize(size: { x: number; y: number }): FitPadding {
+  const horizontal = Math.max(16, Math.round(size.x * 0.04))
+  const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+  const sheetHeight = Math.min(Math.round(size.y * 0.44), 18 * 16, Math.max(0, size.y - 8 * 16))
+  const yearHeight = Math.min(72, Math.max(56, Math.round(size.y * 0.12)))
+  const bottom = sheetHeight + yearHeight + 16
+  return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+}
+
+/**
  * CircleMarker radii are screen pixels, so the data scale stays identical on
  * every device. Only the fit padding changes to reserve room for mobile
  * overlays and keep the visible map area useful.

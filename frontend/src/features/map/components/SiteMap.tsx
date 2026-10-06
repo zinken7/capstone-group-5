@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css'
 import type { MapMarker } from '../../../lib/api/types'
 import { formatNumber } from '../../../lib/format'
 import { BASEMAP_ATTRIBUTION, loadCountries } from '../basemap'
-import { boundsOf, fitPaddingForSize, markerRadius } from '../geometry'
+import { boundsOf, fitPaddingForSize, markerRadius, selectedMapPaddingForSize } from '../geometry'
 
 /** Fits the map to the markers, leaving room for the headline and the year control; skipped while the map has no size. */
 export function fitToMarkers(map: LeafletMap, markers: readonly MapMarker[]): void {
@@ -17,7 +17,18 @@ export function fitToMarkers(map: LeafletMap, markers: readonly MapMarker[]): vo
   map.fitBounds(bounds, { ...fitPaddingForSize(size), maxZoom: 6 })
 }
 
-function MapEffects({ markers, fitKey, onMapReady }: { markers: readonly MapMarker[]; fitKey: string; onMapReady: (map: LeafletMap) => void }) {
+function keepSelectedVisible(map: LeafletMap, selected: MapMarker): void {
+  const size = map.getSize()
+  if (size.x > 900 || size.x === 0 || size.y === 0) return
+  const padding = selectedMapPaddingForSize(size)
+  map.panInside([selected.latitude, selected.longitude], {
+    animate: true,
+    paddingTopLeft: padding.paddingTopLeft,
+    paddingBottomRight: padding.paddingBottomRight,
+  })
+}
+
+function MapEffects({ markers, fitKey, selectedId, onMapReady }: { markers: readonly MapMarker[]; fitKey: string; selectedId: number | null; onMapReady: (map: LeafletMap) => void }) {
   const map = useMap()
 
   useEffect(() => {
@@ -37,10 +48,17 @@ function MapEffects({ markers, fitKey, onMapReady }: { markers: readonly MapMark
     const observer = new ResizeObserver(() => {
       map.invalidateSize({ pan: false })
       fitToMarkers(map, markers)
+      const selected = markers.find((marker) => marker.id === selectedId)
+      if (selected) keepSelectedVisible(map, selected)
     })
     observer.observe(map.getContainer())
     return () => observer.disconnect()
-  }, [map, markers])
+  }, [map, markers, selectedId])
+
+  useEffect(() => {
+    const selected = markers.find((marker) => marker.id === selectedId)
+    if (selected) keepSelectedVisible(map, selected)
+  }, [map, markers, selectedId])
 
   return null
 }
@@ -111,7 +129,7 @@ function SiteMap({ markers, selectedId, onSelect, onMapReady }: SiteMapProps) {
           pathOptions={{ className: 'site-marker-ring' }}
         />
       )}
-      <MapEffects markers={markers} fitKey={fitKey} onMapReady={onMapReady} />
+      <MapEffects markers={markers} fitKey={fitKey} selectedId={selectedId} onMapReady={onMapReady} />
     </MapContainer>
   )
 }
