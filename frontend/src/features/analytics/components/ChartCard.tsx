@@ -1,15 +1,23 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-export function ChartCard({ id, title, description, actions, note, className = '', children }: {
+import { formatNumber } from '../../../lib/format'
+import { formatShare } from '../chartData'
+
+/** A chart card; given a table, it adds a toggle that swaps the chart for that table. */
+export function ChartCard({ id, title, description, actions, note, table, className = '', children }: {
   id: string
   title: string
   description?: ReactNode
   actions?: ReactNode
   note?: ReactNode
+  table?: ReactNode
   className?: string
   children: ReactNode
 }) {
+  const [showTable, setShowTable] = useState(false)
   const headingId = `analytics-${id}-heading`
+  const toggle = table ? <TableToggle table={showTable} onToggle={() => setShowTable((current) => !current)} /> : null
   return (
     <section className={`chart-card ${className}`.trim()} aria-labelledby={headingId}>
       <header className="chart-card__header">
@@ -17,11 +25,50 @@ export function ChartCard({ id, title, description, actions, note, className = '
           <h2 id={headingId}>{title}</h2>
           {description && <p>{description}</p>}
         </div>
-        {actions && <div className="chart-card__actions">{actions}</div>}
+        {(actions || toggle) && <div className="chart-card__actions">{actions}{toggle}</div>}
       </header>
-      {children}
+      {table && showTable ? table : children}
       {note && <p className="chart-card__note">{note}</p>}
     </section>
+  )
+}
+
+export interface TableRow {
+  key: string
+  label: string
+  value: number
+  share: number
+  /** Extra counts, one per extra column */
+  extra?: number[]
+}
+
+/** The full breakdown behind a chart, every group with its machines and share. */
+export function BreakdownTable({ caption, groupLabel, rows, extraColumns = [] }: { caption: string; groupLabel: string; rows: TableRow[]; extraColumns?: string[] }) {
+  if (rows.length === 0) return <EmptyChart />
+  return (
+    <div className="chart-table-wrap">
+      <table className="chart-table">
+        <caption className="visually-hidden">{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{groupLabel}</th>
+            {extraColumns.map((column) => <th scope="col" className="numeric" key={column}>{column}</th>)}
+            <th scope="col" className="numeric">Machines</th>
+            <th scope="col" className="numeric">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key}>
+              <th scope="row">{row.label}</th>
+              {extraColumns.map((column, index) => <td className="numeric" key={column}>{formatNumber(row.extra?.[index] ?? 0)}</td>)}
+              <td className="numeric">{formatNumber(row.value)}</td>
+              <td className="numeric">{formatShare(row.share)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

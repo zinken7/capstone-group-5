@@ -4,6 +4,7 @@ import { formatCommissioning, formatCountry, formatEnumLabel, formatNumber } fro
 import { getAnalyticsBreakdowns, getAnalyticsSummary } from '../../../lib/api/analytics'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import { getRegisterExport, getRegisterPage } from '../../../lib/api/register'
+import type { CorrectionResult } from '../../../lib/api/corrections'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
@@ -211,9 +212,14 @@ function LiveEquipmentPage() {
   const last = total === 0 ? 0 : Math.min(total, first + records.length - 1)
   const pageCount = Math.max(1, Math.ceil(total / view.pageSize))
 
-  function handleCorrectionSubmitted() {
+  function handleCorrectionSubmitted(result: CorrectionResult) {
     setCorrectionRecord(null)
-    setNotice('Correction submitted for review. This record is hidden from public views until an administrator reviews it.')
+    // A correction to a verified record is a proposal, so the register does not change until it is approved
+    if (result.correctionId !== null) {
+      setNotice('Correction submitted for review. The record stays public and unchanged until an administrator approves the change.')
+      return
+    }
+    setNotice('Correction submitted for review.')
     setLoading(true)
     setRefreshToken((current) => current + 1)
   }
