@@ -56,6 +56,13 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   if (environment !== null) changes.environment = environment
   if (status !== null) changes.status = status
   if (automationLevel !== null) changes.automationLevel = automationLevel
+  const clearLevel = object.clear_automation_level
+  if (clearLevel !== undefined && typeof clearLevel !== 'boolean') {
+    read.errors.clear_automation_level = 'must be true or false'
+  } else if (clearLevel === true) {
+    if (automationLevel !== null) read.errors.clear_automation_level = 'cannot be combined with automation_level'
+    else changes.automationLevel = null
+  }
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
 
@@ -75,7 +82,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
     'commissioning_date', 'technology_supplier', 'technology_product', 'evidence_urls',
-  ].some((field) => read.has(field))
+  ].some((field) => read.has(field)) || clearLevel === true
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }
