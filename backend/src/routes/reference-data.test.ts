@@ -39,7 +39,7 @@ describe('GET /api/reference-data', () => {
     expect(response.body.machine_types).toContain('haul_truck')
     expect(response.body.countries).toContain('AU')
     expect(response.body.technology_products).toEqual(expect.arrayContaining([
-      { supplier: 'Sandvik', product: 'Sandvik AutoMine', automation_level: 'semi_autonomous' },
+      { supplier: 'ZZH Autonomous Systems', product: 'ZZH AssistOne', automation_level: 'operator_assistance' },
     ]))
   })
 })
