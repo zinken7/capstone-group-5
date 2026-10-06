@@ -97,7 +97,7 @@ Malformed `bbox`, `date`, `year` or `include_decommissioned` parameters return `
 
 ## `GET /api/sites/{id}`
 
-Returns one site's base attributes and its verified deployments. An unknown id returns `404 {"error":"site not found"}`.
+Returns one site's base attributes and its verified deployments. An unknown id, or a site with no verified deployment yet (for example one created by a contribution still awaiting review), returns the same `404 {"error":"site not found"}`, so unpublished sites cannot be discovered by trying ids (FR-43).
 
 ```json
 {
@@ -355,6 +355,7 @@ Submits one deployment record. No account is required.
 | `contributor_email` | string | No | Valid email address |
 | `organisation` | string | No | ≤ 200 characters |
 | `disclosure_accepted` | boolean | Yes | Must be `true` (FR-41) |
+| `website` | string | No | Honeypot (FR-51): the form keeps this field hidden from people and assistive technology, so it must be absent or blank |
 
 `null` or a blank string counts as not supplied. Unknown fields are ignored.
 
@@ -369,6 +370,7 @@ The record stays out of public map, site detail, register and analytics response
 ### Errors
 
 - Invalid fields: `400 {"error":"invalid contribution","fields":{...}}` with all invalid fields listed.
+- `website` filled: `400 {"error":"invalid contribution"}` with no `fields`, checked before any other validation, and nothing is stored.
 - Malformed JSON: `400 {"error":"invalid JSON body"}`.
 - Oversized JSON: `413 {"error":"request body too large"}`; request limit is 100 kB.
 
@@ -394,6 +396,7 @@ Corrects an existing deployment. Site, company and model details remain administ
 | `contributor_email`, `organisation` | Optional contact details |
 | `change_note` | Optional, ≤ 1000 characters |
 | `disclosure_accepted` | Must be `true` |
+| `website` | Honeypot, as for contributions: must be absent or blank |
 
 At least one correctable field or evidence URL must be supplied.
 
@@ -414,7 +417,7 @@ What happens depends on the record's verification status (#114):
 { "id": 12, "verification_status": "pending_review" }
 ```
 
-Invalid corrections return `400`, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
+Invalid corrections return `400`, a filled `website` field returns `400 {"error":"invalid correction"}` with no `fields` and stores nothing, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
 
 ---
 
@@ -559,7 +562,9 @@ database refuses any later change to it.
 Takes the fields of the public correction (`quantity`, `environment`,
 `deployment_status`, `automation_level`, `installation_type`,
 `commissioning_date`, `evidence_urls`, `change_note`) plus
-`technology_supplier` and `technology_product`, which must be given together.
+`technology_supplier` and `technology_product`, which must be given together,
+and `clear_automation_level: true`, which removes the deployment's automation
+level (FR-57); it cannot be combined with `automation_level`.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
