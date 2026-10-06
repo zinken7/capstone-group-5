@@ -37,6 +37,7 @@ export interface AnalyticsBreakdownsDto {
   by_automation_level: AnalyticsBreakdownItemDto[]
   by_status: AnalyticsBreakdownItemDto[]
   by_commodity: AnalyticsBreakdownItemDto[]
+  by_region: AnalyticsBreakdownItemDto[]
 }
 
 export interface AnalyticsTimelineYearDto {

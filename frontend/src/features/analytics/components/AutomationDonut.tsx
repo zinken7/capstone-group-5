@@ -4,7 +4,7 @@ import type { AnalyticsBreakdownItemDto } from '../../../lib/api/analytics'
 import { formatNumber } from '../../../lib/format'
 import { AUTOMATION_LEVELS, AUTOMATION_RAMP, UNCLASSIFIED_COLOR, automationLabel, formatShare } from '../chartData'
 import type { ChartRow } from '../chartData'
-import { ChartCard, EmptyChart } from './ChartCard'
+import { BreakdownTable, ChartCard, EmptyChart } from './ChartCard'
 
 function colorFor(row: ChartRow): string {
   return row.key ? AUTOMATION_RAMP[row.key] ?? UNCLASSIFIED_COLOR : UNCLASSIFIED_COLOR
@@ -33,7 +33,13 @@ function AutomationDonut({ items, onFilter }: { items: AnalyticsBreakdownItemDto
   const summary = total ? `${formatShare(advanced / total)} are semi-autonomous or fully autonomous.` : undefined
 
   return (
-    <ChartCard id="automation" className="chart-card--automation" title="Machines by automation level" description={summary}>
+    <ChartCard
+      id="automation"
+      className="chart-card--automation"
+      title="Machines by automation level"
+      description={summary}
+      table={<BreakdownTable caption="Machines by automation level" groupLabel="Automation level" rows={rows.map((row) => ({ key: row.key ?? 'unclassified', label: row.label, value: row.value, share: row.share }))} />}
+    >
       {total === 0 ? <EmptyChart /> : (
         <div className="donut">
           <div className="donut__chart" role="img" aria-label={`Machines by automation level: ${rows.map((row) => `${row.label} ${formatNumber(row.value)} machines, ${formatShare(row.share)}`).join('; ')}`}>

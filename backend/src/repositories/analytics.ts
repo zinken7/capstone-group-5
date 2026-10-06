@@ -22,6 +22,7 @@ export interface Breakdowns {
   byAutomationLevel: BreakdownItem[]
   byStatus: BreakdownItem[]
   byCommodity: BreakdownItem[]
+  byRegion: BreakdownItem[]
 }
 
 /** Announced deployments are not commissioned yet, so no timeline measure counts them */
@@ -38,6 +39,7 @@ const DIMENSIONS = {
   status: sql<string | null>`${tables.deployment.status}::text`,
   environment: sql<string | null>`${tables.deployment.environment}::text`,
   commodity: sql<string | null>`${tables.site.commodity}`,
+  region: sql<string | null>`${tables.region.name}`,
   commissioningYear: sql<string | null>`${startYear}::text`,
 } as const
 
@@ -79,7 +81,7 @@ function byLevel(groups: Array<{ key: string | null; machineCount: number }>) {
 
 /** Machine counts and shares over the filtered verified deployments (FR-23 to FR-26, FR-29). */
 export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakdowns> {
-  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel, byStatus, byCommodity] = await Promise.all([
+  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel, byStatus, byCommodity, byRegion] = await Promise.all([
     machinesBy('country', filters),
     machinesBy('machineType', filters),
     machinesBy('manufacturer', filters),
@@ -87,6 +89,7 @@ export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakd
     machinesBy('automationLevel', filters),
     machinesBy('status', filters),
     machinesBy('commodity', filters),
+    machinesBy('region', filters),
   ])
   const machineCount = byCountry.reduce((total, group) => total + group.machineCount, 0)
 
@@ -99,6 +102,7 @@ export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakd
     byAutomationLevel: withShares(byLevel(byAutomationLevel), machineCount),
     byStatus: withShares(ranked(byStatus), machineCount),
     byCommodity: withShares(ranked(byCommodity), machineCount),
+    byRegion: withShares(ranked(byRegion), machineCount),
   }
 }
 
