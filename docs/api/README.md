@@ -11,6 +11,7 @@
 | `GET` | `/api/analytics/summary` | Returns total machines, sites and countries (FR-21) |
 | `GET` | `/api/analytics/breakdowns` | Returns machine counts and shares by country, machine type, manufacturer, supplier and automation level (FR-23 to FR-26, FR-29, FR-31) |
 | `GET` | `/api/analytics/timeline` | Returns machines newly commissioned and in service per year (FR-22, FR-30) |
+| `GET` | `/api/analytics/crosstab` | Returns machine counts for every pair of groups across two dimensions, for the analytics heatmap and mix charts |
 | `GET` | `/api/reference-data` | Returns the controlled values for the contribution form |
 | `POST` | `/api/contributions` | Submits a new deployment record with evidence (FR-40, FR-44) |
 | `PATCH` | `/api/deployments/{id}` | Corrects an existing deployment record (FR-46 to FR-48) |
@@ -149,6 +150,8 @@ Returns one site's base attributes and its verified deployments. An unknown id r
 | `automation_level` | Deployment level, falling back to the product level |
 | `environment` | `surface`, `underground` or `both` |
 | `status` | `announced`, `commissioning`, `operational` or `decommissioned` |
+| `commissioned_from` | Commissioning year on or after this four-digit year, taken from `commissioning_year` or else the commissioning date. Undated deployments are left out; anything other than four digits returns `400` |
+| `commissioned_to` | Commissioning year on or before this four-digit year, with the same rules |
 
 An enum value outside the controlled list matches nothing rather than raising a database error.
 
@@ -226,7 +229,7 @@ Accepts the shared filters and returns headline totals over matching verified de
 
 ## `GET /api/analytics/breakdowns`
 
-Accepts the shared filters and returns machine counts over matching verified deployments, grouped by country, machine type, manufacturer, supplier, automation level and deployment status:
+Accepts the shared filters and returns machine counts over matching verified deployments, grouped by country, machine type, manufacturer, supplier, automation level, deployment status and commodity:
 
 ```json
 {
@@ -236,6 +239,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
   "by_manufacturer": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "Sandvik", "machine_count": 5, "share": 0.0413 }],
   "by_supplier": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "RCT", "machine_count": 5, "share": 0.0413 }],
   "by_status": [{ "key": "operational", "machine_count": 116, "share": 0.9587 }, { "key": "decommissioned", "machine_count": 5, "share": 0.0413 }],
+  "by_commodity": [{ "key": "iron_ore", "machine_count": 121, "share": 1 }],
   "by_automation_level": [
     { "key": "operator_assistance", "machine_count": 0, "share": 0 },
     { "key": "teleremote", "machine_count": 5, "share": 0.0413 },
@@ -248,7 +252,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
 
 - Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
-- `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier` and `by_status` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
+- `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier`, `by_status` and `by_commodity` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
 - `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
 - Repeated filter parameters return `400`.
 
@@ -275,6 +279,30 @@ Accepts the shared filters and returns one row per year, from the first commissi
 - `in_service` (FR-22) sums `quantity` for deployments commissioned in or before that year whose validity window contains 31 December of that year: `valid_from` empty or on or before it, and `valid_to` empty or on or after it. This is the same inclusive rule as the map's date filter, so a relocated record counts only from its own `valid_from`.
 - The commissioning year comes from `commissioning_year`, so year-only records are placed without inventing a date.
 - Other deployments with neither a commissioning date nor a year are left out and counted in `excluded_count` and `excluded_machine_count`, as the map reports `excluded_count` (FR-19). `years` is empty when no matching deployment is dated.
+- Repeated filter parameters return `400`.
+
+---
+
+## `GET /api/analytics/crosstab`
+
+Accepts the shared filters plus two required parameters, `rows` and `columns`, and returns the machine count for every pair of groups that has machines:
+
+```json
+{
+  "rows": "manufacturer",
+  "columns": "machine_type",
+  "machine_count": 121,
+  "cells": [
+    { "row": "Caterpillar", "column": "haul_truck", "machine_count": 116 },
+    { "row": "Sandvik", "column": "drill", "machine_count": 5 }
+  ]
+}
+```
+
+- `rows` and `columns` each take one of `country`, `machine_type`, `manufacturer`, `supplier`, `automation_level`, `environment`, `commodity` or `commissioning_year`, and must differ. Anything else, a missing value or a repeated parameter returns `400` (`invalid rows parameter` or `invalid columns parameter`).
+- Cells are listed largest first, then by row and column key. A `null` key is the unknown group, as in the breakdowns; `automation_level` uses the same effective level, so unclassified machines are `null`.
+- Without `commissioning_year`, every matching verified deployment counts whatever its status, like `GET /api/analytics/breakdowns`.
+- With `commissioning_year`, the measure follows the timeline: `announced` deployments and years after the current one are left out, so each year's cells add up to that year's `newly_commissioned`. Years are returned as strings (`"2021"`), and deployments with no commissioning year sit under `null`.
 - Repeated filter parameters return `400`.
 
 ---

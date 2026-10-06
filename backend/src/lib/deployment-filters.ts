@@ -11,6 +11,9 @@ export interface DeploymentFilters {
   automationLevel?: string
   environment?: string
   status?: string
+  /** First and last commissioning year, inclusive; undated deployments match neither */
+  commissionedFrom?: number
+  commissionedTo?: number
 }
 
 const FILTER_PARAMS = {
@@ -50,6 +53,17 @@ export function parseDeploymentFilters(query: Record<string, unknown>): ParseRes
       return { ok: false, error: 'invalid site_id parameter' }
     }
     if (value) filters.siteId = Number(value)
+  }
+
+  // A commissioning year range, each end a four-digit year
+  for (const [param, key] of [['commissioned_from', 'commissionedFrom'], ['commissioned_to', 'commissionedTo']] as const) {
+    const raw = query[param]
+    if (raw === undefined) continue
+    const value = typeof raw === 'string' ? raw.trim() : null
+    if (value === null || (value && !/^\d{4}$/.test(value))) {
+      return { ok: false, error: `invalid ${param} parameter` }
+    }
+    if (value) filters[key] = Number(value)
   }
 
   return { ok: true, value: filters }
