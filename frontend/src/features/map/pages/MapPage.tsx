@@ -44,6 +44,7 @@ function MapPage() {
   const [year, setYear] = useState(currentYear)
   const [panelOpen, setPanelOpen] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [legendOpen, setLegendOpen] = useState(false)
   const [map, setMap] = useState<LeafletMap | null>(null)
   const stage = useRef<HTMLDivElement>(null)
   const panelTogglePending = useRef(false)
@@ -103,6 +104,7 @@ function MapPage() {
   const closeCard = () => {
     const id = selectedId
     setSelectedId(null)
+    setLegendOpen(false)
     // Back to the site in the list, so keyboard users keep their place
     if (id !== null) document.querySelector<HTMLButtonElement>(`[data-site-id="${id}"]`)?.focus()
   }
@@ -147,7 +149,7 @@ function MapPage() {
         </div>
       )}
 
-      <div className="map-stage" role="region" aria-label="Site map" ref={stage}>
+      <div className={card ? 'map-stage map-stage--selected' : 'map-stage'} role="region" aria-label="Site map" ref={stage}>
         <SiteMap markers={markers} selectedId={selectedId} onSelect={setSelectedId} onMapReady={onMapReady} />
         {slowUpdate && <div className="map-progress" role="status"><span className="visually-hidden">Updating the map…</span></div>}
 
@@ -180,7 +182,23 @@ function MapPage() {
           </div>
         )}
 
-        <section className="map-overlay map-legend" aria-labelledby="map-legend-status">
+        {card && (
+          <button
+            type="button"
+            className="map-overlay map-legend-toggle"
+            aria-expanded={legendOpen}
+            aria-controls="map-legend"
+            onClick={() => setLegendOpen((open) => !open)}
+          >
+            {legendOpen ? 'Hide legend' : 'Show legend'}
+          </button>
+        )}
+
+        <section
+          id="map-legend"
+          className={`map-overlay map-legend${card && legendOpen ? ' map-legend--mobile-open' : ''}${card && !legendOpen ? ' map-legend--mobile-collapsed' : ''}`}
+          aria-labelledby="map-legend-status"
+        >
           <h2 id="map-legend-status">Most advanced status</h2>
           <ul>
             {LEGEND_STATUSES.map(([status, label]) => (
