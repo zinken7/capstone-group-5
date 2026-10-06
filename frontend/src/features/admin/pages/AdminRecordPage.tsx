@@ -119,6 +119,7 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['Mining environment', formatEnumLabel(record.environment)],
     ['Deployment status', formatEnumLabel(record.status)],
     ['Installation type', formatEnumLabel(record.installationType)],
+    ['Site coordinates', record.latitude === null || record.longitude === null ? 'Not recorded' : `${record.latitude}, ${record.longitude}`],
     ['Commissioning', formatCommissioning(record.commissioningDate, record.commissioningYear)],
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]

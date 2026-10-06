@@ -380,7 +380,7 @@ describe('record review', () => {
 
 describe('buildCorrection', () => {
   const record = {
-    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', region: null, commodity: null,
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
@@ -388,7 +388,7 @@ describe('buildCorrection', () => {
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',
-    commissioningDate: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
+    commissioningDate: '', latitude: '', longitude: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
   }
 
   test('asks for a change when nothing differs', () => {

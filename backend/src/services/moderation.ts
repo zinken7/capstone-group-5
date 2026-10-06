@@ -8,6 +8,7 @@ import {
   insertEvidence,
   insertRevision,
   lockDeployment,
+  updateSiteCoordinates,
   updateDeploymentForReview,
 } from '../repositories/contributions.js'
 import { lockCorrection, setCorrectionStatus } from '../repositories/corrections.js'
@@ -47,6 +48,7 @@ export type DecisionOutcome =
   | { kind: 'not_pending'; verificationStatus: string }
   | { kind: 'missing_technology_product' }
   | { kind: 'missing_evidence' }
+  | { kind: 'missing_coordinates' }
   | { kind: 'decided'; reviewId: number; verificationStatus: string }
 
 /**
@@ -64,6 +66,7 @@ export async function decide(deploymentId: number, adminUserId: number, input: R
     if (input.decision === 'approved') {
       if (state.technologyProductId === null) return { kind: 'missing_technology_product' }
       if (state.evidenceCount === 0) return { kind: 'missing_evidence' }
+      if (!state.hasCoordinates) return { kind: 'missing_coordinates' }
     }
 
     const verificationStatus = STATUS_AFTER[input.decision]
@@ -155,6 +158,11 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
 
     const { previous, updates } = diffChanges(current, input.changes)
 
+    if (input.coordinates && (input.coordinates.latitude !== current.siteLatitude || input.coordinates.longitude !== current.siteLongitude)) {
+      previous.latitude = current.siteLatitude
+      previous.longitude = current.siteLongitude
+    }
+
     if (input.technology) {
       const supplierId = await findOrCreateCompany(tx, input.technology.supplier)
       const productId = await findOrCreateTechnologyProduct(tx, supplierId, input.technology.product)
@@ -181,6 +189,9 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
       changeNote: input.changeNote,
     })
     const verificationStatus = await updateDeploymentForReview(tx, id, updates, { returnToPending: false })
+    if (input.coordinates && (input.coordinates.latitude !== current.siteLatitude || input.coordinates.longitude !== current.siteLongitude)) {
+      await updateSiteCoordinates(tx, current.siteId, input.coordinates)
+    }
     await insertEvidence(tx, id, newUrls)
 
     return { kind: 'updated', id, verificationStatus }

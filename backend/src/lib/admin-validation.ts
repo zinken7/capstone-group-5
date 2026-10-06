@@ -30,6 +30,7 @@ export function validateReview(body: unknown): ValidationResult<ReviewInput> {
 
 export interface AdminCorrectionInput {
   changes: DeploymentChanges
+  coordinates: { latitude: number; longitude: number } | null
   technology: { supplier: string; product: string } | null
   evidenceUrls: string[]
   changeNote: string | null
@@ -52,6 +53,12 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const automationLevel = read.choice('automation_level', AUTOMATION_LEVELS)
   const installationType = read.choice('installation_type', INSTALLATION_TYPES)
   const commissioning = read.commissioning('commissioning_date')
+  const latitude = read.coordinate('latitude', -90, 90)
+  const longitude = read.coordinate('longitude', -180, 180)
+  if ((latitude === null) !== (longitude === null)) {
+    if (latitude === null && !read.errors.latitude) read.errors.latitude = 'must be given with longitude'
+    if (longitude === null && !read.errors.longitude) read.errors.longitude = 'must be given with latitude'
+  }
   if (quantity !== null) changes.quantity = quantity
   if (environment !== null) changes.environment = environment
   if (status !== null) changes.status = status
@@ -74,6 +81,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const input: AdminCorrectionInput = {
     changes,
+    coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
     technology: supplier !== null && product !== null ? { supplier, product } : null,
     evidenceUrls: read.urls('evidence_urls'),
     changeNote: read.text('change_note', 1000),
@@ -81,7 +89,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
-    'commissioning_date', 'technology_supplier', 'technology_product', 'evidence_urls',
+    'commissioning_date', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'evidence_urls',
   ].some((field) => read.has(field)) || clearLevel === true
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'

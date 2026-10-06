@@ -57,19 +57,33 @@ export async function findOrCreateRegion(tx: Tx, name: string, countryCode: stri
 /** Sites have no natural key, so a same-name site in the same country is treated as the same site. */
 export async function findOrCreateSite(
   tx: Tx,
-  site: { name: string; countryCode: string; regionId: number | null; commodity: string | null },
+  site: { name: string; countryCode: string; regionId: number | null; commodity: string | null; coordinates: { latitude: number; longitude: number } | null },
 ): Promise<number> {
   const existing = await tx.db
-    .select({ id: tables.site.id })
+    .select({ id: tables.site.id, point4326: tables.site.point4326 })
     .from(tables.site)
     .where(and(sql`lower(${tables.site.name}) = lower(${site.name})`, eq(tables.site.countryCode, site.countryCode)))
     .orderBy(asc(tables.site.id))
     .limit(1)
-  if (existing[0]) return existing[0].id
+  if (existing[0]) {
+    if (site.coordinates !== null && existing[0].point4326 === null) {
+      await tx.db
+        .update(tables.site)
+        .set({ point4326: [site.coordinates.longitude, site.coordinates.latitude] })
+        .where(eq(tables.site.id, existing[0].id))
+    }
+    return existing[0].id
+  }
 
   const inserted = await tx.db
     .insert(tables.site)
-    .values({ name: site.name, countryCode: site.countryCode, regionId: site.regionId, commodity: site.commodity })
+    .values({
+      name: site.name,
+      countryCode: site.countryCode,
+      regionId: site.regionId,
+      commodity: site.commodity,
+      point4326: site.coordinates === null ? undefined : [site.coordinates.longitude, site.coordinates.latitude],
+    })
     .returning({ id: tables.site.id })
   return requireId(inserted)
 }
@@ -218,6 +232,9 @@ export async function insertRevision(
 
 export interface CurrentDeployment {
   id: number
+  siteId: number
+  siteLatitude: number | null
+  siteLongitude: number | null
   quantity: number
   environment: string | null
   status: string | null
@@ -234,6 +251,9 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
   const rows = await tx.db
     .select({
       id: tables.deployment.id,
+      siteId: tables.site.id,
+      siteLatitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
+      siteLongitude: sql<number | null>`ST_X(${tables.site.point4326})`,
       quantity: tables.deployment.quantity,
       environment: tables.deployment.environment,
       status: tables.deployment.status,
@@ -245,9 +265,22 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       verificationStatus: tables.deployment.verificationStatus,
     })
     .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
     .where(eq(tables.deployment.id, id))
     .for('update')
   return rows[0] ?? null
+}
+
+/** Stores the point supplied by an administrator for a contributed site. */
+export async function updateSiteCoordinates(
+  tx: Tx,
+  siteId: number,
+  coordinates: { latitude: number; longitude: number },
+): Promise<void> {
+  await tx.db
+    .update(tables.site)
+    .set({ point4326: [coordinates.longitude, coordinates.latitude] })
+    .where(eq(tables.site.id, siteId))
 }
 
 export async function findEvidenceUrls(tx: Tx, deploymentId: number): Promise<string[]> {

@@ -82,6 +82,8 @@ export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
 export interface ContributionFormValues {
   siteName: string
   countryCode: string
+  latitude: string
+  longitude: string
   region: string
   commodity: string
   machineType: string
@@ -119,6 +121,8 @@ export type ContributionSubmitter = (values: ContributionFormValues) => Promise<
 export const EMPTY_CONTRIBUTION_FORM: ContributionFormValues = {
   siteName: '',
   countryCode: '',
+  latitude: '',
+  longitude: '',
   region: '',
   commodity: '',
   machineType: '',

@@ -155,6 +155,8 @@ describe('ContributePage', () => {
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     const user = await fillMinimumForm()
+    await user.type(screen.getByLabelText(/site latitude/i), '-22.3')
+    await user.type(screen.getByLabelText(/site longitude/i), '118.7')
     await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/machine model variant/i), 'XDE')
     await user.click(screen.getByLabelText('Autonomous'))
@@ -173,6 +175,8 @@ describe('ContributePage', () => {
       site_name: 'Roy Hill',
       country_code: 'AU',
       machine_type: 'haul_truck',
+      latitude: -22.3,
+      longitude: 118.7,
       machine_model_variant: 'XDE',
       quantity: 10,
       automation_level: 'autonomous',

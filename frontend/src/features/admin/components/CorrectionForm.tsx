@@ -24,6 +24,8 @@ function initialValues(record: ReviewRecord) {
     clearAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
+    latitude: record.latitude === null ? '' : String(record.latitude),
+    longitude: record.longitude === null ? '' : String(record.longitude),
     technologySupplier: record.technologySupplier ?? '',
     technologyProduct: record.technologyProduct ?? '',
     evidenceUrl: '',
@@ -49,6 +51,20 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
+  }
+
+  const latitudeText = values.latitude.trim()
+  const longitudeText = values.longitude.trim()
+  if (latitudeText || longitudeText) {
+    if (!latitudeText || !longitudeText) return 'Enter both latitude and longitude.'
+    const latitude = Number(latitudeText)
+    const longitude = Number(longitudeText)
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return 'Latitude must be between -90 and 90.'
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return 'Longitude must be between -180 and 180.'
+    if (latitudeText !== before.latitude || longitudeText !== before.longitude) {
+      correction.latitude = latitude
+      correction.longitude = longitude
+    }
   }
 
   const supplier = values.technologySupplier.trim()
@@ -153,6 +169,14 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         <div className="form-field">
           <label htmlFor="correct-commissioning">Commissioning date or year</label>
           <input id="correct-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={(event) => set('commissioningDate')(event.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-latitude">Site latitude</label>
+          <input id="correct-latitude" type="number" min="-90" max="90" step="any" placeholder="e.g. -22.3" value={values.latitude} onChange={(event) => set('latitude')(event.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-longitude">Site longitude</label>
+          <input id="correct-longitude" type="number" min="-180" max="180" step="any" placeholder="e.g. 118.7" value={values.longitude} onChange={(event) => set('longitude')(event.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="correct-supplier">Technology supplier</label>

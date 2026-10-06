@@ -14,6 +14,8 @@ interface ContributionResponseDto {
 interface ContributionRequestDto {
   site_name: string
   country_code: string
+  latitude: number | null
+  longitude: number | null
   region: string | null
   commodity: string | null
   machine_type: string
@@ -38,6 +40,8 @@ function toContributionRequest(values: ContributionFormValues): ContributionRequ
   return {
     site_name: values.siteName.trim(),
     country_code: values.countryCode.trim().toUpperCase(),
+    latitude: values.latitude.trim() ? Number(values.latitude) : null,
+    longitude: values.longitude.trim() ? Number(values.longitude) : null,
     region: values.region.trim() || null,
     commodity: values.commodity.trim() || null,
     machine_type: values.machineType,

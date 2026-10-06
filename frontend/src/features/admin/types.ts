@@ -79,6 +79,8 @@ export interface ReviewRecord {
   verificationStatus: string
   siteName: string
   countryCode: string
+  latitude: number | null
+  longitude: number | null
   region: string | null
   commodity: string | null
   machineManufacturer: string
@@ -114,6 +116,8 @@ export interface AdminCorrection {
   clearAutomationLevel?: boolean
   installationType?: string
   commissioningDate?: string
+  latitude?: number
+  longitude?: number
   technologySupplier?: string
   technologyProduct?: string
   evidenceUrls?: string[]
