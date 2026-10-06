@@ -10,6 +10,9 @@ describe('shared formatting', () => {
   test('formats enums and country codes', () => {
     expect(formatEnumLabel('underground_haul_truck')).toBe('Underground haul truck')
     expect(formatEnumLabel('lhd')).toBe('LHD')
+    expect(formatEnumLabel('semi_autonomous')).toBe('Semi-autonomous')
+    expect(formatEnumLabel('both')).toBe('Surface and underground')
+    expect(formatEnumLabel('surface_and_underground')).toBe('Surface and underground')
     expect(formatCountry('AU')).toBe('Australia')
   })
 

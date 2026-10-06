@@ -4,7 +4,7 @@ import { db } from '../database.js'
 import * as tables from '../db/schema.js'
 import { AUTOMATION_LEVELS } from '../lib/controlled-values.js'
 import type { DeploymentFilters } from '../lib/deployment-filters.js'
-import { buildWhere, effectiveAutomationLevel, manufacturer, supplier } from './deployments.js'
+import { buildWhere, commissioningYear, effectiveAutomationLevel, manufacturer, supplier } from './deployments.js'
 
 /** One group of a breakdown; key is null for the unknown or unclassified group. */
 export interface BreakdownItem {
@@ -20,7 +20,14 @@ export interface Breakdowns {
   byManufacturer: BreakdownItem[]
   bySupplier: BreakdownItem[]
   byAutomationLevel: BreakdownItem[]
+  byStatus: BreakdownItem[]
+  byCommodity: BreakdownItem[]
+  byRegion: BreakdownItem[]
 }
+
+/** Announced deployments are not commissioned yet, so no timeline measure counts them */
+const notAnnounced = sql`${tables.deployment.status} IS DISTINCT FROM 'announced'`
+const startYear = commissioningYear
 
 /** Grouping expressions over the register's joins; fixed here, never taken from the request. */
 const DIMENSIONS = {
@@ -29,6 +36,11 @@ const DIMENSIONS = {
   manufacturer: sql<string | null>`${manufacturer.name}`,
   supplier: sql<string | null>`${supplier.name}`,
   automationLevel: effectiveAutomationLevel,
+  status: sql<string | null>`${tables.deployment.status}::text`,
+  environment: sql<string | null>`${tables.deployment.environment}::text`,
+  commodity: sql<string | null>`${tables.site.commodity}`,
+  region: sql<string | null>`${tables.region.name}`,
+  commissioningYear: sql<string | null>`${startYear}::text`,
 } as const
 
 type Dimension = keyof typeof DIMENSIONS
@@ -69,12 +81,15 @@ function byLevel(groups: Array<{ key: string | null; machineCount: number }>) {
 
 /** Machine counts and shares over the filtered verified deployments (FR-23 to FR-26, FR-29). */
 export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakdowns> {
-  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel] = await Promise.all([
+  const [byCountry, byMachineType, byManufacturer, bySupplier, byAutomationLevel, byStatus, byCommodity, byRegion] = await Promise.all([
     machinesBy('country', filters),
     machinesBy('machineType', filters),
     machinesBy('manufacturer', filters),
     machinesBy('supplier', filters),
     machinesBy('automationLevel', filters),
+    machinesBy('status', filters),
+    machinesBy('commodity', filters),
+    machinesBy('region', filters),
   ])
   const machineCount = byCountry.reduce((total, group) => total + group.machineCount, 0)
 
@@ -85,7 +100,67 @@ export async function findBreakdowns(filters: DeploymentFilters): Promise<Breakd
     byManufacturer: withShares(ranked(byManufacturer), machineCount),
     bySupplier: withShares(ranked(bySupplier), machineCount),
     byAutomationLevel: withShares(byLevel(byAutomationLevel), machineCount),
+    byStatus: withShares(ranked(byStatus), machineCount),
+    byCommodity: withShares(ranked(byCommodity), machineCount),
+    byRegion: withShares(ranked(byRegion), machineCount),
   }
+}
+
+/** Dimensions a cross-tabulation may group by, as the API names them */
+export const CROSSTAB_DIMENSIONS = {
+  country: 'country',
+  machine_type: 'machineType',
+  manufacturer: 'manufacturer',
+  supplier: 'supplier',
+  automation_level: 'automationLevel',
+  environment: 'environment',
+  commodity: 'commodity',
+  commissioning_year: 'commissioningYear',
+} as const satisfies Record<string, Dimension>
+
+export type CrosstabDimension = keyof typeof CROSSTAB_DIMENSIONS
+
+/** One pair of groups; either key is null for the unknown group. */
+export interface CrosstabCell {
+  row: string | null
+  column: string | null
+  machineCount: number
+}
+
+export interface Crosstab {
+  machineCount: number
+  cells: CrosstabCell[]
+}
+
+/**
+ * Machine counts for every pair of groups across two dimensions. When either dimension is the
+ * commissioning year, the measure follows the timeline: announced deployments and years after the
+ * current one are left out, so each year's cells add up to that year's newly_commissioned.
+ */
+export async function findCrosstab(rows: CrosstabDimension, columns: CrosstabDimension, filters: DeploymentFilters): Promise<Crosstab> {
+  const rowKey = DIMENSIONS[CROSSTAB_DIMENSIONS[rows]]
+  const columnKey = DIMENSIONS[CROSSTAB_DIMENSIONS[columns]]
+  const byYear = rows === 'commissioning_year' || columns === 'commissioning_year'
+  const where = byYear
+    ? and(buildWhere(filters), notAnnounced, sql`(${startYear} IS NULL OR ${startYear} <= EXTRACT(YEAR FROM CURRENT_DATE)::int)`)
+    : buildWhere(filters)
+
+  const groups = await db.select({ row: rowKey, column: columnKey, machineCount: sql<number>`SUM(${tables.deployment.quantity})::int` })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .where(where)
+    .groupBy(rowKey, columnKey)
+
+  // Largest first, then by key with unknown groups last, so the order is stable
+  const byKey = (left: string | null, right: string | null) => left === right ? 0 : left === null ? 1 : right === null ? -1 : left.localeCompare(right)
+  const cells = [...groups].sort((left, right) => right.machineCount - left.machineCount || byKey(left.row, right.row) || byKey(left.column, right.column))
+
+  return { machineCount: cells.reduce((total, cell) => total + cell.machineCount, 0), cells }
 }
 
 export interface TimelineYear {
@@ -101,9 +176,6 @@ export interface Timeline {
   excludedMachineCount: number
 }
 
-/** Announced deployments are not commissioned yet, so no timeline measure counts them */
-const notAnnounced = sql`${tables.deployment.status} IS DISTINCT FROM 'announced'`
-const startYear = sql<number | null>`COALESCE(${tables.deployment.commissioningYear}::int, EXTRACT(YEAR FROM ${tables.deployment.commissioningDate})::int)`
 // Like the map's date filter, a record is in service on 31 December only inside its valid_from..valid_to window
 const firstYearInService = sql<number | null>`EXTRACT(YEAR FROM ${tables.deployment.validFrom})::int`
 const lastYearInService = sql<number | null>`EXTRACT(YEAR FROM ${tables.deployment.validTo} + 1)::int - 1`

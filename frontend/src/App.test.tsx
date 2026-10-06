@@ -39,6 +39,7 @@ describe('Application shell and navigation', () => {
     ).toBeInTheDocument()
   })
 
+
   test('navigates to the Equipment Register', async () => {
     const user = userEvent.setup()
 
@@ -75,6 +76,12 @@ describe('Application shell and navigation', () => {
     await user.tab()
 
     expect(
+      screen.getByRole('link', { name: /skip to main content/i }),
+    ).toHaveFocus()
+
+    await user.tab()
+
+    expect(
       screen.getByRole('link', { name: /mining market map home/i }),
     ).toHaveFocus()
 
@@ -95,5 +102,13 @@ describe('Application shell and navigation', () => {
     expect(
       screen.getByRole('heading', { name: /equipment/i }),
     ).toBeInTheDocument()
+  })
+
+  test('provides a bypass link to the focusable main content', () => {
+    renderApp()
+
+    expect(screen.getByRole('link', { name: /skip to main content/i })).toHaveAttribute('href', '#main-content')
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content')
+    expect(screen.getByRole('main')).toHaveAttribute('tabindex', '-1')
   })
 })

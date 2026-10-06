@@ -1,194 +1,253 @@
-import { useMemo, useState } from 'react'
-import MiningMap from '../components/MiningMap'
-import StateMessage from '../../../shared/components/StateMessage'
-import { useLiveSites } from '../../../hooks/useLiveSites'
+import type { Map as LeafletMap } from 'leaflet'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { MapQuery, MiningEnvironment } from '../../../lib/api/types'
 import { formatNumber } from '../../../lib/format'
-import type { MapSite } from '../types'
-import { formatAustralianDateInput, parseAustralianDate } from '../date'
+import FilterPanel, { NO_FILTERS } from '../components/FilterPanel'
+import MapIcon from '../components/MapIcon'
+import type { MapFilters } from '../components/FilterPanel'
+import SiteCard from '../components/SiteCard'
+import SiteMap, { fitToMarkers } from '../components/SiteMap'
+import { markerRadius } from '../geometry'
+import { useDelayedFlag, useMapData, useMapOptions } from '../useMapData'
+import '../map.css'
 
-const MACHINE_TYPES = [
-  ['haul_truck', 'Haul truck'],
-  ['lhd', 'LHD'],
-  ['loader', 'Loader'],
-  ['dozer', 'Dozer'],
-  ['excavator', 'Excavator'],
-  ['drill', 'Drill'],
-]
+const LEGEND_STATUSES = [
+  ['operational', 'Operational'],
+  ['commissioning', 'Commissioning'],
+  ['announced', 'Announced'],
+  ['decommissioned', 'Decommissioned only'],
+] as const
+const LEGEND_SIZES = [10, 25, 50]
+// Year changes from the slider settle before a request goes out
+const YEAR_DELAY_MS = 250
 
-interface MapPageProps {
-  /** Test/demo override; normal application runtime always uses the live API. */
-  sites?: MapSite[]
+function toQuery(filters: MapFilters, year: number, includeDecommissioned: boolean): MapQuery {
+  return {
+    supplier: filters.supplier || undefined,
+    machineType: filters.machineType || undefined,
+    country: filters.country || undefined,
+    automationLevel: filters.automationLevel || undefined,
+    region: filters.region || undefined,
+    commodity: filters.commodity || undefined,
+    environment: (filters.environment || undefined) as MiningEnvironment | undefined,
+    year,
+    includeDecommissioned,
+  }
 }
 
-function MapPage({ sites: suppliedSites }: MapPageProps = {}) {
-  const [supplier, setSupplier] = useState('')
-  const [machineType, setMachineType] = useState('')
-  const [dateInput, setDateInput] = useState('')
-  const [showDecommissioned, setShowDecommissioned] = useState(false)
-  const [showDensity, setShowDensity] = useState(true)
-  const date = parseAustralianDate(dateInput)
-  const { sites: liveSites, excludedCount: liveExcludedCount, loading: liveLoading, error: liveError } = useLiveSites({
-    supplier: supplier || undefined,
-    machineType: machineType || undefined,
-    date,
-  })
+function MapPage() {
+  const currentYear = new Date().getFullYear()
+  const [filters, setFilters] = useState<MapFilters>(NO_FILTERS)
+  const [includeDecommissioned, setIncludeDecommissioned] = useState(false)
+  const [yearInput, setYearInput] = useState(currentYear)
+  const [year, setYear] = useState(currentYear)
+  const [panelOpen, setPanelOpen] = useState(true)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [legendOpen, setLegendOpen] = useState(false)
+  const [map, setMap] = useState<LeafletMap | null>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const panelTogglePending = useRef(false)
+  const [fullscreen, setFullscreen] = useState(false)
 
-  const sites = suppliedSites ?? liveSites
-  const loading = suppliedSites === undefined && liveLoading
-  const error = suppliedSites === undefined ? liveError : null
-  const excludedCount = suppliedSites === undefined ? liveExcludedCount : 0
-  const supplierOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          sites.flatMap((site) =>
-            site.deployments
-              .filter((deployment) =>
-                date !== undefined ||
-                deployment.status === 'operational' ||
-                (showDecommissioned && deployment.status === 'decommissioned'),
-              )
-              .map((deployment) => deployment.supplier),
-          ),
-        ),
-      ).sort(),
-    [date, showDecommissioned, sites],
-  )
+  const options = useMapOptions()
+  const data = useMapData(toQuery(filters, year, includeDecommissioned))
+  const markers = useMemo(() => [...data.markers].sort((a, b) => a.name.localeCompare(b.name)), [data.markers])
+  const selected = markers.find((marker) => marker.id === selectedId) ?? null
+  // Most requests return within a blink; only a slow one earns a loading bar
+  const slowUpdate = useDelayedFlag(data.updating && !data.initialLoad, 400)
+  const firstYear = Math.min(options?.firstYear ?? currentYear - 12, currentYear)
 
-  const visibleSites = sites
-    .map((site) => ({
-      ...site,
-      deployments: site.deployments.filter((deployment) =>
-        (
-          date !== undefined ||
-          deployment.status === 'operational' ||
-          (showDecommissioned && deployment.status === 'decommissioned')
-        ) &&
-        (!supplier || deployment.supplier === supplier) &&
-        (!machineType || deployment.machineType.toLowerCase().replaceAll(' ', '_') === machineType),
-      ),
-    }))
-    .filter((site) => site.deployments.length > 0)
+  useEffect(() => {
+    const timer = setTimeout(() => setYear(yearInput), YEAR_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [yearInput])
+
+  useEffect(() => {
+    if (!panelTogglePending.current) return
+    panelTogglePending.current = false
+    document.querySelector<HTMLButtonElement>(panelOpen ? '#hide-map-panel' : '#show-map-panel')?.focus()
+  }, [panelOpen])
+
+  const onMapReady = useCallback((instance: LeafletMap) => setMap(instance), [])
+
+  // Esc, or the browser's own control, can also leave full screen; either way the map refits to its new size
+  useEffect(() => {
+    const onChange = () => {
+      setFullscreen(document.fullscreenElement !== null && document.fullscreenElement === stage.current)
+      if (!map) return
+      map.invalidateSize()
+      fitToMarkers(map, markers)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [map, markers])
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen()
+    else void stage.current?.requestFullscreen()
+  }
+
+  // Leaflet cannot animate a map that has no size yet
+  const flyTo = (latitude: number, longitude: number, zoom: number) => {
+    if (map && map.getSize().x > 0) map.flyTo([latitude, longitude], zoom, { duration: 0.6 })
+  }
+
+  const selectSite = (id: number) => {
+    setSelectedId(id)
+    const marker = markers.find((item) => item.id === id)
+    if (map && marker && map.getSize().x > 0) {
+      map.panTo([marker.latitude, marker.longitude], { animate: true, duration: 0.6 })
+    }
+  }
+
+  const closeCard = () => {
+    const id = selectedId
+    setSelectedId(null)
+    setLegendOpen(false)
+    // Back to the site in the list, so keyboard users keep their place
+    if (id !== null) document.querySelector<HTMLButtonElement>(`[data-site-id="${id}"]`)?.focus()
+  }
+
+  const clearAll = () => {
+    setFilters(NO_FILTERS)
+    setIncludeDecommissioned(false)
+  }
+
+  const setPanelVisibility = (open: boolean) => {
+    panelTogglePending.current = true
+    setPanelOpen(open)
+  }
+
+  const machines = markers.reduce((total, marker) => total + marker.machineCount, 0)
+  const countries = new Set(markers.map((marker) => marker.countryCode)).size
+  // A site that leaves the view after a filter change drops its card with it
+  const card = selected
 
   return (
-    <section className="map-page">
-      <header>
-        <p className="eyebrow">Interactive GIS map</p>
-        <h1>Autonomous Mining Equipment Market Map</h1>
-        <p className="intro">
-          Explore autonomous mining deployments. The locations shown here are
-          verified records loaded from the project API.
-        </p>
-      </header>
-
-      <div className="map-toolbar">
-        <label htmlFor="supplier-filter">Technology supplier</label>
-        <select
-          id="supplier-filter"
-          value={supplier}
-          onChange={(event) => setSupplier(event.target.value)}
-        >
-          <option value="">All suppliers</option>
-          {supplierOptions.map((supplier) => (
-            <option key={supplier} value={supplier}>{supplier}</option>
-          ))}
-        </select>
-
-        <label htmlFor="machine-type-filter">Machine type</label>
-        <select id="machine-type-filter" value={machineType} onChange={(event) => setMachineType(event.target.value)}>
-          <option value="">All machine types</option>
-          {MACHINE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-
-        <label htmlFor="date-filter">Show records active on (DD/MM/YYYY)</label>
-        <input
-          id="date-filter"
-          className="date-filter-input"
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          placeholder="DD/MM/YYYY"
-          maxLength={10}
-          value={dateInput}
-          aria-invalid={dateInput.length === 10 && date === undefined}
-          onChange={(event) => setDateInput(formatAustralianDateInput(event.target.value))}
+    <section className={panelOpen ? 'map-page' : 'map-page map-page--collapsed'}>
+      {panelOpen ? (
+        <FilterPanel
+          options={options}
+          filters={filters}
+          onFiltersChange={setFilters}
+          includeDecommissioned={includeDecommissioned}
+          onIncludeDecommissionedChange={setIncludeDecommissioned}
+          onClear={clearAll}
+          markers={markers}
+          selectedId={selectedId}
+          onSelectSite={selectSite}
+          onCollapse={() => setPanelVisibility(false)}
         />
-
-        <label className="map-checkbox">
-          <input
-            type="checkbox"
-            checked={showDecommissioned}
-            onChange={(event) => setShowDecommissioned(event.target.checked)}
-          />
-          Show decommissioned records
-        </label>
-
-        <label className="map-checkbox">
-          <input
-            type="checkbox"
-            checked={showDensity}
-            onChange={(event) => setShowDensity(event.target.checked)}
-          />
-          Show machine quantity density
-        </label>
-
-        <p className="filter-result" aria-live="polite">
-          {visibleSites.length} {visibleSites.length === 1 ? 'site' : 'sites'} shown
-        </p>
-      </div>
-
-      {excludedCount > 0 && date && (
-        <p className="filter-note" role="status">
-          {excludedCount} record{excludedCount === 1 ? '' : 's'} without a commissioning date were excluded from the timeline.
-        </p>
+      ) : (
+        <div className="map-rail">
+          <button id="show-map-panel" type="button" className="map-rail__button" aria-expanded="false" aria-controls="map-panel" title="Show filters and sites" onClick={() => setPanelVisibility(true)}>
+            <MapIcon name="chevronRight" />
+            <span className="map-rail__label">Filters</span>
+            <span className="visually-hidden">Show filters and sites</span>
+          </button>
+        </div>
       )}
 
-      {date && !showDecommissioned && (
-        <p className="filter-note" role="status">
-          Date view includes deployments active on the selected date, including records now marked non-operational.
-        </p>
-      )}
+      <div className={card ? 'map-stage map-stage--selected' : 'map-stage'} role="region" aria-label="Site map" ref={stage}>
+        <SiteMap markers={markers} selectedId={selectedId} onSelect={setSelectedId} onMapReady={onMapReady} />
+        {slowUpdate && <div className="map-progress" role="status"><span className="visually-hidden">Updating the map…</span></div>}
 
-      {showDensity && (
-        <section className="density-guide" aria-label="Machine quantity density guide">
-          <strong>Machine quantity density</strong>
-          <p>Larger, more prominent halos indicate more verified machines at a site. Colour and size show quantity bands, not operating status.</p>
+        <dl className="map-overlay map-headline" aria-label="Totals for the current view">
+          <div><dt>sites</dt><dd>{formatNumber(markers.length)}</dd></div>
+          <div><dt>machines in service</dt><dd>{formatNumber(machines)}</dd></div>
+          <div><dt>{countries === 1 ? 'country' : 'countries'}</dt><dd>{formatNumber(countries)}</dd></div>
+        </dl>
+
+        <div className="map-overlay map-controls" role="group" aria-label="Map view">
+          <button type="button" className="map-control" title="Zoom in" onClick={() => map?.zoomIn()}><MapIcon name="plus" /><span className="visually-hidden">Zoom in</span></button>
+          <button type="button" className="map-control" title="Zoom out" onClick={() => map?.zoomOut()}><MapIcon name="minus" /><span className="visually-hidden">Zoom out</span></button>
+          <button type="button" className="map-control" title="Show all sites" onClick={() => map && fitToMarkers(map, markers)}><MapIcon name="globe" /><span className="visually-hidden">Show all sites</span></button>
+          {document.fullscreenEnabled && (
+            <button type="button" className="map-control" title={fullscreen ? 'Exit full screen' : 'Full screen'} aria-label={fullscreen ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen} onClick={toggleFullscreen}>
+              <MapIcon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} />
+            </button>
+          )}
+        </div>
+
+        {card && (
+          <div className="map-overlay map-card-slot">
+            <SiteCard
+              marker={card}
+              year={year}
+              includeDecommissioned={includeDecommissioned}
+              onClose={closeCard}
+              onZoom={() => flyTo(card.latitude, card.longitude, 8)}
+            />
+          </div>
+        )}
+
+        {card && (
+          <button
+            type="button"
+            className="map-overlay map-legend-toggle"
+            aria-expanded={legendOpen}
+            aria-controls="map-legend"
+            onClick={() => setLegendOpen((open) => !open)}
+          >
+            {legendOpen ? 'Hide legend' : 'Show legend'}
+          </button>
+        )}
+
+        <section
+          id="map-legend"
+          className={`map-overlay map-legend${card && legendOpen ? ' map-legend--mobile-open' : ''}${card && !legendOpen ? ' map-legend--mobile-collapsed' : ''}`}
+          aria-labelledby="map-legend-status"
+        >
+          <h2 id="map-legend-status">Most advanced status</h2>
           <ul>
-            <li><span className="density-swatch density-swatch--low" />1–10 machines</li>
-            <li><span className="density-swatch density-swatch--medium" />11–50 machines</li>
-            <li><span className="density-swatch density-swatch--high" />51+ machines</li>
+            {LEGEND_STATUSES.map(([status, label]) => (
+              <li key={status}>
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle className={`site-marker site-marker--${status}`} cx="7" cy="7" r="5" /></svg>
+                {label}
+              </li>
+            ))}
+          </ul>
+          <h2>Machines in service</h2>
+          <ul className="map-legend__sizes">
+            {LEGEND_SIZES.map((size) => {
+              const radius = markerRadius(size)
+              return (
+                <li key={size}>
+                  <svg width={radius * 2 + 2} height={radius * 2 + 2} aria-hidden="true"><circle className="map-legend__size" cx={radius + 1} cy={radius + 1} r={radius} /></svg>
+                  {size}
+                </li>
+              )
+            })}
           </ul>
         </section>
-      )}
 
-      {loading && <StateMessage variant="loading" title="Loading live records" message="Connecting to the backend API…" />}
-      {error && <StateMessage variant="error" title="Unable to load the map" message={`${error}. Check that the backend is running and try again.`} />}
-      {!loading && !error && visibleSites.length === 0 && (
-        <StateMessage
-          title="No matching sites"
-          message="Try a different supplier name or clear the filter."
-        />
-      )}
+        <div className="map-overlay map-year">
+          <div className="map-year__label">
+            <label htmlFor="map-year">Deployments in service at the end of</label>
+            <output htmlFor="map-year">{yearInput}</output>
+          </div>
+          <input id="map-year" type="range" min={firstYear} max={currentYear} step={1} value={yearInput} onChange={(event) => setYearInput(Number(event.target.value))} />
+          <div className="map-year__ends" aria-hidden="true"><span>{firstYear}</span><span>{currentYear}</span></div>
+          {data.excludedCount > 0 && (
+            <p className="map-year__note">{formatNumber(data.excludedCount)} {data.excludedCount === 1 ? 'deployment has' : 'deployments have'} no commissioning year and {data.excludedCount === 1 ? 'is' : 'are'} not on the map.</p>
+          )}
+        </div>
 
-      {!loading && !error && visibleSites.length > 0 && (
-        <>
-          <MiningMap sites={visibleSites} showDensity={showDensity} />
-          <section className="site-summary" aria-labelledby="visible-locations-heading">
-            <h2 id="visible-locations-heading">Visible locations</h2>
-            <ul>
-              {visibleSites.map((site) => {
-                const quantity = site.deployments.reduce((total, deployment) => total + deployment.quantity, 0)
-                return (
-                  <li key={site.id}>
-                    <strong>{site.name}</strong>
-                    <span>{formatNumber(quantity)} verified machines · {site.region}, {site.country}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        </>
-      )}
+        {data.initialLoad && <p className="map-overlay map-message" role="status">Loading the map…</p>}
+        {data.error && (
+          <div className="map-overlay map-message" role="alert">
+            <p>The map could not load: {data.error}</p>
+            <button type="button" className="button button--primary" onClick={data.retry}>Try again</button>
+          </div>
+        )}
+        {!data.initialLoad && !data.error && !data.updating && markers.length === 0 && (
+          <div className="map-overlay map-message" role="status">
+            <p><strong>No sites match these filters</strong> for the end of {year}.</p>
+            <button type="button" className="button button--secondary" onClick={clearAll}>Clear all filters</button>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

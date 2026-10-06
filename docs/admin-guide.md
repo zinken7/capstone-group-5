@@ -5,8 +5,10 @@ contributor submits or corrects appears on the Map, Equipment Register or
 Analytics until an administrator approves it.
 
 The administration pages are at `/admin` (for example
-https://capstone-group-5.vercel.app/admin). They are not linked from the public
-navigation.
+https://capstone-group-5.vercel.app/admin). Every public page links there from
+the **Administrator sign-in** link in the footer; the main navigation does not.
+Following the link opens the review queue when you are signed in, and the
+sign-in page otherwise.
 
 ## Accounts
 
@@ -31,9 +33,11 @@ a deactivated account is signed out immediately.
 
 ## Reviewing a submission
 
-1. **Review queue** lists records pending review, oldest first: new submissions
-   and corrected records. Missing evidence or a missing technology product is
-   flagged.
+1. **Review queue** lists everything waiting for a decision, oldest first. A
+   **Submission** is a new record, or one a contributor corrected after it was
+   sent back. A **Correction** is a change a contributor proposed for a verified
+   record; the queue shows which fields it changes. Missing evidence or a missing
+   technology product is flagged.
 2. Open a record with **Review**. Check the details and open each evidence link;
    links open in a new tab.
 3. If something is wrong or missing, use **Correct this record**. You can change
@@ -52,3 +56,19 @@ a deactivated account is signed out immediately.
 Decisions apply only to records pending review. Each one is kept, with your
 email, the note and the time, in the record's history, together with every
 correction and the contributor's original submission.
+
+## Reviewing a proposed correction
+
+A verified record stays public with its current values while a correction to it
+waits. Its page shows each **Proposed correction**: every changed field with its
+value before and the proposed value, the contributor's note and any sources they
+supplied. If the record has changed since the correction was sent, the field is
+flagged with its value now; approving applies the proposed value over it.
+
+| Decision | Result |
+|---|---|
+| Approve | The change is applied and appears in public views straight away. The record stays verified. The history shows the change, credited to the contributor, with the previous values. |
+| Needs changes | The record stays as it is. The contributor can send a new correction. A note is required. |
+| Reject | The record stays as it is. A note is required. |
+
+Decided corrections stay in the record's history, including what was proposed.

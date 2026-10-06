@@ -1,6 +1,8 @@
 import { requestJson } from './http'
 
 export interface AnalyticsFilters {
+  q?: string
+  siteId?: string
   country?: string
   region?: string
   commodity?: string
@@ -10,6 +12,8 @@ export interface AnalyticsFilters {
   automationLevel?: string
   environment?: string
   status?: string
+  commissionedFrom?: string
+  commissionedTo?: string
 }
 
 export interface AnalyticsSummaryDto {
@@ -31,6 +35,9 @@ export interface AnalyticsBreakdownsDto {
   by_manufacturer: AnalyticsBreakdownItemDto[]
   by_supplier: AnalyticsBreakdownItemDto[]
   by_automation_level: AnalyticsBreakdownItemDto[]
+  by_status: AnalyticsBreakdownItemDto[]
+  by_commodity: AnalyticsBreakdownItemDto[]
+  by_region: AnalyticsBreakdownItemDto[]
 }
 
 export interface AnalyticsTimelineYearDto {
@@ -45,9 +52,26 @@ export interface AnalyticsTimelineDto {
   years: AnalyticsTimelineYearDto[]
 }
 
+export type AnalyticsDimension = 'country' | 'machine_type' | 'manufacturer' | 'supplier' | 'automation_level' | 'environment' | 'commodity' | 'commissioning_year'
+
+export interface AnalyticsCrosstabCellDto {
+  row: string | null
+  column: string | null
+  machine_count: number
+}
+
+export interface AnalyticsCrosstabDto {
+  rows: AnalyticsDimension
+  columns: AnalyticsDimension
+  machine_count: number
+  cells: AnalyticsCrosstabCellDto[]
+}
+
 function queryString(filters: AnalyticsFilters): string {
   const params = new URLSearchParams()
-  const entries: [keyof AnalyticsFilters, string][] = [
+  const entries: Array<[keyof AnalyticsFilters, string]> = [
+    ['q', 'q'],
+    ['siteId', 'site_id'],
     ['country', 'country'],
     ['region', 'region'],
     ['commodity', 'commodity'],
@@ -57,6 +81,8 @@ function queryString(filters: AnalyticsFilters): string {
     ['automationLevel', 'automation_level'],
     ['environment', 'environment'],
     ['status', 'status'],
+    ['commissionedFrom', 'commissioned_from'],
+    ['commissionedTo', 'commissioned_to'],
   ]
   for (const [field, key] of entries) {
     const value = filters[field]
@@ -78,3 +104,7 @@ export function getAnalyticsTimeline(filters: AnalyticsFilters = {}): Promise<An
   return requestJson<AnalyticsTimelineDto>(`analytics/timeline${queryString(filters)}`)
 }
 
+export function getAnalyticsCrosstab(rows: AnalyticsDimension, columns: AnalyticsDimension, filters: AnalyticsFilters = {}): Promise<AnalyticsCrosstabDto> {
+  const query = queryString(filters)
+  return requestJson<AnalyticsCrosstabDto>(`analytics/crosstab?rows=${rows}&columns=${columns}${query ? `&${query.slice(1)}` : ''}`)
+}

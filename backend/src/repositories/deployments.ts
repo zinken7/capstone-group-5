@@ -74,6 +74,9 @@ function likePattern(text: string): string {
 }
 
 /** Builds the WHERE condition; values bind as parameters, never into the SQL text (NFR-05). */
+/** The commissioning year, from the year column or else the commissioning date; null when neither is recorded */
+export const commissioningYear = sql<number | null>`COALESCE(${tables.deployment.commissioningYear}::int, EXTRACT(YEAR FROM ${tables.deployment.commissioningDate})::int)`
+
 export function buildWhere(filters: DeploymentFilters): SQL | undefined {
   const conditions: SQL[] = [eq(tables.deployment.verificationStatus, 'verified')]
 
@@ -107,6 +110,8 @@ export function buildWhere(filters: DeploymentFilters): SQL | undefined {
   if (filters.status !== undefined) {
     conditions.push(sql`${tables.deployment.status}::text = ${filters.status}`)
   }
+  if (filters.commissionedFrom !== undefined) conditions.push(sql`${commissioningYear} >= ${filters.commissionedFrom}`)
+  if (filters.commissionedTo !== undefined) conditions.push(sql`${commissioningYear} <= ${filters.commissionedTo}`)
 
   return and(...conditions)
 }

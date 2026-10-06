@@ -20,6 +20,9 @@ export async function getMap(query: MapQuery = {}): Promise<MapResult> {
     if (value !== undefined) params.set(name, value)
   }
 
+  if (query.year !== undefined) params.set('year', String(query.year))
+  if (query.includeDecommissioned) params.set('include_decommissioned', 'true')
+
   const search = params.toString()
   const dto = await requestJson<MapResponseDto>(`map${search ? `?${search}` : ''}`)
   return mapMapResponse(dto)

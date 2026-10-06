@@ -1,0 +1,81 @@
+import type { MapMarker, SiteDeployment } from '../../lib/api/types'
+
+/** Marker area grows with the machines in service (square-root scale), with a floor that stays easy to click. */
+export function markerRadius(machines: number): number {
+  return Math.max(5, Math.sqrt(Math.max(machines, 0)) * 1.45)
+}
+
+export interface FitPadding {
+  paddingTopLeft: [number, number]
+  paddingBottomRight: [number, number]
+}
+
+/**
+ * Padding for the selected-site mobile state. The bottom sheet and compact
+ * year control are overlays on the map, so the selected marker must be kept
+ * inside the remaining strip above them rather than merely centred.
+ */
+export function selectedMapPaddingForSize(size: { x: number; y: number }): FitPadding {
+  const horizontal = Math.max(16, Math.round(size.x * 0.04))
+  const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+  const sheetHeight = Math.min(Math.round(size.y * 0.44), 18 * 16, Math.max(0, size.y - 8 * 16))
+  const yearHeight = Math.min(72, Math.max(56, Math.round(size.y * 0.12)))
+  const bottom = sheetHeight + yearHeight + 16
+  return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+}
+
+/**
+ * CircleMarker radii are screen pixels, so the data scale stays identical on
+ * every device. Only the fit padding changes to reserve room for mobile
+ * overlays and keep the visible map area useful.
+ */
+export function fitPaddingForSize(size: { x: number; y: number }): FitPadding {
+  if (size.x <= 900) {
+    const horizontal = Math.max(24, Math.round(size.x * 0.06))
+    const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+    const bottom = Math.max(120, Math.round(Math.min(size.y * 0.3, 192)))
+    return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+  }
+
+  return { paddingTopLeft: [48, 96], paddingBottomRight: [48, 160] }
+}
+
+/** [[south, west], [north, east]] around every marker, or null when there are none. */
+export function boundsOf(markers: readonly Pick<MapMarker, 'latitude' | 'longitude'>[]): [[number, number], [number, number]] | null {
+  if (markers.length === 0) return null
+  const latitudes = markers.map((marker) => marker.latitude)
+  const longitudes = markers.map((marker) => marker.longitude)
+  return [
+    [Math.min(...latitudes), Math.min(...longitudes)],
+    [Math.max(...latitudes), Math.max(...longitudes)],
+  ]
+}
+
+/** The commissioning year, or the year of the commissioning date; null when neither is known. */
+export function startYearOf(deployment: Pick<SiteDeployment, 'commissioningYear' | 'commissioningDate'>): number | null {
+  if (deployment.commissioningYear !== null) return deployment.commissioningYear
+  return deployment.commissioningDate ? Number(deployment.commissioningDate.slice(0, 4)) : null
+}
+
+type TimedDeployment = Pick<SiteDeployment, 'status' | 'commissioningYear' | 'commissioningDate' | 'validFrom' | 'validTo'>
+
+/**
+ * In service on 31 December of the year, by the rule /api/map?year= and the
+ * analytics timeline use: not announced, commissioned by then, and inside its
+ * validity window.
+ */
+export function inServiceAt(deployment: TimedDeployment, year: number): boolean {
+  const day = `${year}-12-31`
+  const start = startYearOf(deployment)
+  return deployment.status !== 'announced'
+    && start !== null && start <= year
+    && (!deployment.validFrom || deployment.validFrom <= day)
+    && (!deployment.validTo || deployment.validTo >= day)
+}
+
+/** Commissioned by the year but closed before its last day: what include_decommissioned adds back. Announced deployments never ran, so never ended. */
+export function endedBy(deployment: TimedDeployment, year: number): boolean {
+  const start = startYearOf(deployment)
+  return deployment.status !== 'announced'
+    && start !== null && start <= year && Boolean(deployment.validTo) && (deployment.validTo ?? '') < `${year}-12-31`
+}

@@ -6,6 +6,7 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f5f7fb;
   --color-border: #d8dee9;
+  --color-control-border: #748094;
   --color-text-muted: #536078;
   --color-focus: #2563eb;
   --color-success: #166534;
@@ -16,6 +17,7 @@
   --color-info-surface: #f3e8ff;
   --color-neutral: #4b5563;
   --color-neutral-surface: #e5e7eb;
+  --color-danger: #991b1b;
   --color-automation-autonomous: #166534;
   --color-automation-teleremote: #1d4ed8;
   --color-automation-semi: #a16207;
@@ -41,6 +43,7 @@
   --accent: var(--color-accent);
   --surface-muted: var(--color-surface-muted);
   --border: var(--color-border);
+  --control-border: var(--color-control-border);
   --text-strong: var(--color-ink);
   --text-muted: var(--color-text-muted);
   --focus: var(--color-focus);

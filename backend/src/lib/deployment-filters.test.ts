@@ -27,6 +27,18 @@ describe('parseDeploymentFilters', () => {
     expect(parseDeploymentFilters({ sort: 'site', limit: '10' })).toEqual({ ok: true, value: {} })
   })
 
+  it('parses a commissioning year range', () => {
+    expect(parseDeploymentFilters({ commissioned_from: ' 2019 ', commissioned_to: '2024' })).toEqual({ ok: true, value: { commissionedFrom: 2019, commissionedTo: 2024 } })
+    expect(parseDeploymentFilters({ commissioned_from: '' })).toEqual({ ok: true, value: {} })
+  })
+
+  it('rejects a commissioning year that is not four digits', () => {
+    for (const year of ['19', '2024.5', 'next', ['2020', '2021']]) {
+      expect(parseDeploymentFilters({ commissioned_from: year }), String(year)).toEqual({ ok: false, error: 'invalid commissioned_from parameter' })
+    }
+    expect(parseDeploymentFilters({ commissioned_to: '20245' })).toEqual({ ok: false, error: 'invalid commissioned_to parameter' })
+  })
+
   it('parses site_id as a positive whole number', () => {
     expect(parseDeploymentFilters({ site_id: ' 12 ' })).toEqual({ ok: true, value: { siteId: 12 } })
     expect(parseDeploymentFilters({ site_id: '' })).toEqual({ ok: true, value: {} })

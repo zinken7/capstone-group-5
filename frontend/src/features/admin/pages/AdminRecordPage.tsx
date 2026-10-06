@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
-import { getReviewRecord } from '../../../lib/api/admin'
+import { getReviewRecord, submitDecision } from '../../../lib/api/admin'
 import { ApiError } from '../../../lib/api/errors'
 import { formatCommissioning, formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import AdminBar from '../components/AdminBar'
 import CorrectionForm from '../components/CorrectionForm'
+import CorrectionReview from '../components/CorrectionReview'
 import DecisionForm from '../components/DecisionForm'
 import RecordHistory from '../components/RecordHistory'
 import { useAdminSession } from '../session'
@@ -68,27 +69,45 @@ function AdminRecordPage() {
 
   if (!Number.isSafeInteger(recordId) || recordId <= 0 || state.status === 'not-found') {
     return (
-      <section className="product-page admin-page">
+      <>
         <AdminBar />
-        <StateMessage variant="error" title="Record not found" message="There is no deployment record with this id." />
-        <p><Link to="/admin">Back to the review queue</Link></p>
-      </section>
+        <main className="admin-page" id="main-content" tabIndex={-1}>
+          <StateMessage variant="error" title="Record not found" message="There is no deployment record with this id." />
+          <p><Link to="/admin">Back to the review queue</Link></p>
+        </main>
+      </>
     )
   }
 
   return (
-    <section className="product-page admin-page">
+    <>
       <AdminBar />
-      <p className="admin-back"><Link to="/admin">← Review queue</Link></p>
-      {state.status === 'loading' && <StateMessage variant="loading" title="Loading the record" message="Fetching the record and its history." />}
-      {state.status === 'error' && <StateMessage variant="error" title="Record unavailable" message={state.message} />}
-      {state.status === 'ready' && <RecordView key={state.version} record={state.record} notice={notice} onChanged={load} />}
+      <main className="admin-page" id="main-content" tabIndex={-1}>
+        <p className="admin-back"><Link to="/admin">← Review queue</Link></p>
+        {state.status === 'loading' && <StateMessage variant="loading" title="Loading the record" message="Fetching the record and its history." />}
+        {state.status === 'error' && <StateMessage variant="error" title="Record unavailable" message={state.message} />}
+        {state.status === 'ready' && <RecordView key={state.version} record={state.record} notice={notice} onChanged={load} />}
+      </main>
+    </>
+  )
+}
+
+/** Editing stays out of the way until asked for; most reviews only need a decision. */
+function EditRecordPanel({ record, onCorrected }: { record: ReviewRecord; onCorrected: () => void }) {
+  const [open, setOpen] = useState(false)
+  if (open) return <CorrectionForm record={record} onCorrected={onCorrected} onCancel={() => setOpen(false)} />
+  return (
+    <section className="admin-panel admin-edit" aria-labelledby="edit-heading">
+      <h2 id="edit-heading">Fix a detail yourself</h2>
+      <p className="form-help">Correct the record directly, for example a typo or a missing technology product. The previous values stay in the history.</p>
+      <button className="button button--secondary" type="button" aria-expanded="false" onClick={() => setOpen(true)}>Edit record</button>
     </section>
   )
 }
 
 function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notice: string | null; onChanged: (message?: string) => void }) {
   const machine = [record.machineManufacturer, record.machineModel, record.modelVariant].filter(Boolean).join(' ')
+  const pendingCorrections = record.corrections.filter((correction) => correction.status === 'pending')
   const fields: [string, string][] = [
     ['Site', [record.siteName, record.region, record.countryCode].filter(Boolean).join(', ')],
     ['Commodity', formatEnumLabel(record.commodity)],
@@ -103,63 +122,83 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['Commissioning', formatCommissioning(record.commissioningDate, record.commissioningYear)],
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]
-  const latestCorrection = [...record.revisions].reverse().find((revision) => revision.action === 'update' && revision.previousValues)
+  // A contributor's direct correction that returned this record to the queue; a verified record's proposals show above instead
+  const latestCorrection = record.verificationStatus === 'pending_review'
+    ? [...record.revisions].reverse().find((revision) => revision.action !== 'verification_change' && revision.administrator === null)
+    : undefined
 
   return (
     <>
-      <header className="page-heading">
+      <header className="admin-heading admin-heading--record">
         <div>
-          <p className="eyebrow">Record {record.id}</p>
+          <p className="admin-heading__eyebrow">Record {record.id}</p>
           <h1>{record.siteName}</h1>
-          <p className="intro">
-            <StatusBadge status={record.verificationStatus} />
-          </p>
+          <p>{[machine, formatEnumLabel(record.machineType), `${formatNumber(record.quantity)} ${record.quantity === 1 ? 'machine' : 'machines'}`].filter(Boolean).join(' · ')}</p>
         </div>
+        <StatusBadge status={record.verificationStatus} />
       </header>
-      {notice && <p className="admin-notice" role="status">{notice}</p>}
+      {notice && <p className="admin-notice admin-notice--success" role="status">{notice}</p>}
 
-      <div className="admin-record">
-        {latestCorrection?.previousValues && <section className="admin-panel change-panel" aria-labelledby="changes-heading">
-          <h2 id="changes-heading">What changed</h2>
-          {latestCorrection.changeNote && <p className="form-help">{latestCorrection.changeNote}</p>}
-          <dl className="change-list">
-            {Object.entries(latestCorrection.previousValues).map(([field, before]) => (
-              <div key={field}>
-                <dt>{formatEnumLabel(field)}</dt>
-                <dd><span>Before: {describeChangedValue(before)}</span><span>Proposed: {describeChangedValue(currentValueForField(record, field))}</span></dd>
-              </div>
-            ))}
-          </dl>
-        </section>}
-        <section className="admin-panel" aria-labelledby="details-heading">
-          <h2 id="details-heading">Details</h2>
-          <dl className="record-fields">
-            {fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-          </dl>
-        </section>
+      <div className={record.verificationStatus === 'pending_review' ? 'admin-record admin-record--decide' : 'admin-record'}>
+        <div className="admin-record__main">
+          {pendingCorrections.map((correction) => (
+            <CorrectionReview key={correction.id} correction={correction} onDecided={() => onChanged('Decision on the correction recorded.')} />
+          ))}
 
-        <section className="admin-panel" aria-labelledby="evidence-heading">
-          <h2 id="evidence-heading">Evidence</h2>
-          {record.evidence.length === 0 ? (
-            <p className="admin-warning">No evidence supplied. A record needs at least one evidence URL before it can be approved.</p>
-          ) : (
-            <ul className="evidence-links">
-              {record.evidence.map((item) => (
-                <li key={item.url}>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
-                  <small>{[formatEnumLabel(item.sourceType), item.publisher, formatDate(item.publishedDate)].filter(Boolean).join(' · ')}</small>
-                </li>
+          {latestCorrection?.action === 'update' && latestCorrection.previousValues && <section className="admin-panel change-panel admin-record__lead" aria-labelledby="changes-heading">
+            <h2 id="changes-heading">What changed</h2>
+            {latestCorrection.changeNote && <p className="form-help">{latestCorrection.changeNote}</p>}
+            <dl className="change-list">
+              {Object.entries(latestCorrection.previousValues).map(([field, before]) => (
+                <div key={field}>
+                  <dt>{formatEnumLabel(field)}</dt>
+                  <dd><span>Before: {describeChangedValue(before)}</span><span>Proposed: {describeChangedValue(currentValueForField(record, field))}</span></dd>
+                </div>
               ))}
-            </ul>
+            </dl>
+          </section>}
+
+          <section className="admin-panel admin-record__rest" aria-labelledby="details-heading">
+            <h2 id="details-heading">Details</h2>
+            <dl className="record-fields">
+              {fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+            </dl>
+          </section>
+
+          <section className="admin-panel admin-record__rest" aria-labelledby="evidence-heading">
+            <h2 id="evidence-heading">Evidence</h2>
+            {record.evidence.length === 0 ? (
+              <p className="admin-warning">No evidence supplied. A record needs at least one evidence URL before it can be approved.</p>
+            ) : (
+              <ul className="evidence-links">
+                {record.evidence.map((item) => (
+                  <li key={item.url}>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
+                    <small>{[formatEnumLabel(item.sourceType), item.publisher, formatDate(item.publishedDate)].filter(Boolean).join(' · ')}</small>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <div className="admin-record__rest">
+            <RecordHistory record={record} />
+          </div>
+        </div>
+
+        <aside className="admin-record__side" aria-label="Decision and editing">
+          {record.verificationStatus === 'pending_review' && (
+            <DecisionForm submit={(decision, note) => submitDecision(record.id, decision, note)} onDecided={() => onChanged('Decision recorded.')} />
           )}
-        </section>
-
-        {record.verificationStatus === 'pending_review'
-          ? <DecisionForm recordId={record.id} onDecided={() => onChanged('Decision recorded.')} />
-          : <p className="admin-notice">Decisions apply to records pending review. A correction from a contributor returns a record to the queue.</p>}
-
-        <CorrectionForm record={record} onCorrected={() => onChanged('Correction saved.')} />
-        <RecordHistory record={record} />
+          {record.verificationStatus !== 'pending_review' && pendingCorrections.length === 0 && (
+            <p className="admin-notice">
+              {record.verificationStatus === 'verified'
+                ? 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
+                : 'Decisions apply to records pending review. A correction from a contributor returns this record to the queue.'}
+            </p>
+          )}
+          <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />
+        </aside>
       </div>
     </>
   )

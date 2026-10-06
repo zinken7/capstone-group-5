@@ -37,8 +37,10 @@ describe('administrators page', () => {
     renderAt('/admin/users')
 
     expect(await screen.findByRole('link', { name: 'Administrators' })).toBeInTheDocument()
-    const rootRow = (await screen.findByText('root@example.com')).closest('tr')
-    const reviewerRow = screen.getByText('reviewer@example.com').closest('tr')
+    // The header also shows the signed-in email, so look inside the accounts table
+    const table = await screen.findByRole('table', { name: 'Administrator accounts' })
+    const rootRow = within(table).getByText('root@example.com').closest('tr')
+    const reviewerRow = within(table).getByText('reviewer@example.com').closest('tr')
     if (!rootRow || !reviewerRow) throw new Error('missing rows')
     expect(within(rootRow).getByText('Managed from the command line')).toBeInTheDocument()
     expect(within(rootRow).queryByRole('button')).not.toBeInTheDocument()
