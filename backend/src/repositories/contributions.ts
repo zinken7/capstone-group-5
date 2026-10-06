@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
@@ -178,7 +179,7 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
       commissioningYear: deployment.commissioningYear,
       validFrom: deployment.commissioningDate,
       // Submitted as already decommissioned: the window closes today, as for a correction (#156)
-      validTo: deployment.status === 'decommissioned' ? sql`GREATEST(CURRENT_DATE, ${deployment.commissioningDate}::date)` : null,
+      validTo: deployment.status === 'decommissioned' ? closeValidityToday(deployment.commissioningDate) : null,
       verificationStatus: 'pending_review',
     })
     .returning({ id: tables.deployment.id, verificationStatus: tables.deployment.verificationStatus })
@@ -281,8 +282,10 @@ const CORRECTABLE_COLUMNS = {
 
 export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
 
-/** End date for a deployment decommissioned without one: today, but never before its window opened. */
-export const CLOSE_VALIDITY_TODAY = sql`GREATEST(CURRENT_DATE, ${tables.deployment.validFrom})`
+/** End date for a deployment decommissioned without one: today, but never before its window opens. */
+export function closeValidityToday(validFrom: string | null): SQL {
+  return sql`GREATEST(CURRENT_DATE, ${validFrom}::date)`
+}
 
 /**
  * Applies the corrected columns. A contributor's correction returns the record

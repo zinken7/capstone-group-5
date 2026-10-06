@@ -23,7 +23,7 @@ import {
   setVerificationStatus,
 } from '../repositories/moderation.js'
 import type { QueueItem, ReviewRecord } from '../repositories/moderation.js'
-import { alignValidity, changesFromProposed, diffChanges } from './corrections.js'
+import { alignValidity, changesFromProposed, diffChanges, windowOrdered } from './corrections.js'
 
 /** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
 const STATUS_AFTER: Record<ReviewDecision, string> = {
@@ -90,6 +90,7 @@ const CORRECTION_STATUS_AFTER: Record<ReviewDecision, CorrectionStatus> = {
 export type CorrectionDecisionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_pending'; correctionStatus: string }
+  | { kind: 'invalid_window' }
   | { kind: 'decided'; reviewId: number; correctionStatus: string; verificationStatus: string }
 
 /**
@@ -108,7 +109,7 @@ export async function decideCorrection(correctionId: number, adminUserId: number
     // The foreign key guarantees the deployment exists
     if (!current) throw new Error(`Correction ${correctionId} has no deployment`)
 
-    if (input.decision === 'approved') await applyCorrection(tx, correction, current)
+    if (input.decision === 'approved' && !(await applyCorrection(tx, correction, current))) return { kind: 'invalid_window' }
     const reviewId = await insertReview(tx, {
       deploymentId: correction.deploymentId,
       adminUserId,
@@ -122,15 +123,16 @@ export async function decideCorrection(correctionId: number, adminUserId: number
   })
 }
 
-/** Applies an approved correction against the record as it is now, keeping the previous values (FR-47). */
-async function applyCorrection(tx: Tx, correction: LockedCorrection, current: CurrentDeployment): Promise<void> {
+/** Applies an approved correction against the record as it is now (FR-47); false, changing nothing, when it no longer fits the window. */
+async function applyCorrection(tx: Tx, correction: LockedCorrection, current: CurrentDeployment): Promise<boolean> {
   const { previous, updates } = diffChanges(current, changesFromProposed(correction.proposedValues))
   alignValidity(current, { previous, updates })
+  if (!windowOrdered(current, updates)) return false
   const existingUrls = await findEvidenceUrls(tx, current.id)
   const newUrls = correction.evidenceUrls.filter((url) => !existingUrls.includes(url))
   if (newUrls.length > 0) previous.evidence_urls = existingUrls
   // The record may already hold these values, for example after an administrator's edit
-  if (Object.keys(previous).length === 0) return
+  if (Object.keys(previous).length === 0) return true
 
   await insertRevision(tx, {
     deploymentId: current.id,
@@ -141,12 +143,13 @@ async function applyCorrection(tx: Tx, correction: LockedCorrection, current: Cu
   })
   await updateDeploymentForReview(tx, current.id, updates, { returnToPending: false })
   await insertEvidence(tx, current.id, newUrls)
+  return true
 }
 
 export type AdminCorrectionOutcome =
   | { kind: 'not_found' }
   | { kind: 'unchanged' }
-  | { kind: 'invalid_window' }
+  | { kind: 'invalid_window'; field: 'commissioning_date' | 'valid_to' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
 /** Applies an administrator's correction, keeping the previous values and the verification status. */
@@ -157,9 +160,11 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
 
     const { previous, updates } = diffChanges(current, input.changes)
     alignValidity(current, { previous, updates })
-    const from = 'valid_from' in updates ? updates.valid_from : current.validFrom
-    const to = 'valid_to' in updates ? updates.valid_to : current.validTo
-    if (typeof from === 'string' && typeof to === 'string' && to < from) return { kind: 'invalid_window' }
+    if (!windowOrdered(current, updates)) {
+      // A start moved by the commissioning date points at that field rather than at valid_to
+      const moved = input.changes.validFrom === undefined && 'valid_from' in updates
+      return { kind: 'invalid_window', field: moved ? 'commissioning_date' : 'valid_to' }
+    }
 
     if (input.technology) {
       const supplierId = await findOrCreateCompany(tx, input.technology.supplier)

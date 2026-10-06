@@ -132,6 +132,59 @@ describe('the validity window follows the commissioning date (#156)', () => {
   })
 })
 
+describe('a commissioning date past the end of the window is rejected (#156)', () => {
+  it('rejects an administrator moving the start past the end, and accepts it with the end cleared', async () => {
+    // Deployment 14 runs 2015-03-01..2020-12-31 and its window opened on the commissioning date
+    const rejected = await adminCorrect(14, { commissioning_date: '2022-01-01' })
+    expect(rejected.status).toBe(400)
+    expect(rejected.body).toEqual({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } })
+    expect(await validity(14)).toEqual({ status: 'decommissioned', valid_from: '2015-03-01', valid_to: '2020-12-31' })
+
+    const accepted = await adminCorrect(14, { commissioning_date: '2022-01-01', clear_valid_to: true })
+    expect(accepted.status).toBe(200)
+    expect(await validity(14)).toEqual({ status: 'decommissioned', valid_from: '2022-01-01', valid_to: null })
+  })
+
+  it('rejects a public correction that would do the same, storing nothing', async () => {
+    await query("UPDATE deployment SET commissioning_date = '2024-01-01', commissioning_year = 2024, valid_to = '2024-12-31' WHERE id = 12")
+
+    const response = await request(app).patch('/api/deployments/12').send({
+      commissioning_date: '2025-03-01',
+      contributor_email: 'late@example.com',
+      disclosure_accepted: true,
+    })
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } })
+    expect((await validity(12))?.valid_from).toBe('2024-01-01')
+    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
+    expect(await query('SELECT id FROM contributor')).toEqual([])
+  })
+
+  it('refuses to approve a proposal that no longer fits the window, leaving it pending', async () => {
+    const proposed = await request(app).patch('/api/deployments/14').send({ commissioning_date: '2022-01-01', disclosure_accepted: true })
+    expect(proposed.status).toBe(202)
+
+    const decided = await request(app)
+      .post(`/api/admin/corrections/${proposed.body.correction_id}/reviews`)
+      .set('Cookie', cookie)
+      .set('X-Requested-With', 'fetch')
+      .send({ decision: 'approved' })
+    expect(decided.status).toBe(409)
+    expect(await validity(14)).toEqual({ status: 'decommissioned', valid_from: '2015-03-01', valid_to: '2020-12-31' })
+    const [correction] = await query<{ status: string }>('SELECT status::text FROM deployment_correction WHERE id = $1', [proposed.body.correction_id])
+    expect(correction?.status).toBe('pending')
+    expect(await query('SELECT id FROM verification_review')).toEqual([])
+  })
+
+  it('ends a window decommissioned with a later start on that start, not on today', async () => {
+    const { year } = await today()
+    const response = await adminCorrect(10, { deployment_status: 'decommissioned', commissioning_date: `${year + 1}-02-01` })
+
+    expect(response.status).toBe(200)
+    expect(await validity(10)).toEqual({ status: 'decommissioned', valid_from: `${year + 1}-02-01`, valid_to: `${year + 1}-02-01` })
+  })
+})
+
 describe('administrators can correct the validity window (FR-11)', () => {
   it('sets an end date, which takes the record off the map from that year', async () => {
     const { year } = await today()
