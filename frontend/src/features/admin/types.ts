@@ -110,6 +110,8 @@ export interface AdminCorrection {
   environment?: string
   deploymentStatus?: string
   automationLevel?: string
+  /** Requests the backend to remove an existing automation level. */
+  clearAutomationLevel?: boolean
   installationType?: string
   commissioningDate?: string
   technologySupplier?: string

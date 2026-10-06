@@ -109,6 +109,8 @@ export type ContributionErrors = Partial<Record<ContributionField, string>>
 export type ContributionVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
 
 export interface ContributionSubmissionResult {
+  /** The record id returned by the API, used as the follow-up reference. */
+  id?: number
   verificationStatus: ContributionVerificationStatus
 }
 

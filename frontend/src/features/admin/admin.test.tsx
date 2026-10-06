@@ -409,6 +409,12 @@ describe('buildCorrection', () => {
       ...unchanged, technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrl: 'https://example.com/a',
     })).toEqual({ technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrls: ['https://example.com/a'] })
   })
+
+  test('can explicitly clear a recorded automation level', () => {
+    const recordWithLevel = { ...record, automationLevel: 'semi_autonomous' }
+    const values = { ...unchanged, automationLevel: '', clearAutomationLevel: true }
+    expect(buildCorrection(recordWithLevel, values)).toEqual({ clearAutomationLevel: true })
+  })
 })
 
 describe('public navigation', () => {

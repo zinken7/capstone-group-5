@@ -149,7 +149,7 @@ describe('ContributePage', () => {
   test('submits through the live API adapter and communicates pending review', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ verification_status: 'pending_review' }),
+      json: async () => ({ id: 20202, verification_status: 'pending_review' }),
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
@@ -162,6 +162,7 @@ describe('ContributePage', () => {
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
     expect(await screen.findByText(/pending review/i)).toBeInTheDocument()
+    expect(screen.getByText(/submission reference is #20202/i)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST' }))
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit

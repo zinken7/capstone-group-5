@@ -66,4 +66,12 @@ describe('admin API client', () => {
       technology_product: 'ControlMaster',
     })
   })
+
+  it('sends the explicit automation clear flag', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 12, verification_status: 'pending_review' }))
+
+    await correctRecord(12, { clearAutomationLevel: true })
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ clear_automation_level: true })
+  })
 })

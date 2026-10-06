@@ -99,7 +99,7 @@ function EditRecordPanel({ record, onCorrected }: { record: ReviewRecord; onCorr
   return (
     <section className="admin-panel admin-edit" aria-labelledby="edit-heading">
       <h2 id="edit-heading">Fix a detail yourself</h2>
-      <p className="form-help">Correct the record directly, for example a typo or a missing technology product. The previous values stay in the history.</p>
+      <p className="form-help">Update quantity, status, automation, installation, commissioning, technology or evidence. Site and machine identity stay fixed; submit a new contribution if those details are wrong. The previous values stay in the history.</p>
       <button className="button button--secondary" type="button" aria-expanded="false" onClick={() => setOpen(true)}>Edit record</button>
     </section>
   )

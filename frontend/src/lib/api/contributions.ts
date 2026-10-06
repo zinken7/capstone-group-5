@@ -6,6 +6,7 @@ import type {
 } from '../../features/contribute/types'
 
 interface ContributionResponseDto {
+  id?: number
   verification_status?: string
   verificationStatus?: string
 }
@@ -78,6 +79,7 @@ export async function postContribution(values: ContributionFormValues): Promise<
   })
 
   return {
+    id: typeof response.id === 'number' ? response.id : undefined,
     verificationStatus: verificationStatus(response.verification_status ?? response.verificationStatus),
   }
 }

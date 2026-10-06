@@ -21,6 +21,7 @@ function initialValues(record: ReviewRecord) {
     environment: record.environment ?? '',
     deploymentStatus: record.status ?? '',
     automationLevel: record.automationLevel ?? '',
+    clearAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
     technologySupplier: record.technologySupplier ?? '',
@@ -30,8 +31,10 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel'> & { clearAutomationLevel?: boolean }
+
 /** Builds a correction holding only the fields that differ from the record. */
-export function buildCorrection(record: ReviewRecord, values: ReturnType<typeof initialValues>): AdminCorrection | string {
+export function buildCorrection(record: ReviewRecord, values: CorrectionFormValues): AdminCorrection | string {
   const before = initialValues(record)
   const correction: AdminCorrection = {}
   if (values.quantity !== before.quantity) {
@@ -41,7 +44,8 @@ export function buildCorrection(record: ReviewRecord, values: ReturnType<typeof 
   }
   if (values.environment && values.environment !== before.environment) correction.environment = values.environment
   if (values.deploymentStatus && values.deploymentStatus !== before.deploymentStatus) correction.deploymentStatus = values.deploymentStatus
-  if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
+  if (values.clearAutomationLevel) correction.clearAutomationLevel = true
+  else if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
@@ -66,19 +70,22 @@ export function buildCorrection(record: ReviewRecord, values: ReturnType<typeof 
   return correction
 }
 
-function Select({ id, label, value, options, onChange }: {
+function Select({ id, label, value, options, onChange, clearable, onClear }: {
   id: string
   label: string
   value: string
   options: readonly ReferenceOption[]
   onChange: (value: string) => void
+  clearable?: boolean
+  onClear?: () => void
 }) {
   return (
     <div className="form-field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value)}>
-        {!value && <option value="">Not recorded</option>}
+      <select id={id} value={value} onChange={(event) => event.target.value === '__clear__' ? onClear?.() : onChange(event.target.value)}>
+        {(!value || clearable) && <option value="">Not recorded</option>}
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+        {clearable && <option value="__clear__">Clear level</option>}
       </select>
     </div>
   )
@@ -133,7 +140,15 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         </div>
         <Select id="correct-environment" label="Mining environment" value={values.environment} options={referenceData.environments} onChange={set('environment')} />
         <Select id="correct-status" label="Deployment status" value={values.deploymentStatus} options={referenceData.deploymentStatuses} onChange={set('deploymentStatus')} />
-        <Select id="correct-automation" label="Automation level" value={values.automationLevel} options={referenceData.automationLevels} onChange={set('automationLevel')} />
+        <Select
+          id="correct-automation"
+          label="Automation level"
+          value={values.clearAutomationLevel ? '__clear__' : values.automationLevel}
+          options={referenceData.automationLevels}
+          clearable
+          onChange={(value) => setValues((current) => ({ ...current, automationLevel: value, clearAutomationLevel: false }))}
+          onClear={() => setValues((current) => ({ ...current, automationLevel: '', clearAutomationLevel: true }))}
+        />
         <Select id="correct-installation" label="Installation type" value={values.installationType} options={referenceData.installationTypes} onChange={set('installationType')} />
         <div className="form-field">
           <label htmlFor="correct-commissioning">Commissioning date or year</label>

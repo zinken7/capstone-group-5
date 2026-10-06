@@ -228,6 +228,7 @@ export async function correctRecord(id: number, correction: AdminCorrection): Pr
     environment: correction.environment,
     deployment_status: correction.deploymentStatus,
     automation_level: correction.automationLevel,
+    clear_automation_level: correction.clearAutomationLevel,
     installation_type: correction.installationType,
     commissioning_date: correction.commissioningDate,
     technology_supplier: correction.technologySupplier,
