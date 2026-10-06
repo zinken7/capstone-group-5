@@ -247,6 +247,36 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
 })
 
 describe('PATCH /api/admin/deployments/:id', () => {
+  it('clears a proposed automation level when asked explicitly, keeping the previous value (FR-57)', async () => {
+    await correct(12, { automation_level: 'teleremote' })
+
+    const response = await correct(12, { clear_automation_level: true })
+    expect(response.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: null }])
+
+    const [latest] = await query<{ previous_values: Record<string, unknown> }>(
+      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id DESC LIMIT 1',
+    )
+    expect(latest?.previous_values).toEqual({ automation_level: 'teleremote' })
+  })
+
+  it('treats clearing a level that is already empty as no change', async () => {
+    const response = await correct(12, { clear_automation_level: true })
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'correction does not change the record' })
+  })
+
+  it('rejects clearing together with a new level, or a flag that is not a boolean', async () => {
+    const both = await correct(12, { automation_level: 'autonomous', clear_automation_level: true })
+    expect(both.status).toBe(400)
+    expect(both.body.fields).toEqual({ clear_automation_level: 'cannot be combined with automation_level' })
+
+    const notBoolean = await correct(12, { clear_automation_level: 'yes' })
+    expect(notBoolean.status).toBe(400)
+    expect(notBoolean.body.fields).toEqual({ clear_automation_level: 'must be true or false' })
+  })
+
   it('corrects a verified record, keeps it verified and records the administrator', async () => {
     const response = await correct(10, { quantity: 90, change_note: 'Fleet count from the 2024 report' })
 
