@@ -17,6 +17,8 @@ export interface CorrectionPayload {
 
 export interface CorrectionResult {
   id: number
+  /** Set when the record is verified: the change is a proposal, and the record stays public and unchanged until reviewed */
+  correctionId: number | null
   verificationStatus: string
 }
 
@@ -75,6 +77,7 @@ export async function submitCorrection(id: number, payload: CorrectionPayload): 
   const object = typeof responseBody === 'object' && responseBody !== null ? responseBody as Record<string, unknown> : {}
   return {
     id: typeof object.id === 'number' ? object.id : id,
+    correctionId: typeof object.correction_id === 'number' ? object.correction_id : null,
     verificationStatus: typeof object.verification_status === 'string' ? object.verification_status : 'pending_review',
   }
 }

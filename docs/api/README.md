@@ -609,6 +609,6 @@ Route tests, repository tests and contribution/correction service tests run agai
 - Register and summary filters do not yet include the map's `date` and `bbox` parameters.
 - Analytics count verified deployments only; there is no option to include unverified records.
 - The frontend Analytics page still builds its figures from site detail requests; switching it to `/api/analytics/*` is the frontend part of #67.
-- New submissions start as `pending_review`, and public corrections return records to review under FR-48; #62 still needs to confirm the final moderation behaviour and FR-51 anti-spam controls matter before public launch.
+- New submissions start as `pending_review`. A public correction to a verified record is stored as a proposal (`202`), and the record stays public and unchanged until an administrator approves it (FR-48). FR-51 anti-spam controls are still needed before public launch.
 - Administrator revision/review history endpoints belong to #66.
 - Persistence currently uses the shared parameterised `query()`/`withTransaction()` layer and is planned to move to Drizzle with #71.

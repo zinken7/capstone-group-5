@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 
 import { submitCorrection, CorrectionApiError } from '../../../lib/api/corrections'
+import type { CorrectionResult } from '../../../lib/api/corrections'
 import type { CorrectionPayload } from '../../../lib/api/corrections'
 import { formatCommissioning, formatEnumLabel, formatNumber } from '../../../lib/format'
 import type { ContributionReferenceData, ReferenceOption } from '../../contribute/types'
@@ -11,7 +12,7 @@ interface CorrectionDialogProps {
   record: EquipmentRecord
   referenceData: ContributionReferenceData
   onClose: () => void
-  onSubmitted: () => void
+  onSubmitted: (result: CorrectionResult) => void
 }
 
 interface CorrectionValues {
@@ -122,8 +123,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
     setError(null)
     setFieldErrors({})
     try {
-      await submitCorrection(Number(record.id), result)
-      onSubmitted()
+      onSubmitted(await submitCorrection(Number(record.id), result))
     } catch (cause) {
       if (cause instanceof CorrectionApiError) setFieldErrors(cause.fields)
       setError(cause instanceof Error ? cause.message : 'Unable to submit the correction.')
@@ -142,7 +142,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
     <div className="correction-dialog__header"><div><p className="eyebrow">Suggest a correction</p><h2 id="equipment-correction-title">Correct this record</h2></div><button className="icon-button" type="button" aria-label="Close correction dialog" onClick={onClose}>×</button></div>
     <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>
     <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
-    <p className="correction-warning">Submitting a correction returns this record to pending review and hides it from public views until an administrator reviews it.</p>
+    <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>
     {error && <p className="form-summary-error" role="alert">{error}</p>}
     <form onSubmit={(event) => void handleSubmit(event)} noValidate>
       <div className="form-grid">
