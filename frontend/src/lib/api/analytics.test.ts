@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAnalyticsBreakdowns, getAnalyticsSummary, getAnalyticsTimeline } from './analytics'
+import { getAnalyticsBreakdowns, getAnalyticsCrosstab, getAnalyticsSummary, getAnalyticsTimeline } from './analytics'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -18,9 +18,9 @@ afterEach(() => {
 
 describe('analytics API client', () => {
   it('serializes shared filters with the backend parameter names', async () => {
-    await getAnalyticsSummary({ siteId: '7', q: 'A&B', machineType: 'haul_truck' })
+    await getAnalyticsSummary({ siteId: '7', q: 'A&B', machineType: 'haul_truck', commissionedFrom: '2019', commissionedTo: '2024' })
 
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/summary?q=A%26B&site_id=7&machine_type=haul_truck')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/summary?q=A%26B&site_id=7&machine_type=haul_truck&commissioned_from=2019&commissioned_to=2024')
   })
 
   it('maps breakdown and status data for the register totals', async () => {
@@ -38,6 +38,14 @@ describe('analytics API client', () => {
       machine_count: 12,
       by_status: [{ key: 'operational', machine_count: 12, share: 1 }],
     })
+  })
+
+  it('asks the crosstab endpoint for two dimensions with the shared filters', async () => {
+    await getAnalyticsCrosstab('manufacturer', 'machine_type')
+    await getAnalyticsCrosstab('commissioning_year', 'automation_level', { country: 'AU', supplier: 'A&B' })
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/crosstab?rows=manufacturer&columns=machine_type')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/analytics/crosstab?rows=commissioning_year&columns=automation_level&country=AU&supplier=A%26B')
   })
 
   it('calls the timeline endpoint without filters', async () => {

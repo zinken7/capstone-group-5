@@ -12,6 +12,8 @@ export interface AnalyticsFilters {
   automationLevel?: string
   environment?: string
   status?: string
+  commissionedFrom?: string
+  commissionedTo?: string
 }
 
 export interface AnalyticsSummaryDto {
@@ -34,6 +36,7 @@ export interface AnalyticsBreakdownsDto {
   by_supplier: AnalyticsBreakdownItemDto[]
   by_automation_level: AnalyticsBreakdownItemDto[]
   by_status: AnalyticsBreakdownItemDto[]
+  by_commodity: AnalyticsBreakdownItemDto[]
 }
 
 export interface AnalyticsTimelineYearDto {
@@ -46,6 +49,21 @@ export interface AnalyticsTimelineDto {
   excluded_count: number
   excluded_machine_count: number
   years: AnalyticsTimelineYearDto[]
+}
+
+export type AnalyticsDimension = 'country' | 'machine_type' | 'manufacturer' | 'supplier' | 'automation_level' | 'environment' | 'commodity' | 'commissioning_year'
+
+export interface AnalyticsCrosstabCellDto {
+  row: string | null
+  column: string | null
+  machine_count: number
+}
+
+export interface AnalyticsCrosstabDto {
+  rows: AnalyticsDimension
+  columns: AnalyticsDimension
+  machine_count: number
+  cells: AnalyticsCrosstabCellDto[]
 }
 
 function queryString(filters: AnalyticsFilters): string {
@@ -62,6 +80,8 @@ function queryString(filters: AnalyticsFilters): string {
     ['automationLevel', 'automation_level'],
     ['environment', 'environment'],
     ['status', 'status'],
+    ['commissionedFrom', 'commissioned_from'],
+    ['commissionedTo', 'commissioned_to'],
   ]
   for (const [field, key] of entries) {
     const value = filters[field]
@@ -81,4 +101,9 @@ export function getAnalyticsBreakdowns(filters: AnalyticsFilters = {}): Promise<
 
 export function getAnalyticsTimeline(filters: AnalyticsFilters = {}): Promise<AnalyticsTimelineDto> {
   return requestJson<AnalyticsTimelineDto>(`analytics/timeline${queryString(filters)}`)
+}
+
+export function getAnalyticsCrosstab(rows: AnalyticsDimension, columns: AnalyticsDimension, filters: AnalyticsFilters = {}): Promise<AnalyticsCrosstabDto> {
+  const query = queryString(filters)
+  return requestJson<AnalyticsCrosstabDto>(`analytics/crosstab?rows=${rows}&columns=${columns}${query ? `&${query.slice(1)}` : ''}`)
 }
