@@ -177,6 +177,8 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
       commissioningDate: deployment.commissioningDate,
       commissioningYear: deployment.commissioningYear,
       validFrom: deployment.commissioningDate,
+      // Submitted as already decommissioned: the window closes today, as for a correction (#156)
+      validTo: deployment.status === 'decommissioned' ? sql`GREATEST(CURRENT_DATE, ${deployment.commissioningDate}::date)` : null,
       verificationStatus: 'pending_review',
     })
     .returning({ id: tables.deployment.id, verificationStatus: tables.deployment.verificationStatus })
@@ -225,6 +227,8 @@ export interface CurrentDeployment {
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
+  validFrom: string | null
+  validTo: string | null
   technologyProductId: number | null
   verificationStatus: string
 }
@@ -241,6 +245,8 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       installationType: tables.deployment.installationType,
       commissioningDate: tables.deployment.commissioningDate,
       commissioningYear: tables.deployment.commissioningYear,
+      validFrom: tables.deployment.validFrom,
+      validTo: tables.deployment.validTo,
       technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
     })
@@ -268,10 +274,15 @@ const CORRECTABLE_COLUMNS = {
   installation_type: 'installationType',
   commissioning_date: 'commissioningDate',
   commissioning_year: 'commissioningYear',
+  valid_from: 'validFrom',
+  valid_to: 'validTo',
   technology_product_id: 'technologyProductId',
 } as const satisfies Record<string, keyof DeploymentInsert>
 
 export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
+
+/** End date for a deployment decommissioned without one: today, but never before its window opened. */
+export const CLOSE_VALIDITY_TODAY = sql`GREATEST(CURRENT_DATE, ${tables.deployment.validFrom})`
 
 /**
  * Applies the corrected columns. A contributor's correction returns the record

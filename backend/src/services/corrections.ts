@@ -1,6 +1,7 @@
 import { withTransaction } from '../database.js'
 import type { CorrectionInput, DeploymentChanges } from '../lib/correction-validation.js'
 import {
+  CLOSE_VALIDITY_TODAY,
   findEvidenceUrls,
   insertContributor,
   insertEvidence,
@@ -48,6 +49,24 @@ export function diffChanges(current: CurrentDeployment, changes: DeploymentChang
   }
 
   return { previous, updates }
+}
+
+/** Keeps the validity window in step with a change, so the map and the timeline follow it (#156). */
+export function alignValidity(current: CurrentDeployment, { previous, updates }: ChangeSet): void {
+  if (updates.status === 'decommissioned' && current.validTo === null && updates.valid_to === undefined) {
+    previous.valid_to = null
+    updates.valid_to = CLOSE_VALIDITY_TODAY
+  }
+
+  // A window that opened on the commissioning date moves with it; one set separately is left alone
+  if (!('commissioning_date' in updates) || updates.valid_from !== undefined) return
+  if (current.validFrom !== current.commissioningDate) return
+  const next = updates.commissioning_date as string | null
+  const fitsEnd = next === null || current.validTo === null || next <= current.validTo
+  if (next !== current.validFrom && fitsEnd) {
+    previous.valid_from = current.validFrom
+    updates.valid_from = next
+  }
 }
 
 /** A commissioning date, or the year alone when only the year is known. */
@@ -117,6 +136,7 @@ export async function correctDeployment(id: number, input: CorrectionInput): Pro
       return { kind: 'proposed', id, correctionId, verificationStatus: current.verificationStatus }
     }
 
+    alignValidity(current, { previous, updates })
     if (newUrls.length > 0) previous.evidence_urls = existingUrls
     previous.verification_status = current.verificationStatus
     await insertRevision(tx, {

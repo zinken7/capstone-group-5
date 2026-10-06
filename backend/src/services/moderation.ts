@@ -23,7 +23,7 @@ import {
   setVerificationStatus,
 } from '../repositories/moderation.js'
 import type { QueueItem, ReviewRecord } from '../repositories/moderation.js'
-import { changesFromProposed, diffChanges } from './corrections.js'
+import { alignValidity, changesFromProposed, diffChanges } from './corrections.js'
 
 /** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
 const STATUS_AFTER: Record<ReviewDecision, string> = {
@@ -125,6 +125,7 @@ export async function decideCorrection(correctionId: number, adminUserId: number
 /** Applies an approved correction against the record as it is now, keeping the previous values (FR-47). */
 async function applyCorrection(tx: Tx, correction: LockedCorrection, current: CurrentDeployment): Promise<void> {
   const { previous, updates } = diffChanges(current, changesFromProposed(correction.proposedValues))
+  alignValidity(current, { previous, updates })
   const existingUrls = await findEvidenceUrls(tx, current.id)
   const newUrls = correction.evidenceUrls.filter((url) => !existingUrls.includes(url))
   if (newUrls.length > 0) previous.evidence_urls = existingUrls
@@ -154,6 +155,7 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
     if (!current) return { kind: 'not_found' }
 
     const { previous, updates } = diffChanges(current, input.changes)
+    alignValidity(current, { previous, updates })
 
     if (input.technology) {
       const supplierId = await findOrCreateCompany(tx, input.technology.supplier)
