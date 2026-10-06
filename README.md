@@ -96,3 +96,16 @@ The integrated build runs at <https://capstone-group-5.vercel.app>, with the
 API at <https://capstone-group-5-api.vercel.app>. See
 [`docs/staging.md`](docs/staging.md) for its architecture, environment
 variables, deployment, migrations and rollback.
+
+## Licence
+
+- **Source code:** MIT, see [`LICENSE`](LICENSE).
+- **Dataset:** the verified records published by the application, through the
+  pages, the public API and the CSV export, are licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See
+  [`LICENSE-DATA.md`](LICENSE-DATA.md) for the credit line. Evidence and media
+  linked from records keep their own copyright.
+
+The brief sets the project's IP as Creative Commons (open source). Creative
+Commons licences are not designed for software, so the code uses MIT and the
+data uses CC BY 4.0, as proposed in SRS Q-10 (NFR-08, NFR-10).

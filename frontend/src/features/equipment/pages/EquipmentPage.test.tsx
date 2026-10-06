@@ -300,7 +300,7 @@ describe('EquipmentPage', () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation((input, init) => {
       const url = String(input)
       if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceResponse))
-      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ id: 20202, verification_status: 'pending_review' }))
+      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ id: 20202, correction_id: 4, verification_status: 'verified' }, { status: 202 }))
       if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
       if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
       return Promise.resolve(Response.json(registerResponse))
@@ -319,7 +319,8 @@ describe('EquipmentPage', () => {
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: /submit correction/i }))
 
-    expect(await screen.findByText(/correction submitted for review/i)).toBeInTheDocument()
+    expect(await screen.findByText('Correction submitted for review. The record stays public and unchanged until an administrator approves the change.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /correct correction site/i })).toBeInTheDocument()
     const patchCall = fetchMock.mock.calls.find(([url, init]) => String(url).endsWith('/deployments/20202') && init?.method === 'PATCH')
     expect(patchCall?.[1]?.headers).toEqual(expect.objectContaining({ 'X-Requested-With': 'fetch' }))
     expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual(expect.objectContaining({ quantity: 2, disclosure_accepted: true }))

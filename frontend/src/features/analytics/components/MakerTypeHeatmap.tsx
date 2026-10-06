@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { AnalyticsCrosstabDto } from '../../../lib/api/analytics'
 import { formatEnumLabel, formatNumber } from '../../../lib/format'
-import { HEAT_RAMP, crosstabTotals } from '../chartData'
+import { HEAT_RAMP, crosstabTotals, formatShare } from '../chartData'
 import { ChartCard, EmptyChart } from './ChartCard'
 
 const OTHER = '__other__'
@@ -19,13 +19,16 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
   maxRows?: number
   maxColumns?: number
 }) {
+  const [expanded, setExpanded] = useState(false)
   const grid = useMemo(() => {
     const rowTotals = crosstabTotals(crosstab, 'row')
     const columnTotals = crosstabTotals(crosstab, 'column')
-    const rows = rowTotals.slice(0, maxRows).map((row) => row.key)
-    const columns = columnTotals.slice(0, maxColumns).map((column) => column.key)
-    if (rowTotals.length > maxRows) rows.push(OTHER)
-    if (columnTotals.length > maxColumns) columns.push(OTHER)
+    const rowLimit = expanded ? rowTotals.length : maxRows
+    const columnLimit = expanded ? columnTotals.length : maxColumns
+    const rows = rowTotals.slice(0, rowLimit).map((row) => row.key)
+    const columns = columnTotals.slice(0, columnLimit).map((column) => column.key)
+    if (rowTotals.length > rowLimit) rows.push(OTHER)
+    if (columnTotals.length > columnLimit) columns.push(OTHER)
     const rowSet = new Set(rows)
     const columnSet = new Set(columns)
     const values = new Map<string, number>()
@@ -40,8 +43,9 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
     }
     // "Other" groups add up many types or makers, so they are left out of the colour scale
     const max = Math.max(0, ...Array.from(values).filter(([key]) => !key.split('\u0000').includes(OTHER)).map(([, value]) => value))
-    return { rows, columns, values, totals, max }
-  }, [crosstab, maxRows, maxColumns])
+    const truncated = rowTotals.length > maxRows || columnTotals.length > maxColumns
+    return { rows, columns, values, totals, max, truncated, rowCount: rowTotals.length, columnCount: columnTotals.length }
+  }, [crosstab, maxRows, maxColumns, expanded])
 
   const rowLabel = (key: string | null) => key === OTHER ? 'Other manufacturers' : key ?? 'Not recorded'
   const columnLabel = (key: string | null) => key === OTHER ? 'Other types' : key === null ? 'Not recorded' : formatEnumLabel(key)
@@ -51,7 +55,7 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
       id="maker-type"
       className="chart-card--wide"
       title="Machines by manufacturer and type"
-      description="Whose fleets are being automated, and for which jobs. Select a cell to filter by both."
+      description="Whose fleets are being automated, and for which jobs. Total and share are per manufacturer; select a cell to filter by both."
       actions={(
         <div className="heat-legend" aria-hidden="true">
           <span>Fewer</span>
@@ -62,13 +66,15 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
     >
       {grid.rows.length === 0 ? <EmptyChart /> : (
         <div className="heatmap-wrap" tabIndex={0} role="region" aria-label="Machines by manufacturer and type table">
-          <table className="heatmap">
+          {/* Shown in full, every type keeps a readable column and the table scrolls sideways instead */}
+          <table className="heatmap" style={expanded ? { minWidth: `${20 + grid.columns.length * 4.5}rem` } : undefined}>
             <caption className="visually-hidden">Machines by manufacturer (rows) and machine type (columns)</caption>
             <thead>
               <tr>
                 <th scope="col"><span className="visually-hidden">Manufacturer</span></th>
                 {grid.columns.map((column) => <th scope="col" key={column ?? 'none'}>{columnLabel(column)}</th>)}
                 <th scope="col" className="heatmap__total">Total</th>
+                <th scope="col" className="heatmap__total">Share</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +97,7 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
                     )
                   })}
                   <td className="heatmap__total">{formatNumber(grid.totals.rows.get(row) ?? 0)}</td>
+                  <td className="heatmap__share">{formatShare(crosstab.machine_count ? (grid.totals.rows.get(row) ?? 0) / crosstab.machine_count : 0)}</td>
                 </tr>
               ))}
             </tbody>
@@ -99,10 +106,16 @@ function MakerTypeHeatmap({ crosstab, onFilter, maxRows = 10, maxColumns = 8 }: 
                 <th scope="row">Total</th>
                 {grid.columns.map((column) => <td key={column ?? 'none'} className="heatmap__total">{formatNumber(grid.totals.columns.get(column) ?? 0)}</td>)}
                 <td className="heatmap__total">{formatNumber(crosstab.machine_count)}</td>
+                <td className="heatmap__share">100%</td>
               </tr>
             </tfoot>
           </table>
         </div>
+      )}
+      {grid.truncated && (
+        <button className="chart-more" type="button" aria-expanded={expanded} onClick={() => setExpanded((current) => !current)}>
+          {expanded ? `Show the top ${maxRows} manufacturers and ${maxColumns} types` : `Show all ${grid.rowCount} manufacturers and ${grid.columnCount} machine types`}
+        </button>
       )}
     </ChartCard>
   )
