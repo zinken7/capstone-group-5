@@ -17,6 +17,7 @@ export default defineConfig({
     // Never point the suite at the development database: derive a dedicated test database
     env: {
       DATABASE_URL: resolveTestDatabaseUrl(process.env),
+      SESSION_SECRET: 'test-only-session-secret-0123456789abcdef',
     },
     globalSetup: ['./src/test/global-setup.ts'],
   },

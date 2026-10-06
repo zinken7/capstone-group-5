@@ -1,0 +1,421 @@
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+
+import App from '../../App'
+import { stubApi } from '../../test/stub-api'
+import { buildCorrection } from './components/CorrectionForm'
+import type { ReviewRecord } from './types'
+
+const profile = (mustChange = false) => Response.json({ email: 'reviewer@example.com', role: 'admin', must_change_password: mustChange })
+const unauthorised = () => Response.json({ error: 'sign in required' }, { status: 401 })
+
+const recordDto = (overrides: Record<string, unknown> = {}) => ({
+  id: 12,
+  verification_status: 'pending_review',
+  site_id: 3,
+  site_name: 'Kalgoorlie Super Pit',
+  country_code: 'AU',
+  region: 'Goldfields',
+  commodity: 'gold',
+  machine_manufacturer: 'Sandvik',
+  machine_model: 'LH517i',
+  model_variant: null,
+  machine_type: 'lhd',
+  quantity: 8,
+  technology_supplier: 'Sandvik',
+  technology_product: 'AutoMine',
+  automation_level: 'semi_autonomous',
+  environment: 'underground',
+  installation_type: 'unknown',
+  status: 'announced',
+  commissioning_date: null,
+  commissioning_year: 2024,
+  valid_from: '2024-01-01',
+  valid_to: null,
+  created_at: '2026-10-01T00:00:00Z',
+  updated_at: '2026-10-02T00:00:00Z',
+  evidence: [{ url: 'https://example.com/evidence/12', source_type: 'news', publisher: null, published_date: null }],
+  reviews: [],
+  revisions: [],
+  corrections: [],
+  ...overrides,
+})
+
+function renderAt(path: string) {
+  return render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('administration access', () => {
+  test('sends a visitor without a session to the sign-in page', async () => {
+    stubApi({ 'GET /api/admin/session': unauthorised })
+    renderAt('/admin')
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+  })
+
+  test('shows a generic error for wrong credentials', async () => {
+    stubApi({ 'POST /api/admin/session': () => Response.json({ error: 'incorrect email or password' }, { status: 401 }) })
+    const user = userEvent.setup()
+    renderAt('/admin/login')
+
+    await user.type(screen.getByLabelText('Email'), 'reviewer@example.com')
+    await user.type(screen.getByLabelText('Password'), 'wrong password')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password.')
+  })
+
+  test('ticks off the password rules while the new password is typed', async () => {
+    stubApi({ 'GET /api/admin/session': () => profile(true) })
+    const user = userEvent.setup()
+    renderAt('/admin/password')
+
+    const rules = await screen.findByRole('list', { name: 'Password requirements' })
+    expect(within(rules).getByText(/At least 12 characters/)).toHaveTextContent('(not yet)')
+
+    await user.type(screen.getByLabelText('Temporary password'), 'temporary-pass')
+    await user.type(screen.getByLabelText('New password'), 'a-much-longer-password')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a-much-longer-password')
+
+    expect(within(rules).getAllByText(/\(done\)/)).toHaveLength(3)
+    await user.click(screen.getByLabelText('Show passwords'))
+    expect(screen.getByLabelText('New password')).toHaveAttribute('type', 'text')
+  })
+
+  test('makes a new administrator replace the temporary password before reaching the queue', async () => {
+    const calls = stubApi({
+      'POST /api/admin/session': () => profile(true),
+      'POST /api/admin/password': () => profile(false),
+      'GET /api/admin/reviews': () => Response.json({ items: [] }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/login')
+
+    await user.type(screen.getByLabelText('Email'), 'reviewer@example.com')
+    await user.type(screen.getByLabelText('Password'), 'temporary-pass')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByText(/signed in with a temporary password/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Review queue' })).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Temporary password'), 'temporary-pass')
+    await user.type(screen.getByLabelText('New password'), 'short')
+    await user.type(screen.getByLabelText('Confirm new password'), 'short')
+    await user.click(screen.getByRole('button', { name: 'Change password' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('at least 12 characters')
+
+    await user.clear(screen.getByLabelText('New password'))
+    await user.clear(screen.getByLabelText('Confirm new password'))
+    await user.type(screen.getByLabelText('New password'), 'a much longer password')
+    await user.type(screen.getByLabelText('Confirm new password'), 'a much longer password')
+    await user.click(screen.getByRole('button', { name: 'Change password' }))
+
+    expect(await screen.findByRole('heading', { name: 'Review queue' })).toBeInTheDocument()
+    expect(await screen.findByText('Nothing to review')).toBeInTheDocument()
+    const passwordCall = calls.find((call) => call.key === 'POST /api/admin/password')
+    expect(passwordCall?.body).toEqual({ current_password: 'temporary-pass', new_password: 'a much longer password' })
+    expect(passwordCall?.headers.get('X-Requested-With')).toBe('fetch')
+  })
+
+  test('signs out and returns to the sign-in page', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({ items: [] }),
+      'DELETE /api/admin/session': () => new Response(null, { status: 204 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin')
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(calls.some((call) => call.key === 'DELETE /api/admin/session')).toBe(true)
+  })
+
+  test('returns to sign-in when the session ends while loading the queue', async () => {
+    stubApi({ 'GET /api/admin/session': () => profile(), 'GET /api/admin/reviews': unauthorised })
+    renderAt('/admin')
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+  })
+})
+
+describe('review queue', () => {
+  test('lists pending records with a link to each, and flags missing evidence', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: null, technology_product: null, evidence_count: 0, submitted_at: '2026-10-02T00:00:00Z',
+          kind: 'submission', correction_id: null, changed_fields: [], contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Sandvik LH517i')).toBeInTheDocument()
+    expect(within(row).getByText('None')).toBeInTheDocument()
+    expect(within(row).getByText('Not recorded')).toBeInTheDocument()
+    expect(within(row).getByRole('link', { name: /review kalgoorlie super pit record 12/i })).toHaveAttribute('href', '/admin/deployments/12')
+  })
+})
+
+describe('proposed corrections', () => {
+  const verifiedRecord = (overrides: Record<string, unknown> = {}) => recordDto({
+    id: 10, verification_status: 'verified', site_name: 'Roy Hill', quantity: 96, ...overrides,
+  })
+  const pendingCorrection = {
+    id: 1, status: 'pending', submitted_at: '2026-10-05T03:00:00Z',
+    contributor_email: 'analyst@example.com', contributor_organisation: null, change_note: 'Fleet update',
+    evidence_urls: ['https://example.com/fleet-2026'],
+    changes: [
+      { field: 'quantity', before: 96, proposed: 100, current: 96 },
+      { field: 'deployment_status', before: 'announced', proposed: 'operational', current: 'commissioning' },
+    ],
+  }
+
+  test('the queue shows a correction, the fields it changes and who sent it', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 10, site_name: 'Roy Hill', country_code: 'AU', region: 'Pilbara',
+          machine_manufacturer: 'Caterpillar', machine_model: '793F', machine_type: 'haul_truck', quantity: 96,
+          technology_supplier: 'Caterpillar', technology_product: 'MineStar', evidence_count: 1, submitted_at: '2026-10-05T03:00:00Z',
+          kind: 'correction', correction_id: 1, changed_fields: ['quantity', 'evidence_urls'],
+          contributor_email: 'analyst@example.com', contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Roy Hill')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Correction')).toBeInTheDocument()
+    expect(within(row).getByText('Quantity, Evidence urls')).toBeInTheDocument()
+    expect(within(row).getByText('analyst@example.com')).toBeInTheDocument()
+    expect(within(row).getByRole('link', { name: /review correction 1 to roy hill record 10/i })).toHaveAttribute('href', '/admin/deployments/10')
+  })
+
+  test('a verified record shows the proposal, flags a field that changed since, and approves it', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/10': [
+        () => Response.json(verifiedRecord({ corrections: [pendingCorrection] })),
+        () => Response.json(verifiedRecord({
+          quantity: 100,
+          corrections: [{ ...pendingCorrection, status: 'approved' }],
+          reviews: [{ decision: 'approved', note: null, administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T04:00:00Z', correction_id: 1 }],
+        })),
+      ],
+      'POST /api/admin/corrections/1/reviews': () => Response.json({ id: 5, correction_status: 'approved', verification_status: 'verified' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/10')
+
+    const table = await screen.findByRole('table', { name: 'Proposed changes' })
+    const quantity = within(table).getByRole('row', { name: /Quantity/ })
+    expect(within(quantity).getByText('96')).toBeInTheDocument()
+    expect(within(quantity).getByText('100')).toBeInTheDocument()
+    expect(within(table).getByText(/Now Commissioning: the record changed after this was submitted/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://example.com/fleet-2026' })).toHaveAttribute('rel', 'noopener noreferrer')
+    // A verified record has no decision of its own, only the correction's
+    expect(screen.getAllByRole('button', { name: 'Record decision' })).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+
+    expect(await screen.findByText('Decision on the correction recorded.')).toBeInTheDocument()
+    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null })
+    expect(screen.queryByRole('table', { name: 'Proposed changes' })).not.toBeInTheDocument()
+    expect(screen.getByText('Correction approved')).toBeInTheDocument()
+    expect(screen.getByText('Decided corrections')).toBeInTheDocument()
+  })
+
+  test('a verified record without corrections explains that none are waiting', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/10': () => Response.json(verifiedRecord()),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/10')
+
+    expect(await screen.findByText(/This record is verified/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
+  })
+})
+
+describe('record review', () => {
+  test('shows the record, opens evidence safely, and records a rejection with a note', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': [
+        () => Response.json(recordDto()),
+        () => Response.json(recordDto({
+          verification_status: 'rejected',
+          reviews: [{ decision: 'rejected', note: 'Duplicate', administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
+        })),
+      ],
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 1, verification_status: 'rejected' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByRole('heading', { name: 'Kalgoorlie Super Pit' })).toBeInTheDocument()
+    expect(screen.getByText('Pending review')).toBeInTheDocument()
+    const evidence = screen.getByRole('link', { name: 'https://example.com/evidence/12' })
+    expect(evidence).toHaveAttribute('target', '_blank')
+    expect(evidence).toHaveAttribute('rel', 'noopener noreferrer')
+
+    await user.click(screen.getByLabelText(/^Reject/))
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Add a note')
+
+    await user.type(screen.getByLabelText(/Note \(required\)/), 'Duplicate')
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+
+    expect(await screen.findByText('Decision recorded.')).toBeInTheDocument()
+    expect(screen.getByText('Rejected', { selector: '.status-badge' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
+    expect(screen.getByText(/by reviewer@example.com/)).toBeInTheDocument()
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate' })
+  })
+
+  test('shows why an approval was refused', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ evidence: [] })),
+      'POST /api/admin/deployments/12/reviews': () => Response.json(
+        { error: 'at least one evidence URL is required before the record can be verified' }, { status: 409 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText(/No evidence supplied/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('at least one evidence URL is required')
+  })
+
+  test('saves a correction with only the changed fields and shows it in the history', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': [
+        () => Response.json(recordDto()),
+        () => Response.json(recordDto({
+          quantity: 9,
+          revisions: [{
+            action: 'update', previous_values: { quantity: 8 }, change_note: 'Updated fleet count',
+            contributor_email: null, contributor_organisation: null, administrator: 'reviewer@example.com',
+            changed_at: '2026-10-05T02:00:00Z',
+          }],
+        })),
+      ],
+      'PATCH /api/admin/deployments/12': () => Response.json({ id: 12, verification_status: 'pending_review' }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    // Editing is folded away until asked for
+    expect(screen.queryByLabelText('Quantity')).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Edit record' }))
+    const quantity = await screen.findByLabelText('Quantity')
+    await user.clear(quantity)
+    await user.type(quantity, '9')
+    await user.type(screen.getByLabelText('Change note (optional)'), 'Updated fleet count')
+    await user.click(screen.getByRole('button', { name: 'Save correction' }))
+
+    expect(await screen.findByText('Correction saved.')).toBeInTheDocument()
+    expect(calls.find((call) => call.key === 'PATCH /api/admin/deployments/12')?.body).toEqual({ quantity: 9, change_note: 'Updated fleet count' })
+    expect(screen.getByText(/Corrected/)).toBeInTheDocument()
+    expect(screen.getByText('Previous quantity')).toBeInTheDocument()
+  })
+
+  test('shows proposed values for contributor evidence and verification corrections', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        evidence: [{ url: 'https://example.com/new-evidence', source_type: 'news', publisher: null, published_date: null }],
+        revisions: [{
+          action: 'update',
+          previous_values: {
+            evidence_urls: ['https://example.com/old-evidence'],
+            verification_status: 'verified',
+          },
+          change_note: 'Contributor correction',
+          contributor_email: 'field@example.com',
+          contributor_organisation: 'Example Mining',
+          administrator: null,
+          changed_at: '2026-10-05T02:00:00Z',
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('What changed')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: https://example.com/new-evidence')).toBeInTheDocument()
+    expect(screen.getByText('Proposed: pending_review')).toBeInTheDocument()
+  })
+
+  test('says when a record does not exist', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/999': () => Response.json({ error: 'deployment not found' }, { status: 404 }),
+    })
+    renderAt('/admin/deployments/999')
+    expect(await screen.findByText('Record not found')).toBeInTheDocument()
+  })
+})
+
+describe('buildCorrection', () => {
+  const record = {
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', region: null, commodity: null,
+    machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
+    technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
+    installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
+    validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],
+  } satisfies ReviewRecord
+  const unchanged = {
+    quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',
+    commissioningDate: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
+  }
+
+  test('asks for a change when nothing differs', () => {
+    expect(buildCorrection(record, unchanged)).toBe('Change at least one field or add evidence.')
+  })
+
+  test('requires the supplier and product together', () => {
+    expect(buildCorrection(record, { ...unchanged, technologySupplier: 'RCT' })).toBe('Enter both the technology supplier and the product.')
+  })
+
+  test('rejects an invalid quantity or evidence URL', () => {
+    expect(buildCorrection(record, { ...unchanged, quantity: '0' })).toBe('Quantity must be a positive whole number.')
+    expect(buildCorrection(record, { ...unchanged, evidenceUrl: 'ftp://x' })).toBe('Evidence must be an http or https URL.')
+  })
+
+  test('collects the technology and a new evidence URL', () => {
+    expect(buildCorrection(record, {
+      ...unchanged, technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrl: 'https://example.com/a',
+    })).toEqual({ technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrls: ['https://example.com/a'] })
+  })
+})
+
+describe('public navigation', () => {
+  test('does not link to administration', () => {
+    stubApi({})
+    renderAt('/contribute')
+    const navigation = screen.getByRole('navigation', { name: /primary navigation/i })
+    expect(within(navigation).queryByText(/admin/i)).not.toBeInTheDocument()
+  })
+})

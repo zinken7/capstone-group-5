@@ -16,32 +16,16 @@ describe('AnalyticsPage', () => {
     ).toBeInTheDocument()
 
     expect(
-      screen.getByText('Automated machines'),
-    ).toBeInTheDocument()
+      screen.getByText(/^Showing/),
+    ).toHaveTextContent('Showing 25 machines at 3 mine sites in 1 country.')
 
     expect(
-      screen.getByText('Mine sites'),
-    ).toBeInTheDocument()
+      screen.queryByText('Automated machines'),
+    ).not.toBeInTheDocument()
 
-    expect(
-      screen.getByText('Countries'),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByRole('heading', { name: /machines by type/i }),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByRole('heading', { name: /machines by country/i }),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByRole('heading', { name: /machines by automation level/i }),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByRole('heading', { name: /machines by technology supplier/i }),
-    ).toBeInTheDocument()
+    for (const name of ['Machines in service over time', 'Machines by automation level', 'Machines by country', 'Machines by technology supplier', 'Machines by manufacturer and type', 'Underground or surface, by machine type', 'Machines by commodity']) {
+      expect(screen.getByRole('heading', { name })).toBeInTheDocument()
+    }
   })
 
   test('shows an empty state when there are no analytics records', () => {
@@ -68,11 +52,11 @@ describe('AnalyticsPage', () => {
     ).toBeInTheDocument()
 
     expect(
-      screen.queryByText('Automated machines'),
+      screen.queryByText(/^Showing/),
     ).not.toBeInTheDocument()
 
     expect(
-      screen.queryByRole('heading', { name: /machines by type/i }),
+      screen.queryByRole('heading', { name: /machines by country/i }),
     ).not.toBeInTheDocument()
   })
 })

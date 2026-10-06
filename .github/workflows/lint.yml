@@ -84,6 +84,20 @@ jobs:
       - run: npm run build
       - name: Apply migrations to the isolated CI database
         run: npm run db:migrate
+      # Replays migrations/ into a scratch database, re-introspects it with
+      # drizzle-kit and fails when src/db/ no longer matches.
+      - name: Check the committed Drizzle schema for drift against migrations
+        run: npm run db:schema:check
+      # A separate database, so the seed's fixed IDs never meet test fixtures.
+      # The second load checks that re-running the seed is a no-op.
+      - name: Load the seed dataset twice into a fresh database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/seed_check
+        run: |
+          psql postgresql://test:test@localhost:5432/test --no-psqlrc --command 'CREATE DATABASE seed_check'
+          npm run db:migrate
+          npm run db:seed
+          npm run db:seed
       - name: Run all backend tests (including database tests when present)
         run: npm test
 
@@ -156,3 +170,133 @@ jobs:
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: node .github/scripts/ci/results.mjs
+
+  # M1's Vercel Hobby account deploys only commits authored by M1, whether the
+  # deploy comes from Git or the CLI. Check the merge commit once, before
+  # migrating or deploying. If anyone else authored it, skip both, so schema and
+  # code stay in step, and tell M1 on the pull request; M1's next merge deploys
+  # everything. Gated on the always-running result gate, not on a path-selected
+  # job, so it never depends on change routing.
+  check-deploy-author:
+    name: Check deploy author
+    needs: backend-lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    outputs:
+      allowed: ${{ steps.author.outputs.allowed }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_AUTHOR: ${{ vars.DEPLOY_AUTHOR }}
+    steps:
+      - name: Check the merge commit author
+        id: author
+        run: |
+          if [ -z "$DEPLOY_AUTHOR" ]; then
+            echo '::error::The DEPLOY_AUTHOR repository variable is not set'
+            exit 1
+          fi
+          login=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.author.login // ""')
+          echo "login=$login" >> "$GITHUB_OUTPUT"
+          if [ "$login" = "$DEPLOY_AUTHOR" ]; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'allowed=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Staging not migrated or deployed: commit authored by ${login:-an unknown user}, not $DEPLOY_AUTHOR"
+          fi
+      # Only pull requests that change what runs on staging need M1's attention;
+      # others, such as documentation, may be merged by their authors.
+      - name: Tell M1 on the merged pull request
+        if: steps.author.outputs.allowed == 'false'
+        env:
+          LOGIN: ${{ steps.author.outputs.login }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // ""')
+          if [ -z "$pr" ]; then
+            echo 'No pull request found for this commit; not notifying.'
+            exit 0
+          fi
+          deployable=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$pr/files" --jq '.[].filename' \
+            | grep -E '^(frontend|backend)/' | grep -viE '\.md$' || true)
+          if [ -z "$deployable" ]; then
+            echo "#$pr changes nothing under frontend/ or backend/; not notifying."
+            exit 0
+          fi
+          gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "@$DEPLOY_AUTHOR Staging was not migrated or deployed: this pull request changes frontend/ or backend/, but its merge commit is authored by @${LOGIN:-unknown}, and the Vercel Hobby plan deploys only commits by @$DEPLOY_AUTHOR. Your next merge will deploy it. See docs/staging.md."
+
+  # Runs before deploy-staging, so new code never meets an old schema.
+  migrate-staging:
+    name: Migrate staging database
+    needs: [backend-lint, check-deploy-author]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: staging-database
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Apply pending migrations to Neon staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo '::error::STAGING_DATABASE_URL is not set in the staging environment'
+            exit 1
+          fi
+          npm run db:migrate
+
+  # Vercel's Git integration is off (git.deploymentEnabled in each vercel.json),
+  # so production deploys run here with M1's token. The timeout ends a deploy
+  # that hangs, for example on a deployment Vercel blocked, so it cannot hold
+  # the queue for the 6-hour default.
+  deploy-staging:
+    name: Deploy staging ${{ matrix.project }}
+    needs: [backend-lint, check-deploy-author, migrate-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: frontend
+            project_id_var: VERCEL_FRONTEND_PROJECT_ID
+          - project: backend
+            project_id_var: VERCEL_BACKEND_PROJECT_ID
+    concurrency:
+      group: staging-deploy-${{ matrix.project }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Run from the repository root: each Vercel project sets its own Root
+      # Directory, and Vercel builds it on its own infrastructure.
+      - name: Deploy to the Vercel production environment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars[matrix.project_id_var] }}
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set in the staging environment"
+              exit 1
+            fi
+          done
+          npx --yes vercel@62.2.0 deploy --prod --yes --token "$VERCEL_TOKEN"

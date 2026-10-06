@@ -1,5 +1,6 @@
 import { getMap } from './map'
 import { getSite } from './sites'
+import { formatCountry, formatEnumLabel } from '../format'
 import type { MapQuery, SiteDetail } from './types'
 import type { MapDeployment, MapSite } from '../../features/map/types'
 
@@ -8,13 +9,10 @@ export interface LiveSitesResult {
   excludedCount: number
 }
 
-const COUNTRY_NAMES: Record<string, string> = {
-  AU: 'Australia',
-  CA: 'Canada',
-  CN: 'China',
-  ES: 'Spain',
-  KZ: 'Kazakhstan',
-  US: 'United States',
+/** English name for an ISO 3166-1 alpha-2 code; anything else is returned unchanged. */
+export function countryName(countryCode: string): string {
+  if (!countryCode) return countryCode
+  return formatCountry(countryCode)
 }
 
 const MACHINE_TYPE_LABELS: Record<string, string> = {
@@ -29,8 +27,9 @@ const MACHINE_TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-function machineTypeLabel(machineType: string): string {
-  return MACHINE_TYPE_LABELS[machineType] ?? machineType.replaceAll('_', ' ')
+/** Unlisted types use the same sentence case, e.g. underground_haul_truck → "Underground haul truck". */
+export function machineTypeLabel(machineType: string): string {
+  return MACHINE_TYPE_LABELS[machineType] ?? formatEnumLabel(machineType)
 }
 
 function environmentLabel(environment: string): MapDeployment['environment'] {
@@ -48,7 +47,7 @@ function isDeploymentInQuery(
   if (query.automationLevel !== undefined && deployment.automationLevel !== query.automationLevel) return false
   if (query.environment !== undefined && deployment.environment !== query.environment) return false
   if (query.date !== undefined) {
-    if (deployment.validFrom > query.date) return false
+    if (deployment.validFrom !== null && deployment.validFrom > query.date) return false
     if (deployment.validTo !== null && deployment.validTo < query.date) return false
   }
   return true
@@ -74,7 +73,7 @@ function mapSite(detail: SiteDetail, query: MapQuery): MapSite {
     id: String(detail.id),
     name: detail.name,
     region: detail.region ?? 'Region not recorded',
-    country: COUNTRY_NAMES[detail.countryCode] ?? detail.countryCode,
+    country: countryName(detail.countryCode),
     latitude: detail.latitude,
     longitude: detail.longitude,
     deployments,
