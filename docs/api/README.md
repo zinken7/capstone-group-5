@@ -562,7 +562,9 @@ database refuses any later change to it.
 Takes the fields of the public correction (`quantity`, `environment`,
 `deployment_status`, `automation_level`, `installation_type`,
 `commissioning_date`, `evidence_urls`, `change_note`) plus
-`technology_supplier` and `technology_product`, which must be given together.
+`technology_supplier` and `technology_product`, which must be given together,
+and `clear_automation_level: true`, which removes the deployment's automation
+level (FR-57); it cannot be combined with `automation_level`.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
