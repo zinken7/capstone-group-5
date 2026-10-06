@@ -229,7 +229,7 @@ Accepts the shared filters and returns headline totals over matching verified de
 
 ## `GET /api/analytics/breakdowns`
 
-Accepts the shared filters and returns machine counts over matching verified deployments, grouped by country, machine type, manufacturer, supplier, automation level, deployment status and commodity:
+Accepts the shared filters and returns machine counts over matching verified deployments, grouped by country, region, machine type, manufacturer, supplier, automation level, deployment status and commodity:
 
 ```json
 {
@@ -240,6 +240,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
   "by_supplier": [{ "key": "Caterpillar", "machine_count": 116, "share": 0.9587 }, { "key": "RCT", "machine_count": 5, "share": 0.0413 }],
   "by_status": [{ "key": "operational", "machine_count": 116, "share": 0.9587 }, { "key": "decommissioned", "machine_count": 5, "share": 0.0413 }],
   "by_commodity": [{ "key": "iron_ore", "machine_count": 121, "share": 1 }],
+  "by_region": [{ "key": "Pilbara", "machine_count": 121, "share": 1 }],
   "by_automation_level": [
     { "key": "operator_assistance", "machine_count": 0, "share": 0 },
     { "key": "teleremote", "machine_count": 5, "share": 0.0413 },
@@ -252,7 +253,7 @@ Accepts the shared filters and returns machine counts over matching verified dep
 
 - Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
-- `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier`, `by_status` and `by_commodity` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
+- `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier`, `by_status`, `by_commodity` and `by_region` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
 - `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
 - Repeated filter parameters return `400`.
 

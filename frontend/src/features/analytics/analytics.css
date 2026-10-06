@@ -1,6 +1,6 @@
 .analytics-page { gap: 1.25rem; }
 
-.analytics-filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; align-items: end; padding: 1rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface-muted); }
+.analytics-filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.75rem; align-items: end; padding: 1rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface-muted); }
 .analytics-filter { display: grid; min-width: 0; gap: 0.35rem; color: var(--text-strong); font-size: 0.82rem; font-weight: 600; }
 .analytics-filter span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .analytics-filter select { width: 100%; min-width: 0; min-height: 44px; padding: 0.45rem 0.6rem; border: 1px solid var(--control-border); border-radius: 0.45rem; color: var(--text-strong); background: white; font: inherit; font-size: 0.88rem; font-weight: 400; text-overflow: ellipsis; }
@@ -144,6 +144,7 @@ button.heatmap__cell:focus-visible { outline: 3px solid var(--focus); outline-of
 .heatmap__other { height: 2.5rem; border-radius: 4px; color: var(--text-strong); background: var(--surface-muted); font-variant-numeric: tabular-nums; }
 .heatmap__total { color: var(--text-strong); font-variant-numeric: tabular-nums; font-weight: 600; }
 .heatmap thead .heatmap__total, .heatmap td.heatmap__total { width: 4.5rem; }
+.heatmap__share { width: 3.5rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .heatmap tfoot th, .heatmap tfoot td { padding-top: 0.4rem; border-top: 1px solid var(--border); }
 
 /* Mining environment split per machine type */

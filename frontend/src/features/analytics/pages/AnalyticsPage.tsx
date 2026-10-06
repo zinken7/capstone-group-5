@@ -7,9 +7,10 @@ import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
 import { formatCountry, formatEnumLabel } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import { byValue, emptyCrosstab, plural, toRows } from '../chartData'
+import type { ChartRow } from '../chartData'
 import AutomationDonut from '../components/AutomationDonut'
 import BarList from '../components/BarList'
-import { ChartCard } from '../components/ChartCard'
+import { BreakdownTable, ChartCard } from '../components/ChartCard'
 import CountryTreemap from '../components/CountryTreemap'
 import EnvironmentSplit from '../components/EnvironmentSplit'
 import MakerTypeHeatmap from '../components/MakerTypeHeatmap'
@@ -45,12 +46,17 @@ function dataFromSummary(summary: AnalyticsSummary): AnalyticsData {
       by_automation_level: toDto(summary.machinesByAutomationLevel),
       by_status: [],
       by_commodity: [],
+      by_region: [],
     },
     timeline: { excluded_count: 0, excluded_machine_count: 0, years: [] },
     supplierByLevel: emptyCrosstab('supplier', 'automation_level'),
     makerByType: emptyCrosstab('manufacturer', 'machine_type'),
     typeByEnvironment: emptyCrosstab('machine_type', 'environment'),
   }
+}
+
+function tableRows(rows: ChartRow[]) {
+  return rows.map((row) => ({ key: row.key ?? `not-recorded-${row.label}`, label: row.label, value: row.value, share: row.share }))
 }
 
 /** The commissioning year range in words, or null when no range is set. */
@@ -64,7 +70,7 @@ function periodLabel(filters: AnalyticsFilters): string | null {
 
 function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; onChange: (next: AnalyticsFilters) => void; onClear: () => void }) {
   const [reference, setReference] = useState(DEFAULT_CONTRIBUTION_REFERENCE_DATA)
-  const [remoteOptions, setRemoteOptions] = useState({ countries: [] as string[], commodities: [] as string[], suppliers: [] as string[], manufacturers: [] as string[] })
+  const [remoteOptions, setRemoteOptions] = useState({ countries: [] as string[], regions: [] as string[], commodities: [] as string[], suppliers: [] as string[], manufacturers: [] as string[] })
   const [years, setYears] = useState<number[]>([])
 
   useEffect(() => {
@@ -75,6 +81,7 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
       if (!active) return
       setRemoteOptions({
         countries: keys(data.by_country),
+        regions: keys(data.by_region).sort((a, b) => a.localeCompare(b)),
         commodities: keys(data.by_commodity),
         suppliers: keys(data.by_supplier),
         manufacturers: keys(data.by_manufacturer),
@@ -104,6 +111,7 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
   return (
     <section className="analytics-filters" aria-label="Analytics filters">
       {select('Country', 'country', 'All countries', remoteOptions.countries.map((value) => [value, formatCountry(value)] as const))}
+      {select('Region', 'region', 'All regions', remoteOptions.regions.map((value) => [value, value] as const))}
       {select('Commodity', 'commodity', 'All commodities', remoteOptions.commodities.map((value) => [value, formatEnumLabel(value)] as const))}
       {select('Machine type', 'machineType', 'All machine types', reference.machineTypes)}
       {select('Technology supplier', 'supplier', 'All suppliers', remoteOptions.suppliers.map((value) => [value, value] as const))}
@@ -180,15 +188,13 @@ function AnalyticsPage({ summary: suppliedSummary }: AnalyticsPageProps = {}) {
             <div className="analytics-grid" aria-busy={loading}>
               <TimelineCard timeline={data.timeline} />
               <AutomationDonut items={data.breakdowns.by_automation_level} onFilter={selectFilter('automationLevel')} />
-              <ChartCard id="country" title="Machines by country" description="Each tile is a country, sized by its machines.">
+              <ChartCard id="country" title="Machines by country" description="Each tile is a country, sized by its machines." table={<BreakdownTable caption="Machines by country" groupLabel="Country" rows={tableRows(rows.country)} />}>
                 <CountryTreemap rows={rows.country} onFilter={selectFilter('country')} />
               </ChartCard>
-              <ChartCard id="supplier" title="Machines by technology supplier" description="Who supplies the most machines, and at which automation level.">
-                <SupplierLevels crosstab={data.supplierByLevel} onFilter={selectFilter('supplier')} />
-              </ChartCard>
+              <SupplierLevels crosstab={data.supplierByLevel} onFilter={selectFilter('supplier')} />
               <MakerTypeHeatmap crosstab={data.makerByType} onFilter={(manufacturer, machineType) => updateFilters({ ...filters, manufacturer, machineType })} />
               <EnvironmentSplit crosstab={data.typeByEnvironment} onFilter={selectFilter('machineType')} />
-              <ChartCard id="commodity" title="Machines by commodity" description="What the mines produce.">
+              <ChartCard id="commodity" title="Machines by commodity" description="What the mines produce." table={<BreakdownTable caption="Machines by commodity" groupLabel="Commodity" rows={tableRows(rows.commodity)} />}>
                 <BarList name="Machines by commodity" rows={rows.commodity} limit={10} noun={['commodity', 'commodities']} onFilter={selectFilter('commodity')} />
               </ChartCard>
             </div>
