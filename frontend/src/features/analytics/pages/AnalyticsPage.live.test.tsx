@@ -34,6 +34,7 @@ const breakdowns: AnalyticsBreakdownsDto = {
   by_automation_level: [{ key: null, machine_count: 42, share: 1 }],
   by_status: [{ key: 'operational', machine_count: 42, share: 1 }],
   by_commodity: [{ key: 'gold', machine_count: 42, share: 1 }],
+  by_region: [{ key: 'Pilbara', machine_count: 42, share: 1 }],
 }
 const crosstabCells: Record<string, AnalyticsCrosstabDto['cells']> = {
   'supplier:automation_level': [{ row: 'Supplier', column: 'autonomous', machine_count: 42 }],
@@ -202,6 +203,56 @@ describe('AnalyticsPage live API behaviour', () => {
     expect(await screen.findByText(/^Showing/)).toHaveTextContent('Showing 42 machines commissioned in 2024 at 3 mine sites in 2 countries')
   })
 
+  test('filters every analytics request by region', async () => {
+    const user = userEvent.setup()
+    render(<AnalyticsPage />)
+    await screen.findByRole('heading', { name: 'Machines by country' })
+
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Pilbara' })).toBeInTheDocument())
+    await user.selectOptions(screen.getByLabelText('Region'), 'Pilbara')
+    await waitFor(() => {
+      expect(summaryMock.mock.calls.some(([filters]) => filters?.region === 'Pilbara')).toBe(true)
+      expect(breakdownsMock.mock.calls.some(([filters]) => filters?.region === 'Pilbara')).toBe(true)
+      expect(crosstabMock.mock.calls.some(([, , filters]) => filters?.region === 'Pilbara')).toBe(true)
+    })
+  })
+
+  test('shows every group behind the charts, not only the largest', async () => {
+    const user = userEvent.setup()
+    const suppliers = Array.from({ length: 10 }, (_, index) => `Supplier ${index + 1}`)
+    const types = ['haul_truck', 'lhd', 'dozer', 'drill', 'scaler', 'loader', 'excavator', 'shovel', 'water_truck', 'grader']
+    crosstabMock.mockImplementation((rows, columns) => {
+      const key = `${rows}:${columns}`
+      const cells = key === 'supplier:automation_level'
+        ? suppliers.map((row, index) => ({ row, column: 'autonomous', machine_count: 20 - index }))
+        : key === 'machine_type:environment'
+          ? types.map((row, index) => ({ row, column: 'surface', machine_count: 20 - index }))
+          : key === 'manufacturer:machine_type'
+            ? [{ row: 'Maker', column: 'haul_truck', machine_count: 30 }, { row: 'Other maker', column: 'lhd', machine_count: 12 }]
+            : []
+      return Promise.resolve({ rows, columns, machine_count: cells.reduce((total, cell) => total + cell.machine_count, 0), cells })
+    })
+    render(<AnalyticsPage />)
+
+    expect(await screen.findByRole('button', { name: /^Filter by Supplier 8:/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Filter by Supplier 9:/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show the other 2 suppliers' }))
+    expect(screen.getByRole('button', { name: /^Filter by Supplier 10:/ })).toBeInTheDocument()
+
+    expect(screen.queryByRole('button', { name: /^Filter by Grader,/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show the other 2 machine types' }))
+    expect(screen.getByRole('button', { name: /^Filter by Grader,/ })).toBeInTheDocument()
+
+    const heatmap = screen.getByRole('table', { name: /machines by manufacturer \(rows\) and machine type/i })
+    expect(within(heatmap).getByRole('columnheader', { name: 'Share' })).toBeInTheDocument()
+    expect(within(heatmap).getByRole('row', { name: /Maker.*30.*71%/ })).toBeInTheDocument()
+
+    const countryCard = screen.getByRole('heading', { name: 'Machines by country' }).closest('section') as HTMLElement
+    await user.click(within(countryCard).getByRole('button', { name: 'Show as table' }))
+    const countryTable = within(countryCard).getByRole('table', { name: 'Machines by country' })
+    expect(within(countryTable).getByRole('row', { name: 'Australia 42 100%' })).toBeInTheDocument()
+  })
+
   test('shows an API error state', async () => {
     summaryMock.mockRejectedValue(new Error('API unavailable'))
     breakdownsMock.mockRejectedValue(new Error('API unavailable'))
@@ -214,7 +265,7 @@ describe('AnalyticsPage live API behaviour', () => {
 
   test('shows an empty state from an empty API response', async () => {
     summaryMock.mockResolvedValue({ machine_count: 0, site_count: 0, country_count: 0 })
-    breakdownsMock.mockResolvedValue({ ...breakdowns, machine_count: 0, by_country: [], by_machine_type: [], by_manufacturer: [], by_supplier: [], by_automation_level: [], by_status: [], by_commodity: [] })
+    breakdownsMock.mockResolvedValue({ ...breakdowns, machine_count: 0, by_country: [], by_machine_type: [], by_manufacturer: [], by_supplier: [], by_automation_level: [], by_status: [], by_commodity: [], by_region: [] })
     timelineMock.mockResolvedValue({ excluded_count: 0, excluded_machine_count: 0, years: [] })
 
     render(<AnalyticsPage />)

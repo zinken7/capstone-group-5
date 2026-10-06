@@ -86,6 +86,7 @@ describe('GET /api/analytics/breakdowns', () => {
       { key: 'commissioning', machine_count: 5, share: 5 / 121 },
     ])
     expect(response.body.by_commodity).toEqual([{ key: 'iron_ore', machine_count: 121, share: 1 }])
+    expect(response.body.by_region).toEqual([{ key: 'Pilbara', machine_count: 121, share: 1 }])
   })
 
   it('ranks manufacturers and suppliers within a machine type', async () => {
