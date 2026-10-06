@@ -1,9 +1,10 @@
 import request from 'supertest'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
 const { closeDatabase, query } = await import('../database.js')
 const { ENUM_TYPES } = await import('../lib/controlled-values.js')
+const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 
 afterAll(async () => {
   await closeDatabase()
@@ -28,6 +29,11 @@ describe('controlled values', () => {
 })
 
 describe('GET /api/reference-data', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+    await seedMapFixtures()
+  })
+
   it('returns the controlled values used by the contribution form', async () => {
     const response = await request(app).get('/api/reference-data')
 
@@ -39,7 +45,7 @@ describe('GET /api/reference-data', () => {
     expect(response.body.machine_types).toContain('haul_truck')
     expect(response.body.countries).toContain('AU')
     expect(response.body.technology_products).toEqual(expect.arrayContaining([
-      { supplier: 'ZZH Autonomous Systems', product: 'ZZH AssistOne', automation_level: 'operator_assistance' },
+      { supplier: 'Sandvik', product: 'Sandvik AutoMine', automation_level: 'semi_autonomous' },
     ]))
   })
 })
