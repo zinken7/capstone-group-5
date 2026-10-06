@@ -5,6 +5,27 @@ export function markerRadius(machines: number): number {
   return Math.max(5, Math.sqrt(Math.max(machines, 0)) * 1.45)
 }
 
+export interface FitPadding {
+  paddingTopLeft: [number, number]
+  paddingBottomRight: [number, number]
+}
+
+/**
+ * CircleMarker radii are screen pixels, so the data scale stays identical on
+ * every device. Only the fit padding changes to reserve room for mobile
+ * overlays and keep the visible map area useful.
+ */
+export function fitPaddingForSize(size: { x: number; y: number }): FitPadding {
+  if (size.x <= 900) {
+    const horizontal = Math.max(24, Math.round(size.x * 0.06))
+    const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
+    const bottom = Math.max(120, Math.round(Math.min(size.y * 0.3, 192)))
+    return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
+  }
+
+  return { paddingTopLeft: [48, 96], paddingBottomRight: [48, 160] }
+}
+
 /** [[south, west], [north, east]] around every marker, or null when there are none. */
 export function boundsOf(markers: readonly Pick<MapMarker, 'latitude' | 'longitude'>[]): [[number, number], [number, number]] | null {
   if (markers.length === 0) return null

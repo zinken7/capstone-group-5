@@ -7,14 +7,14 @@ import 'leaflet/dist/leaflet.css'
 import type { MapMarker } from '../../../lib/api/types'
 import { formatNumber } from '../../../lib/format'
 import { BASEMAP_ATTRIBUTION, loadCountries } from '../basemap'
-import { boundsOf, markerRadius } from '../geometry'
+import { boundsOf, fitPaddingForSize, markerRadius } from '../geometry'
 
 /** Fits the map to the markers, leaving room for the headline and the year control; skipped while the map has no size. */
 export function fitToMarkers(map: LeafletMap, markers: readonly MapMarker[]): void {
   const bounds = boundsOf(markers)
   const size = map.getSize()
   if (!bounds || size.x === 0 || size.y === 0) return
-  map.fitBounds(bounds, { paddingTopLeft: [48, 96], paddingBottomRight: [48, 160], maxZoom: 6 })
+  map.fitBounds(bounds, { ...fitPaddingForSize(size), maxZoom: 6 })
 }
 
 function MapEffects({ markers, fitKey, onMapReady }: { markers: readonly MapMarker[]; fitKey: string; onMapReady: (map: LeafletMap) => void }) {
@@ -29,6 +29,18 @@ function MapEffects({ markers, fitKey, onMapReady }: { markers: readonly MapMark
     fitToMarkers(map, markers)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, fitKey])
+
+  // Refit after a viewport/orientation change, otherwise Leaflet keeps the
+  // desktop padding and center when the same page is opened on a phone.
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize({ pan: false })
+      fitToMarkers(map, markers)
+    })
+    observer.observe(map.getContainer())
+    return () => observer.disconnect()
+  }, [map, markers])
 
   return null
 }

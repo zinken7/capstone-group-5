@@ -175,6 +175,11 @@ describe('MapPage', () => {
     expect(flyTo).not.toHaveBeenCalled()
 
     const card = await screen.findByRole('article', { name: 'Roy Hill' })
+    expect(document.querySelector('.map-stage')).toHaveClass('map-stage--selected')
+    const legendToggle = screen.getByRole('button', { name: 'Show legend' })
+    await user.click(legendToggle)
+    expect(legendToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(document.querySelector('.map-legend')).toHaveClass('map-legend--mobile-open')
     
     await user.click(within(card).getByRole('button', { name: /zoom to site/i }))
     expect(flyTo).toHaveBeenCalled()
@@ -187,6 +192,8 @@ describe('MapPage', () => {
 
     await user.click(within(card).getByRole('button', { name: /close site details/i }))
     expect(screen.queryByRole('article', { name: 'Roy Hill' })).not.toBeInTheDocument()
+    expect(document.querySelector('.map-stage')).not.toHaveClass('map-stage--selected')
+    expect(screen.queryByRole('button', { name: 'Show legend' })).not.toBeInTheDocument()
     expect(site).toHaveFocus()
   })
 
