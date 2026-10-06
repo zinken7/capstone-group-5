@@ -28,7 +28,7 @@ export const DEPLOYMENT_STATUSES = [
 export const ENVIRONMENTS = [
   ['surface', 'Surface'],
   ['underground', 'Underground'],
-  ['both', 'Both'],
+  ['both', 'Surface and underground'],
 ] as const
 
 export const AUTOMATION_LEVELS = [

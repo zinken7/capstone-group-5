@@ -10,6 +10,7 @@ export function formatEnumLabel(value: string | null | undefined): string {
     lhd: 'LHD',
     LHD: 'LHD',
     semi_autonomous: 'Semi-autonomous',
+    both: 'Surface and underground',
   }
   if (specialCases[value]) return specialCases[value]
   const label = value.replaceAll('_', ' ').toLowerCase()

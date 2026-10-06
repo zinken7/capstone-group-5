@@ -113,7 +113,7 @@
 }
 
 .admin-account__sign-out {
-  min-height: 2.25rem;
+  min-height: 44px;
   padding: 0 var(--space-3);
   border: 1px solid #45526e;
   border-radius: 0.5rem;
@@ -128,9 +128,6 @@
   border-color: #c3cad6;
 }
 
-.admin-header :focus-visible {
-  outline-color: var(--color-accent);
-}
 
 /* Page */
 
@@ -375,7 +372,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-height: 2.25rem;
+  min-height: 44px;
   padding: 0 var(--space-3) 0 var(--space-4);
   border: 1px solid var(--control-border);
   border-radius: 0.5rem;

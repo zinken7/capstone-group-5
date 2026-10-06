@@ -39,6 +39,7 @@ describe('Application shell and navigation', () => {
     ).toBeInTheDocument()
   })
 
+
   test('navigates to the Equipment Register', async () => {
     const user = userEvent.setup()
 

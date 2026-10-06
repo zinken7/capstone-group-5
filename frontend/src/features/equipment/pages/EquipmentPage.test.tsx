@@ -255,7 +255,9 @@ describe('EquipmentPage', () => {
     expect((await screen.findAllByText('Semi-autonomous')).length).toBeGreaterThan(0)
     const correctButton = screen.getByRole('button', { name: /correct raw enum site/i })
     await userEvent.setup().click(correctButton)
-    expect(screen.getByRole('combobox', { name: /mining environment/i })).toHaveValue('both')
+    const environmentSelect = screen.getByRole('combobox', { name: /mining environment/i })
+    expect(environmentSelect).toHaveValue('both')
+    expect(within(environmentSelect).getByRole('option', { name: 'Surface and underground' })).toBeInTheDocument()
   })
 
   test('opens the correction dialog and submits a pending-review correction', async () => {
