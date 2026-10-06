@@ -107,7 +107,7 @@
 .choice-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 2.5rem;
+  min-height: 44px;
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--control-border);
   border-radius: 999px;
