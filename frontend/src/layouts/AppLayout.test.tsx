@@ -23,6 +23,7 @@ describe('AppLayout', () => {
     render(<MemoryRouter initialEntries={['/map']}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
 
     expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Administrator sign-in' })).toHaveAttribute('href', '/admin')
+    expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: 'CC BY 4.0' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/4.0/')
     expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).queryByRole('link', { name: /admin/i })).not.toBeInTheDocument()
   })
 
