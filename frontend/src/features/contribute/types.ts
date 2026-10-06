@@ -44,6 +44,21 @@ export const INSTALLATION_TYPES = [
   ['unknown', 'Unknown'],
 ] as const
 
+/** Country codes present in the supplied market dataset, kept as controlled form values. */
+export const COUNTRIES = [
+  ['AU', 'Australia'],
+  ['BR', 'Brazil'],
+  ['CA', 'Canada'],
+  ['CL', 'Chile'],
+  ['FI', 'Finland'],
+  ['ID', 'Indonesia'],
+  ['PE', 'Peru'],
+  ['SE', 'Sweden'],
+  ['US', 'United States'],
+  ['XR', 'Anonymised'],
+  ['ZA', 'South Africa'],
+] as const
+
 export type ReferenceOption = readonly [value: string, label: string]
 
 export interface ContributionReferenceData {
@@ -52,6 +67,7 @@ export interface ContributionReferenceData {
   deploymentStatuses: readonly ReferenceOption[]
   automationLevels: readonly ReferenceOption[]
   installationTypes: readonly ReferenceOption[]
+  countries?: readonly ReferenceOption[]
 }
 
 export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
@@ -60,6 +76,7 @@ export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
   deploymentStatuses: DEPLOYMENT_STATUSES,
   automationLevels: AUTOMATION_LEVELS,
   installationTypes: INSTALLATION_TYPES,
+  countries: COUNTRIES,
 }
 
 export interface ContributionFormValues {

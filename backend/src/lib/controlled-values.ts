@@ -14,6 +14,9 @@ export const DEPLOYMENT_STATUSES = ['announced', 'commissioning', 'operational',
 
 export const INSTALLATION_TYPES = ['factory_installed', 'retrofit', 'unknown'] as const
 
+/** Country codes available in the supplied market dataset for contribution forms. */
+export const COUNTRY_CODES = ['AU', 'BR', 'CA', 'CL', 'FI', 'ID', 'PE', 'SE', 'US', 'XR', 'ZA'] as const
+
 /** PostgreSQL enum type name for each list above. */
 export const ENUM_TYPES = {
   machine_type: MACHINE_TYPES,
