@@ -98,6 +98,7 @@ describe('MapPage', () => {
       expect.stringContaining('Kiruna'),
       expect.stringContaining('Roy Hill'),
     ])
+    expect(within(list).getByRole('button', { name: /roy hill/i })).toHaveTextContent('Operational')
     const totals = screen.getByLabelText('Totals for the current view')
     expect(within(totals).getByText('108')).toBeInTheDocument()
     expect(within(totals).getByText('countries')).toBeInTheDocument()
