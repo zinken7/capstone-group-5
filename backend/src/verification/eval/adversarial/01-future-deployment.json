@@ -1,0 +1,113 @@
+{
+  "key": "carajas-future-deployment",
+  "exercises": "future deployment language: a planned fleet of 37 autonomous trucks must not automatically be treated as an already operating autonomous fleet",
+  "submission": {
+    "site": {
+      "name": "Carajas",
+      "countryCode": "BR",
+      "region": null
+    },
+    "companyRoles": [
+      {
+        "company": "Vale",
+        "role": "owner"
+      }
+    ],
+    "machine": {
+      "manufacturer": "Komatsu",
+      "machineType": "haul_truck",
+      "modelName": "930E"
+    },
+    "technology": {
+      "supplier": "Komatsu",
+      "productName": "Autonomous Haulage System"
+    },
+    "quantity": 37,
+    "commissioning": null
+  },
+  "evidenceUrl": "https://www.komatsu.com/en-us/newsroom/2019/2019-11-14-komatsu-announces-plans-to-deploy-37-autonomous-trucks-at-vale-carajas-mine",
+  "page": {
+    "storedText": "November 14, 2019 – To support the Brazilian resource company Vale in its drive to leverage technology to reduce impact on the environment and enhance health, safety and operational efficiency, Komatsu (President and CEO: Hiroyuki Ogawa) is excited to announce plans to deploy 37 of its 930E ultra-class electrical dump trucks as part of an Autonomous Haulage System (AHS) at Vale’s Carajás iron mine.\nPowered by Komatsu’s AHS FrontRunner technology, the initial deployment is expected to start this month, with the goal of operating 37 trucks autonomously by 2024. To support a successful transition to autonomy, Komatsu opened an AHS training center near the mine in August of this year that provides operations and maintenance training to upskill local people on the new technologies being introduced at the mine, in support of human resource development.\n“We are honored to be part of the ongoing wave of technological innovation at Carajás, supporting Vale’s commitment to sustainability and helping make the mine a reference in environmental terms,” said Masayuki Moriyama, President of Komatsu’s Mining Business Division. “We look forward to our continued work together to support the skill growth of local workers and ensure a successful deployment that is designed to increase the safety and productivity of this operation.”\nWith this latest deployment, Komatsu continues to expand its AHS business in South America. Komatsu customers globally are now leveraging AHS at 10 mine sites in four countries.\nAbout Komatsu\nKomatsu is an industry-leading manufacturer and supplier of equipment, technologies and services for the mining, construction, forklift, industrial and forestry markets. The company’s equipment and services are used to extract fundamental minerals and develop modern infrastructure, with a focus on enhancing safety and productivity while optimizing performance.",
+    "publishedDate": null,
+    "sourceClass": "company_release"
+  },
+  "expectations": [
+    {
+      "field": "site",
+      "subject": "",
+      "subFact": "name",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "site",
+      "subject": "",
+      "subFact": "country",
+      "sentence": null,
+      "verdict": "insufficient"
+    },
+    {
+      "field": "company_role",
+      "subject": "vale:owner",
+      "subFact": "company_named",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "company_role",
+      "subject": "vale:owner",
+      "subFact": "role_stated",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "manufacturer",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "machine_type",
+      "sentence": null,
+      "verdict": "insufficient"
+    },
+    {
+      "field": "machine",
+      "subject": "",
+      "subFact": "model_name",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "technology",
+      "subject": "",
+      "subFact": "supplier",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "technology",
+      "subject": "",
+      "subFact": "product_name",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "quantity",
+      "subject": "",
+      "subFact": "count",
+      "sentence": null,
+      "verdict": "supported"
+    },
+    {
+      "field": "quantity",
+      "subject": "",
+      "subFact": "machine_type_matches",
+      "sentence": null,
+      "verdict": "supported"
+    }
+  ]
+}

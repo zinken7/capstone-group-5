@@ -1,0 +1,123 @@
+{
+    "key":  "yeristovo-completed-vs-planned-fleet",
+    "exercises":  "completed initial autonomous truck versus conditional future fleet expansion: one 793D was autonomously operated, while expansion to 15 trucks was only planned",
+    "submission":  {
+                       "site":  {
+                                    "name":  "Ferrexpo Yeristovo Mine",
+                                    "countryCode":  "UA",
+                                    "region":  null
+                                },
+                       "companyRoles":  [
+                                            {
+                                                "company":  "Ferrexpo",
+                                                "role":  "owner"
+                                            }
+                                        ],
+                       "machine":  {
+                                       "manufacturer":  null,
+                                       "machineType":  "haul_truck",
+                                       "modelName":  "793D"
+                                   },
+                       "technology":  {
+                                          "supplier":  "ASI Mining",
+                                          "productName":  "Mobius Haulage A.I."
+                                      },
+                       "quantity":  15,
+                       "commissioning":  {
+                                             "year":  2019,
+                                             "month":  10
+                                         }
+                   },
+    "evidenceUrl":  "https://go.asirobots.com/ferrexpo-autonomous-truck",
+    "page":  {
+                 "storedText":  "ASI Mining, a subsidiary of Autonomous Solutions, Inc. (ASI), has started work on a project in Ukraine to retrofit and automate a fleet of 15 haul trucks at the Ferrexpo Yeristovo Mine (FYM).\nâ€œThis project is one of the first major autonomous haulage deployments in Eastern Europe. It represents a major milestone for the accessibility of automation at sites across the world,â€ said Patrick Hald, General Manager, ASI Mining. â€œAutonomous mining is no longer a luxury available only to the largest mines.â€\nFYM and ASI Mining successfully completed an initial test on October 21, 2019 by converting, and autonomously operating, a 793D haul truck. Ferrexpo plans to expand automation to a total of 15 trucks within the next two project phases, subject to market conditions and cash flows.\nAlexander Tubaltsev, Chief Miner at Ferrexpo Yeristovo Mining, said â€œWe selected ASI Mining because it is one of the worldâ€™s leading providers of robotics and automation and has already completed a significant number of successful deployments with major corporations in the mining and automotive industries. Ferrexpo is very proud to be the first to lead this initiative, not only in Ukraine, but also as the first open pit mine in Europe to do so.â€\nFYM anticipates the autonomous mining fleet will deliver significant safety benefits to employees, particularly by eliminating fatigue-induced accidents. The improved safety benefits will also be complemented by expected improvements in productivity and better control over the quality of the companyâ€™s ore mix.\nASIâ€™s MobiusÂ® Haulage A.I. will be a key component in the implementation and operation of the project. Mobius leverages advanced multi-vehicle command and control software to set up and manage a coordinated system of haul trucks. The Mobius Haulage Platform manages autonomous traffic, coordinates manned or unmanned vehicles and regulates the haul cycle in the most efficient way possible.\nBy employing Mobius software at the Yeristovo mine, Ferrexpo anticipates improvements in utilization, along with increased safety and productivity gains.",
+                 "publishedDate":  null,
+                 "sourceClass":  "company_release"
+             },
+    "expectations":  [
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "name",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "country",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "ferrexpo:owner",
+                             "subFact":  "company_named",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "ferrexpo:owner",
+                             "subFact":  "role_stated",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "machine_type",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "model_name",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "technology",
+                             "subject":  "",
+                             "subFact":  "supplier",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "technology",
+                             "subject":  "",
+                             "subFact":  "product_name",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "count",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "machine_type_matches",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "commissioning",
+                             "subject":  "",
+                             "subFact":  "year",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "commissioning",
+                             "subject":  "",
+                             "subFact":  "month",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         }
+                     ]
+}

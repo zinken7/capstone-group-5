@@ -1,0 +1,103 @@
+{
+    "key":  "newman-west-cross-site-leakage",
+    "exercises":  "same owner and same operation but wrong sub-site: Newman East autonomous fleet evidence must not be attributed to Newman West",
+    "submission":  {
+                       "site":  {
+                                    "name":  "Newman West",
+                                    "countryCode":  "AU",
+                                    "region":  "Pilbara"
+                                },
+                       "companyRoles":  [
+                                            {
+                                                "company":  "BHP",
+                                                "role":  "owner"
+                                            }
+                                        ],
+                       "machine":  {
+                                       "manufacturer":  "Caterpillar",
+                                       "machineType":  "haul_truck",
+                                       "modelName":  "793"
+                                   },
+                       "technology":  null,
+                       "quantity":  22,
+                       "commissioning":  null
+                   },
+    "evidenceUrl":  "https://www.bhp.com/what-we-do/global-locations/australia/western-australia/newman",
+    "page":  {
+                 "storedText":  "Newman Operations at a glance\n\nLocated in the Pilbara region of Western Australia, Newman Operations is an integral part of BHPâ€™s iron ore business. Comprising of Newman East and Newman West, Newman Operations accounts for about 78 million tonnes in total iron ore production. Newman Operations is part of an 85:15 joint venture between BHP, and Mitsui and ITOCHU.\n\n1968\nOperations in Newman date back to 1968.\n\n22\n22 CAT 793 haul trucks transitioned to become fully autonomous at our Newman East site.\n\n52,681 kt\nIron ore produced in FY2026.\n\nIron ore\n\nIron ore is integral to the steel-making process and one of the most sought after commodities in the world.",
+                 "publishedDate":  null,
+                 "sourceClass":  "company_release"
+             },
+    "expectations":  [
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "name",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "country",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "site",
+                             "subject":  "",
+                             "subFact":  "region",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "bhp:owner",
+                             "subFact":  "company_named",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "company_role",
+                             "subject":  "bhp:owner",
+                             "subFact":  "role_stated",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "manufacturer",
+                             "sentence":  null,
+                             "verdict":  "insufficient"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "machine_type",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "machine",
+                             "subject":  "",
+                             "subFact":  "model_name",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "count",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         },
+                         {
+                             "field":  "quantity",
+                             "subject":  "",
+                             "subFact":  "machine_type_matches",
+                             "sentence":  null,
+                             "verdict":  "supported"
+                         }
+                     ]
+}
