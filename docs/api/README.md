@@ -554,6 +554,7 @@ database refuses any later change to it.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "correction not found"}` |
 | `409` | `{"error": "only pending corrections can be decided", "correction_status": "…"}` |
+| `409` | `{"error": "the proposed commissioning date is after the record's valid_to; correct the record or reject the proposal"}`: approving would end the validity window before it starts, so nothing changes and the proposal stays pending |
 
 ### `PATCH /api/admin/deployments/{id}`
 
@@ -564,6 +565,10 @@ Takes the fields of the public correction (`quantity`, `environment`,
 and `valid_from` and `valid_to` as `YYYY-MM-DD` dates (FR-11). An end before the
 start, given together or against the record, returns `400` with
 `{"fields": {"valid_to": "must not be before valid_from"}}`.
+`clear_valid_from: true` and `clear_valid_to: true` remove a date, for example
+the end date of a record that is back in service; omitted or `false` changes
+nothing, and a flag sent with a value for the same date returns `400`. With no
+`valid_from` the window has no lower bound, and with no `valid_to` no end.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
@@ -583,6 +588,13 @@ step, because the map and the timeline decide what is in service from it:
 - When `commissioning_date` changes and `valid_from` was the old commissioning
   date, `valid_from` moves with it. A `valid_from` set separately, as after a
   relocation, is left alone, and a year-only date never invents a start.
+- If that would put `valid_from` after the recorded `valid_to`, nothing is
+  stored: a correction returns `400` with
+  `{"fields": {"commissioning_date": "must not be after valid_to"}}`, and
+  approving a proposal returns `409` and leaves it pending. An administrator can
+  send the new end date, or `clear_valid_to`, in the same correction.
+- The status is not reopened automatically: a record changed back from
+  `decommissioned` keeps its `valid_to` until an administrator clears or moves it.
 
 The previous values go into the `update` revision with the other changed fields.
 
