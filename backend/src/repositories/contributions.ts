@@ -60,20 +60,14 @@ export async function findOrCreateSite(
   site: { name: string; countryCode: string; regionId: number | null; commodity: string | null; coordinates: { latitude: number; longitude: number } | null },
 ): Promise<number> {
   const existing = await tx.db
-    .select({ id: tables.site.id, point4326: tables.site.point4326 })
+    .select({ id: tables.site.id })
     .from(tables.site)
     .where(and(sql`lower(${tables.site.name}) = lower(${site.name})`, eq(tables.site.countryCode, site.countryCode)))
     .orderBy(asc(tables.site.id))
     .limit(1)
-  if (existing[0]) {
-    if (site.coordinates !== null && existing[0].point4326 === null) {
-      await tx.db
-        .update(tables.site)
-        .set({ point4326: [site.coordinates.longitude, site.coordinates.latitude] })
-        .where(eq(tables.site.id, existing[0].id))
-    }
-    return existing[0].id
-  }
+  // A public contribution must not move an existing site. Coordinates for an
+  // existing site are changed only through the authenticated admin workflow.
+  if (existing[0]) return existing[0].id
 
   const inserted = await tx.db
     .insert(tables.site)

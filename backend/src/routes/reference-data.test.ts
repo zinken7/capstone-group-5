@@ -44,5 +44,6 @@ describe('GET /api/reference-data', () => {
     expect(response.body.deployment_statuses).toContain('operational')
     expect(response.body.machine_types).toContain('haul_truck')
     expect(response.body.countries).toContain('AU')
+    expect(response.body).not.toHaveProperty('technology_products')
   })
 })
