@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { boundsOf, endedBy, fitPaddingForSize, inServiceAt, markerRadius, selectedMapPaddingForSize, startYearOf } from './geometry'
+import { boundsOf, endedBy, fitPaddingForSize, inServiceAt, markerRadius, selectedMapOverlayGeometry, selectedMapPaddingForSize, startYearOf } from './geometry'
 
 const deployment = {
   status: 'operational' as const,
@@ -40,6 +40,16 @@ describe('selectedMapPaddingForSize', () => {
     const padding = selectedMapPaddingForSize(size)
     expect(padding.paddingTopLeft[1] + padding.paddingBottomRight[1]).toBeLessThan(size.y)
     expect(padding.paddingBottomRight[1]).toBeGreaterThan(280)
+  })
+})
+
+describe('selectedMapOverlayGeometry', () => {
+  it.each([{ x: 390, y: 544 }, { x: 320, y: 544 }])('keeps the year control above the sheet at $xpx', (size) => {
+    const geometry = selectedMapOverlayGeometry(size)
+
+    expect(geometry.stageHeight).toBeGreaterThanOrEqual(576)
+    expect(geometry.yearTop + geometry.yearHeight).toBeLessThanOrEqual(geometry.sheetTop - 8)
+    expect(geometry.sheetTop).toBeGreaterThan(geometry.yearTop)
   })
 })
 
