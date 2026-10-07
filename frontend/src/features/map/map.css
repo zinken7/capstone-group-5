@@ -646,6 +646,8 @@
 
 .site-marker--announced {
   fill: #ffffff;
+  stroke: var(--color-info);
+  stroke-width: 2;
   stroke-dasharray: 3 2;
 }
 
