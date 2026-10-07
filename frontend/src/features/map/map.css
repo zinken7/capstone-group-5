@@ -14,9 +14,9 @@
 }
 
 .map-page {
-  --map-ocean: #e9eef4;
-  --map-land: #ffffff;
-  --map-border: #c9d2de;
+  --map-ocean: #DCE6EF;
+  --map-land: #F7F5F0;
+  --map-border: #6B7280;
   --map-overlay-shadow: 0 0.4rem 1.2rem rgb(20 33 61 / 12%);
 
   display: grid;
@@ -371,7 +371,7 @@
   fill: var(--map-land);
   fill-opacity: 1;
   stroke: var(--map-border);
-  stroke-width: 0.6;
+  stroke-width: 1;
 }
 
 .map-progress {
@@ -631,7 +631,7 @@
 
 .site-marker {
   stroke: #ffffff;
-  stroke-width: 1.5;
+  stroke-width: 2;
   fill-opacity: 0.9;
 }
 
@@ -641,8 +641,6 @@
 
 .site-marker--commissioning {
   fill: var(--color-warning);
-  stroke: var(--color-ink);
-  stroke-width: 2;
   stroke-dasharray: 3 2;
 }
 
