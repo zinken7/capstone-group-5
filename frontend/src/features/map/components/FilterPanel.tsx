@@ -137,7 +137,11 @@ function FilterPanel({
                 </svg>
                 <span className="map-site__text">
                   <strong>{marker.name}</strong>
-                  <small>{[marker.region, formatCountry(marker.countryCode)].filter(Boolean).join(', ')}</small>
+                  <small>
+                    {[marker.region, formatCountry(marker.countryCode), formatEnumLabel(marker.status)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </small>
                 </span>
                 <span className="map-site__count">{formatNumber(marker.machineCount)}<span className="visually-hidden"> machines in service</span></span>
               </button>
