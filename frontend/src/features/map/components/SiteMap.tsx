@@ -5,7 +5,7 @@ import { CircleMarker, GeoJSON, MapContainer, Tooltip, useMap } from 'react-leaf
 import 'leaflet/dist/leaflet.css'
 
 import type { MapMarker } from '../../../lib/api/types'
-import { formatNumber } from '../../../lib/format'
+import { formatEnumLabel, formatNumber } from '../../../lib/format'
 import { BASEMAP_ATTRIBUTION, loadCountries } from '../basemap'
 import { boundsOf, fitPaddingForSize, markerRadius, selectedMapPaddingForSize } from '../geometry'
 
@@ -116,7 +116,7 @@ function SiteMap({ markers, selectedId, onSelect, onMapReady }: SiteMapProps) {
           eventHandlers={{ click: () => onSelect(marker.id) }}
         >
           <Tooltip direction="top" offset={[0, -6]}>
-            <strong>{marker.name}</strong> · {formatNumber(marker.machineCount)} machines
+            <strong>{marker.name}</strong> · {formatEnumLabel(marker.status)} · {formatNumber(marker.machineCount)} machines
           </Tooltip>
         </CircleMarker>
       ))}
