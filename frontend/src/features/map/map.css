@@ -652,6 +652,8 @@
 .site-marker--decommissioned {
   fill: #ffffff;
   fill-opacity: 0.6;
+  stroke: var(--color-neutral);
+  stroke-width: 2;
 }
 
 .site-marker-ring {
