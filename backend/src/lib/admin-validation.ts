@@ -32,8 +32,6 @@ export interface AdminCorrectionInput {
   changes: DeploymentChanges
   coordinates: { latitude: number; longitude: number } | null
   technology: { supplier: string; product: string } | null
-  /** Administrator-maintained level on the technology product; null clears it. */
-  technologyAutomationLevel?: string | null
   evidenceUrls: string[]
   changeNote: string | null
 }
@@ -53,7 +51,6 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const environment = read.choice('environment', MINING_ENVIRONMENTS)
   const status = read.choice('deployment_status', DEPLOYMENT_STATUSES)
   const automationLevel = read.choice('automation_level', AUTOMATION_LEVELS)
-  const technologyAutomationLevel = read.choice('technology_automation_level', AUTOMATION_LEVELS)
   const installationType = read.choice('installation_type', INSTALLATION_TYPES)
   const commissioning = read.commissioning('commissioning_date')
   const latitude = read.coordinate('latitude', -90, 90)
@@ -73,12 +70,6 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
     if (automationLevel !== null) read.errors.clear_automation_level = 'cannot be combined with automation_level'
     else changes.automationLevel = null
   }
-  const clearTechnologyLevel = object.clear_technology_automation_level
-  if (clearTechnologyLevel !== undefined && typeof clearTechnologyLevel !== 'boolean') {
-    read.errors.clear_technology_automation_level = 'must be true or false'
-  } else if (clearTechnologyLevel === true && technologyAutomationLevel !== null) {
-    read.errors.clear_technology_automation_level = 'cannot be combined with technology_automation_level'
-  }
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
 
@@ -92,15 +83,14 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
     changes,
     coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
     technology: supplier !== null && product !== null ? { supplier, product } : null,
-    technologyAutomationLevel: clearTechnologyLevel === true ? null : technologyAutomationLevel === null ? undefined : technologyAutomationLevel,
     evidenceUrls: read.urls('evidence_urls'),
     changeNote: read.text('change_note', 1000),
   }
 
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
-    'commissioning_date', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'technology_automation_level', 'evidence_urls',
-  ].some((field) => read.has(field)) || clearLevel === true || clearTechnologyLevel === true
+    'commissioning_date', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'evidence_urls',
+  ].some((field) => read.has(field)) || clearLevel === true
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }

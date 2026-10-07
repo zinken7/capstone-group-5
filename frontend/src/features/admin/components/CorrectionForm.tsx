@@ -22,8 +22,6 @@ function initialValues(record: ReviewRecord) {
     deploymentStatus: record.status ?? '',
     automationLevel: record.automationLevel ?? '',
     clearAutomationLevel: false,
-    technologyAutomationLevel: record.technologyAutomationLevel ?? '',
-    clearTechnologyAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
     latitude: record.latitude === null ? '' : String(record.latitude),
@@ -35,11 +33,7 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
-type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel' | 'clearTechnologyAutomationLevel' | 'technologyAutomationLevel'> & {
-  clearAutomationLevel?: boolean
-  technologyAutomationLevel?: string
-  clearTechnologyAutomationLevel?: boolean
-}
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel'> & { clearAutomationLevel?: boolean }
 
 /** Builds a correction holding only the fields that differ from the record. */
 export function buildCorrection(record: ReviewRecord, values: CorrectionFormValues): AdminCorrection | string {
@@ -54,8 +48,6 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   if (values.deploymentStatus && values.deploymentStatus !== before.deploymentStatus) correction.deploymentStatus = values.deploymentStatus
   if (values.clearAutomationLevel) correction.clearAutomationLevel = true
   else if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
-  if (values.clearTechnologyAutomationLevel) correction.clearTechnologyAutomationLevel = true
-  else if (values.technologyAutomationLevel && values.technologyAutomationLevel !== before.technologyAutomationLevel) correction.technologyAutomationLevel = values.technologyAutomationLevel
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
@@ -172,15 +164,6 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
           clearable
           onChange={(value) => setValues((current) => ({ ...current, automationLevel: value, clearAutomationLevel: false }))}
           onClear={() => setValues((current) => ({ ...current, automationLevel: '', clearAutomationLevel: true }))}
-        />
-        <Select
-          id="correct-product-automation"
-          label="Product automation level"
-          value={values.clearTechnologyAutomationLevel ? '__clear__' : values.technologyAutomationLevel}
-          options={referenceData.automationLevels}
-          clearable
-          onChange={(value) => setValues((current) => ({ ...current, technologyAutomationLevel: value, clearTechnologyAutomationLevel: false }))}
-          onClear={() => setValues((current) => ({ ...current, technologyAutomationLevel: '', clearTechnologyAutomationLevel: true }))}
         />
         <Select id="correct-installation" label="Installation type" value={values.installationType} options={referenceData.installationTypes} onChange={set('installationType')} />
         <div className="form-field">

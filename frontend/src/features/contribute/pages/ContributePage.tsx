@@ -6,7 +6,6 @@ import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import {
   COUNTRIES,
-  AUTOMATION_LEVEL_DEFINITIONS,
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
   EMPTY_CONTRIBUTION_FORM,
   type ContributionErrors,
@@ -89,7 +88,6 @@ function ContributePage({
   const referenceData = providedReferenceData ?? loadedReferenceData ?? DEFAULT_CONTRIBUTION_REFERENCE_DATA
   const referenceDataIsLoading = referenceDataLoading || loadingReferenceData
   const countryOptions = referenceData.countries ?? COUNTRIES
-  const technologyProducts = referenceData.technologyProducts ?? []
   const referenceDataAvailable = !referenceDataError && [
     referenceData.machineTypes,
     referenceData.environments,
@@ -113,14 +111,6 @@ function ContributePage({
   const updateTextField = (field: TextField, value: string) => {
     setValues((current) => ({ ...current, [field]: value }))
     markChanged(field)
-  }
-
-  const prefillAutomationLevel = () => {
-    const supplier = values.technologySupplier.trim().toLocaleLowerCase()
-    const product = values.technologyProduct.trim().toLocaleLowerCase()
-    if (!supplier || !product) return
-    const match = technologyProducts.find((item) => item.supplier.toLocaleLowerCase() === supplier && item.product.toLocaleLowerCase() === product)
-    if (match?.automationLevel && !values.automationLevel) updateTextField('automationLevel', match.automationLevel)
   }
 
   const updateDisclosure = (accepted: boolean) => {
@@ -358,10 +348,10 @@ function ContributePage({
           <legend>Technology details</legend>
           <div className="form-grid">
             <label className="form-field" htmlFor="technology-supplier">Technology supplier
-              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} onBlur={prefillAutomationLevel} />
+              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
-              <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} onBlur={prefillAutomationLevel} />
+              <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
             <fieldset className="chip-field form-field form-field--wide">
               <legend>Automation level</legend>
@@ -372,8 +362,8 @@ function ContributePage({
                 </label>
                 {referenceData.automationLevels.map(([value, label]) => (
                   <label className="choice-chip" key={value}>
-                    <input aria-label={label} type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
-                    <span><strong>{label}</strong><small>{AUTOMATION_LEVEL_DEFINITIONS[value]}</small></span>
+                    <input type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
+                    <span>{label}</span>
                   </label>
                 ))}
               </div>

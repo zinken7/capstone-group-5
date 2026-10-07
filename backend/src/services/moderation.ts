@@ -10,7 +10,6 @@ import {
   lockDeployment,
   updateSiteCoordinates,
   updateDeploymentForReview,
-  updateTechnologyProductAutomationLevel,
 } from '../repositories/contributions.js'
 import { lockCorrection, setCorrectionStatus } from '../repositories/corrections.js'
 import type { CorrectionStatus, LockedCorrection } from '../repositories/corrections.js'
@@ -148,7 +147,6 @@ async function applyCorrection(tx: Tx, correction: LockedCorrection, current: Cu
 
 export type AdminCorrectionOutcome =
   | { kind: 'not_found' }
-  | { kind: 'missing_technology_product' }
   | { kind: 'unchanged' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
@@ -173,20 +171,6 @@ export async function correctAsAdministrator(id: number, adminUserId: number, in
         previous.technology_supplier = before?.supplier ?? null
         previous.technology_product = before?.product ?? null
         updates.technology_product_id = productId
-      }
-    }
-
-    if (input.technologyAutomationLevel !== undefined) {
-      const productId = typeof updates.technology_product_id === 'number'
-        ? updates.technology_product_id
-        : current.technologyProductId
-      if (productId === null) return { kind: 'missing_technology_product' }
-      const before = productId === current.technologyProductId
-        ? current.technologyAutomationLevel
-        : (await findTechnologyNames(tx, productId))?.automationLevel ?? null
-      if (input.technologyAutomationLevel !== before) {
-        previous.technology_automation_level = before
-        await updateTechnologyProductAutomationLevel(tx, productId, input.technologyAutomationLevel)
       }
     }
 

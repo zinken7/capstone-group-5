@@ -153,18 +153,6 @@ export async function findOrCreateTechnologyProduct(tx: Tx, supplierId: number, 
   return requireId(inserted)
 }
 
-/** Updates the administrator-maintained classification on a technology product. */
-export async function updateTechnologyProductAutomationLevel(
-  tx: Tx,
-  productId: number,
-  automationLevel: string | null,
-): Promise<void> {
-  await tx.db
-    .update(tables.technologyProduct)
-    .set({ automationLevel: automationLevel as typeof tables.technologyProduct.$inferInsert['automationLevel'] })
-    .where(eq(tables.technologyProduct.id, productId))
-}
-
 export async function insertContributor(tx: Tx, contributor: { email: string | null; organisation: string | null }): Promise<number> {
   const inserted = await tx.db
     .insert(tables.contributor)
@@ -255,7 +243,6 @@ export interface CurrentDeployment {
   commissioningDate: string | null
   commissioningYear: number | null
   technologyProductId: number | null
-  technologyAutomationLevel: string | null
   verificationStatus: string
 }
 
@@ -275,12 +262,10 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       commissioningDate: tables.deployment.commissioningDate,
       commissioningYear: tables.deployment.commissioningYear,
       technologyProductId: tables.deployment.technologyProductId,
-      technologyAutomationLevel: sql<string | null>`${tables.technologyProduct.automationLevel}::text`,
       verificationStatus: tables.deployment.verificationStatus,
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
-    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
     .where(eq(tables.deployment.id, id))
     // Lock only the deployment row. Locking every joined table makes
     // PostgreSQL reject this query because technology_product is an outer join.

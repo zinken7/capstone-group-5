@@ -38,14 +38,6 @@ export const AUTOMATION_LEVELS = [
   ['autonomous', 'Autonomous'],
 ] as const
 
-/** Short, contributor-facing definitions for the four proposed levels. */
-export const AUTOMATION_LEVEL_DEFINITIONS: Record<string, string> = {
-  operator_assistance: 'The operator remains in control with automated assistance.',
-  teleremote: 'The operator controls the machine from a remote location.',
-  semi_autonomous: 'The machine performs defined tasks with operator supervision.',
-  autonomous: 'The machine performs its operation with minimal direct control.',
-}
-
 export const INSTALLATION_TYPES = [
   ['factory_installed', 'Factory installed'],
   ['retrofit', 'Retrofit'],
@@ -69,12 +61,6 @@ export const COUNTRIES = [
 
 export type ReferenceOption = readonly [value: string, label: string]
 
-export interface TechnologyProductReference {
-  supplier: string
-  product: string
-  automationLevel: string | null
-}
-
 export interface ContributionReferenceData {
   machineTypes: readonly ReferenceOption[]
   environments: readonly ReferenceOption[]
@@ -82,7 +68,6 @@ export interface ContributionReferenceData {
   automationLevels: readonly ReferenceOption[]
   installationTypes: readonly ReferenceOption[]
   countries?: readonly ReferenceOption[]
-  technologyProducts?: readonly TechnologyProductReference[]
 }
 
 export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
@@ -92,7 +77,6 @@ export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
   automationLevels: AUTOMATION_LEVELS,
   installationTypes: INSTALLATION_TYPES,
   countries: COUNTRIES,
-  technologyProducts: [],
 }
 
 export interface ContributionFormValues {

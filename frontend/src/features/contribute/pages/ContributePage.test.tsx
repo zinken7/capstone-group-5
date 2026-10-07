@@ -105,21 +105,6 @@ describe('ContributePage', () => {
     expect(screen.getByText('No automation level recorded')).toBeInTheDocument()
   })
 
-  test('explains each automation level and pre-fills a classified product', async () => {
-    const user = userEvent.setup()
-    render(<ContributePage referenceData={{
-      ...DEFAULT_CONTRIBUTION_REFERENCE_DATA,
-      technologyProducts: [{ supplier: 'Sandvik', product: 'AutoMine', automationLevel: 'semi_autonomous' }],
-    }} />)
-
-    await user.type(screen.getByLabelText(/technology supplier/i), 'sandvik')
-    await user.type(screen.getByLabelText(/technology product/i), 'automine')
-    await user.tab()
-
-    expect(screen.getByRole('radio', { name: 'Semi-autonomous' })).toBeChecked()
-    expect(screen.getByText(/machine performs defined tasks with operator supervision/i)).toBeInTheDocument()
-  })
-
   test('rejects impossible calendar dates while accepting year-only dates', async () => {
     const user = userEvent.setup()
     render(<ContributePage
