@@ -99,9 +99,9 @@ function Select({ id, label, value, options, onChange, clearable, onClear }: {
     <div className="form-field">
       <label htmlFor={id}>{label}</label>
       <select id={id} value={value} onChange={(event) => event.target.value === '__clear__' ? onClear?.() : onChange(event.target.value)}>
-        {(!value || clearable) && <option value="">Not recorded</option>}
+        {(!value || !clearable) && <option value="">Not recorded</option>}
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-        {clearable && <option value="__clear__">Clear level</option>}
+        {clearable && value !== '' && <option value="__clear__">Clear level</option>}
       </select>
     </div>
   )

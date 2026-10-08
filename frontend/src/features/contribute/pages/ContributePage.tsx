@@ -258,7 +258,7 @@ function ContributePage({
 
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
-        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation product fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
+        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>
@@ -278,15 +278,17 @@ function ContributePage({
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
-            <label className="form-field" htmlFor="latitude"><span className="form-label">Site latitude <span className="form-help">(optional)</span></span>
-              <input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" inputMode="decimal" placeholder="e.g. -22.3" value={values.latitude} onChange={(event) => updateTextField('latitude', event.target.value)} aria-invalid={Boolean(showError('latitude'))} aria-describedby={showError('latitude') ? 'latitude-error' : undefined} />
-              <FieldError id="latitude-error" message={showError('latitude')} />
-            </label>
+            <div className="form-grid form-grid--coordinates form-field--wide">
+              <label className="form-field" htmlFor="latitude"><span className="form-label">Site latitude <span className="form-help">(optional)</span></span>
+                <input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" inputMode="decimal" placeholder="e.g. -22.3" value={values.latitude} onChange={(event) => updateTextField('latitude', event.target.value)} aria-invalid={Boolean(showError('latitude'))} aria-describedby={showError('latitude') ? 'latitude-error' : undefined} />
+                <FieldError id="latitude-error" message={showError('latitude')} />
+              </label>
 
-            <label className="form-field" htmlFor="longitude"><span className="form-label">Site longitude <span className="form-help">(optional)</span></span>
-              <input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" inputMode="decimal" placeholder="e.g. 118.7" value={values.longitude} onChange={(event) => updateTextField('longitude', event.target.value)} aria-invalid={Boolean(showError('longitude'))} aria-describedby={showError('longitude') ? 'longitude-error' : undefined} />
-              <FieldError id="longitude-error" message={showError('longitude')} />
-            </label>
+              <label className="form-field" htmlFor="longitude"><span className="form-label">Site longitude <span className="form-help">(optional)</span></span>
+                <input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" inputMode="decimal" placeholder="e.g. 118.7" value={values.longitude} onChange={(event) => updateTextField('longitude', event.target.value)} aria-invalid={Boolean(showError('longitude'))} aria-describedby={showError('longitude') ? 'longitude-error' : undefined} />
+                <FieldError id="longitude-error" message={showError('longitude')} />
+              </label>
+            </div>
 
             <label className="form-field" htmlFor="machine-type"><span className="form-label">Machine type <span aria-hidden="true">*</span></span>
               <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{referenceData.machineTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
