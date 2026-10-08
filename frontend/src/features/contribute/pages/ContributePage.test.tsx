@@ -97,6 +97,10 @@ describe('ContributePage', () => {
     expect(page).toHaveClass('contribute-page')
     expect(form).toHaveClass('contribution-form')
     expect(screen.getByLabelText(/country/i).tagName).toBe('SELECT')
+    const coordinateRow = screen.getByLabelText(/site latitude/i).closest('.form-grid--coordinates')
+    expect(coordinateRow).not.toBeNull()
+    expect(coordinateRow).toContainElement(screen.getByLabelText(/site longitude/i))
+    expect(screen.getByText(/automation technology fitted/i)).toBeInTheDocument()
 
     const toggle = screen.getByRole('button', { name: /add more detail/i })
     await user.click(toggle)
