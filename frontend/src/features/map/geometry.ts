@@ -10,6 +10,40 @@ export interface FitPadding {
   paddingBottomRight: [number, number]
 }
 
+const MOBILE_MAP_STAGE_MIN_HEIGHT = 36 * 16
+const MOBILE_MAP_SHEET_RATIO = 0.42
+const MOBILE_MAP_SHEET_MAX_HEIGHT = 18 * 16
+const MOBILE_MAP_STAGE_RESERVED_HEIGHT = 10 * 16
+const MOBILE_MAP_OVERLAY_GAP = 8
+
+export interface SelectedMapOverlayGeometry {
+  stageHeight: number
+  sheetHeight: number
+  sheetTop: number
+  yearHeight: number
+  yearTop: number
+  yearBottom: number
+}
+
+/**
+ * Shared geometry for the selected-site mobile overlays. Keep this in sync
+ * with the CSS values so map panning reserves the same space that the sheet
+ * and year control occupy on screen.
+ */
+export function selectedMapOverlayGeometry(size: { x: number; y: number }): SelectedMapOverlayGeometry {
+  const stageHeight = Math.max(MOBILE_MAP_STAGE_MIN_HEIGHT, size.y)
+  const sheetHeight = Math.min(
+    Math.round(stageHeight * MOBILE_MAP_SHEET_RATIO),
+    MOBILE_MAP_SHEET_MAX_HEIGHT,
+    Math.max(0, stageHeight - MOBILE_MAP_STAGE_RESERVED_HEIGHT),
+  )
+  const yearHeight = Math.min(88, Math.max(72, Math.round(stageHeight * 0.14)))
+  const sheetTop = stageHeight - sheetHeight - MOBILE_MAP_OVERLAY_GAP
+  const yearBottom = sheetHeight + MOBILE_MAP_OVERLAY_GAP * 2
+  const yearTop = stageHeight - yearBottom - yearHeight
+  return { stageHeight, sheetHeight, sheetTop, yearHeight, yearTop, yearBottom }
+}
+
 /**
  * Padding for the selected-site mobile state. The bottom sheet and compact
  * year control are overlays on the map, so the selected marker must be kept
@@ -17,10 +51,9 @@ export interface FitPadding {
  */
 export function selectedMapPaddingForSize(size: { x: number; y: number }): FitPadding {
   const horizontal = Math.max(16, Math.round(size.x * 0.04))
-  const top = Math.max(72, Math.round(Math.min(size.y * 0.18, 112)))
-  const sheetHeight = Math.min(Math.round(size.y * 0.44), 18 * 16, Math.max(0, size.y - 8 * 16))
-  const yearHeight = Math.min(72, Math.max(56, Math.round(size.y * 0.12)))
-  const bottom = sheetHeight + yearHeight + 16
+  const geometry = selectedMapOverlayGeometry(size)
+  const top = Math.max(72, Math.round(Math.min(geometry.stageHeight * 0.18, 112)))
+  const bottom = geometry.yearBottom + geometry.yearHeight + 16
   return { paddingTopLeft: [horizontal, top], paddingBottomRight: [horizontal, bottom] }
 }
 

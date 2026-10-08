@@ -96,7 +96,10 @@ function MapPage() {
   const selectSite = (id: number) => {
     setSelectedId(id)
     const marker = markers.find((item) => item.id === id)
-    if (map && marker && map.getSize().x > 0) {
+    // On phones, MapEffects pans inside the selected-state padding after the
+    // sheet is mounted. Do not first pan to the map centre, or the marker can
+    // land underneath the bottom sheet during the opening animation.
+    if (map && marker && map.getSize().x > 900) {
       map.panTo([marker.latitude, marker.longitude], { animate: true, duration: 0.6 })
     }
   }

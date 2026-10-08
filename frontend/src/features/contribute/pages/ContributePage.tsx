@@ -27,17 +27,18 @@ export interface ContributePageProps {
   loadReferenceData?: () => Promise<ContributionReferenceData>
 }
 
-function submissionMessage(status: ContributionVerificationStatus): string {
+function submissionMessage(status: ContributionVerificationStatus, id?: number): string {
+  const reference = typeof id === 'number' ? ` Your submission reference is #${id}. Keep it if the team needs to follow up.` : ''
   if (status === 'verified') {
-    return 'Your contribution has been received and marked as verified. It is now eligible for the public verified views.'
+    return `Your contribution has been received and marked as verified. It is now eligible for the public verified views.${reference}`
   }
   if (status === 'rejected') {
-    return 'Your contribution was received but rejected during review, so it will not be published.'
+    return `Your contribution was received but rejected during review, so it will not be published.${reference}`
   }
   if (status === 'unverified') {
-    return 'Your contribution has been received as unverified. It remains hidden from the public verified views until review.'
+    return `Your contribution has been received as unverified. It remains hidden from the public verified views until review.${reference}`
   }
-  return 'Your contribution has been received and is pending review. It will become part of the public verified views after review.'
+  return `Your contribution has been received and is pending review. It will become part of the public verified views after review.${reference}`
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -148,6 +149,8 @@ function ContributePage({
       const firstInvalidField: Record<string, string> = {
         siteName: 'site-name',
         countryCode: 'country-code',
+        latitude: 'latitude',
+        longitude: 'longitude',
         machineType: 'machine-type',
         manufacturer: 'manufacturer',
         quantity: 'quantity',
@@ -171,7 +174,7 @@ function ContributePage({
     try {
       const result = await submitContribution(values)
       setSubmitState('success')
-      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review'))
+      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id))
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'We could not submit your contribution. Please try again.')
@@ -255,7 +258,7 @@ function ContributePage({
 
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
-        <p>Only submit information you are authorised to disclose. Contributions are checked before they become part of the public market map.</p>
+        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation product fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>
@@ -273,6 +276,16 @@ function ContributePage({
                 {countryOptions.map(([value, label]) => <option key={value} value={value}>{label} ({value})</option>)}
               </select>
               <FieldError id="country-code-error" message={showError('countryCode')} />
+            </label>
+
+            <label className="form-field" htmlFor="latitude"><span className="form-label">Site latitude <span className="form-help">(optional)</span></span>
+              <input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" inputMode="decimal" placeholder="e.g. -22.3" value={values.latitude} onChange={(event) => updateTextField('latitude', event.target.value)} aria-invalid={Boolean(showError('latitude'))} aria-describedby={showError('latitude') ? 'latitude-error' : undefined} />
+              <FieldError id="latitude-error" message={showError('latitude')} />
+            </label>
+
+            <label className="form-field" htmlFor="longitude"><span className="form-label">Site longitude <span className="form-help">(optional)</span></span>
+              <input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" inputMode="decimal" placeholder="e.g. 118.7" value={values.longitude} onChange={(event) => updateTextField('longitude', event.target.value)} aria-invalid={Boolean(showError('longitude'))} aria-describedby={showError('longitude') ? 'longitude-error' : undefined} />
+              <FieldError id="longitude-error" message={showError('longitude')} />
             </label>
 
             <label className="form-field" htmlFor="machine-type"><span className="form-label">Machine type <span aria-hidden="true">*</span></span>
@@ -380,6 +393,7 @@ function ContributePage({
               <label className="form-field" htmlFor="organisation">Organisation <span className="form-help">(optional)</span>
                 <input id="organisation" name="organisation" value={values.organisation} onChange={(event) => updateTextField('organisation', event.target.value)} />
               </label>
+              <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
             </div>}
             <label className={`disclosure-check ${showError('disclosureAccepted') ? 'disclosure-check--error' : ''}`} htmlFor="disclosure-accepted">
               <input id="disclosure-accepted" name="disclosureAccepted" type="checkbox" checked={values.disclosureAccepted} onChange={(event) => updateDisclosure(event.target.checked)} required aria-required="true" aria-invalid={Boolean(showError('disclosureAccepted'))} aria-describedby={showError('disclosureAccepted') ? 'disclosure-error' : undefined} />
@@ -391,7 +405,7 @@ function ContributePage({
 
         <aside className="contribution-notice contribution-notice--next" aria-labelledby="contribution-next-heading">
           <h2 id="contribution-next-heading">What happens next</h2>
-          <p>We review the submission and its sources before publishing it. You can provide contact details in the additional fields if the team needs clarification.</p>
+          <p>We review the submission and its sources before publishing it. Your submission reference appears on the confirmation screen. Contact details are used only for clarification and are not published.</p>
         </aside>
 
         {submitMessage && submitState === 'idle' && <p className="form-summary-error" role="alert">{submitMessage}</p>}

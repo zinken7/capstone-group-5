@@ -4,11 +4,12 @@
 
 This checklist records the release checks for the current public and administrator workflows. It replaces the earlier Sprint 2 snapshot while keeping the same file path so existing links remain valid.
 
-**Review branch used for this check:** `fix/160-accessibility-evidence`
+**Review branch used for this check:** `fix/159-frontend-gaps`
 
+**Release gate:** #70
 **Accessibility evidence:** #160
 
-**Last reviewed:** 6 October 2026
+**Last reviewed:** 7 October 2026
 
 The checks below cover source inspection, unit tests, automated Playwright accessibility scans and existing responsive browser tests. Items under “Final deployed checks” still need to be repeated against the deployed environment because local tests cannot prove the state of the hosted API or database.
 
@@ -145,6 +146,14 @@ The axe scan runs against the local Vite application. It provides automated acce
 
 ## Final Deployed Checks
 
+The authenticated contribution → administrator approval → public Equipment
+Register walkthrough is recorded in
+[`release-qa-evidence-2026-10-06.md`](../release-qa-evidence-2026-10-06.md).
+It proves the pending-review confirmation, approval and public register result
+for the labelled release-QA record. The Map/Analytics result, rejection and
+correction paths, migration/seed output and deployed accessibility scan still
+need their own evidence before these checklist items can be marked complete.
+
 - [ ] Complete one deployment submission, approve it in the administrator queue, and confirm that it appears in the public Map, Register and Analytics views. **Method:** deployed manual workflow check.
 - [ ] Complete one rejection or needs-changes decision and confirm that the record remains absent from public views. **Method:** deployed manual workflow check.
 - [ ] Submit and review one correction, confirming that the verified record stays public and unchanged while the proposal is pending, then updates only after approval. **Method:** deployed manual workflow check.
@@ -157,11 +166,11 @@ The axe scan runs against the local Vite application. It provides automated acce
 
 ## Quality Commands
 
-The following frontend release checks passed on 6 October 2026:
+The following frontend release checks passed on 7 October 2026:
 
 ```text
 npm test -- --run
-25 test files passed; 181 tests passed
+25 test files passed; 186 tests passed
 
 npm run typecheck
 Passed
@@ -179,4 +188,4 @@ npx playwright test
 11 tests passed
 ```
 
-The build reports the existing large-chunk advisory; it does not prevent a production build. These command results and the accessibility evidence above should be recorded on #160 or its pull request.
+The build reports the existing large-chunk advisory; it does not prevent a production build. These command results and the deployed workflow evidence above should be recorded on #70 or its release pull request.

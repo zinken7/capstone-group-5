@@ -155,6 +155,8 @@ export interface ReviewRecord {
   site_id: number
   site_name: string
   country_code: string
+  latitude: number | null
+  longitude: number | null
   region: string | null
   commodity: string | null
   machine_manufacturer: string
@@ -224,6 +226,8 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       site_id: tables.site.id,
       site_name: tables.site.name,
       country_code: tables.site.countryCode,
+      latitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
+      longitude: sql<number | null>`ST_X(${tables.site.point4326})`,
       region: tables.region.name,
       commodity: tables.site.commodity,
       machine_manufacturer: manufacturer.name,
@@ -332,14 +336,17 @@ export async function lockDecisionState(tx: Tx, id: number): Promise<{
   verificationStatus: string
   technologyProductId: number | null
   evidenceCount: number
+  hasCoordinates: boolean
 } | null> {
   const rows = await tx.db
     .select({
       verificationStatus: tables.deployment.verificationStatus,
       technologyProductId: tables.deployment.technologyProductId,
       evidenceCount,
+      hasCoordinates: sql<boolean>`${tables.site.point4326} IS NOT NULL`,
     })
     .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
     .where(eq(tables.deployment.id, id))
     .for('update')
   return rows[0] ?? null

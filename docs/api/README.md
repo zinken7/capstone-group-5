@@ -337,6 +337,8 @@ Submits one deployment record. No account is required.
 |---|---|---|---|
 | `site_name` | string | Yes | ≤ 200 characters |
 | `country_code` | string | Yes | Two letters; stored upper-case |
+| `latitude` | number | No | Site latitude between -90 and 90; provide with `longitude` to place a contributed site on the map |
+| `longitude` | number | No | Site longitude between -180 and 180; provide with `latitude` to place a contributed site on the map |
 | `region` | string | No | ≤ 100 characters |
 | `commodity` | string | No | ≤ 100 characters |
 | `machine_type` | string | Yes | One of `machine_types` |
@@ -357,7 +359,7 @@ Submits one deployment record. No account is required.
 | `disclosure_accepted` | boolean | Yes | Must be `true` (FR-41) |
 | `website` | string | No | Honeypot (FR-51): the form keeps this field hidden from people and assistive technology, so it must be absent or blank |
 
-`null` or a blank string counts as not supplied. Unknown fields are ignored.
+`null` or a blank string counts as not supplied. Latitude and longitude must be supplied together when either is provided. Unknown fields are ignored.
 
 ### Response — `201 Created`
 
@@ -379,6 +381,7 @@ The record stays out of public map, site detail, register and analytics response
 - All writes occur in one transaction; any failure rolls everything back.
 - Companies, regions, sites, machine models and technology products are reused case-insensitively when they match; otherwise they are created.
 - A supplier without a product does not create a placeholder product.
+- When supplied together, contribution coordinates are stored as the site's PostGIS point. An existing same-name site without a point is filled in by a later contribution or administrator correction.
 - `commissioning_date: "YYYY"` stores only `commissioning_year`; a full date stores both and sets `valid_from`.
 - A contributor row is created only when email or organisation is supplied.
 - A `create` revision stores the submission snapshot without contact details.
@@ -478,6 +481,7 @@ every deployment with `verification_status = pending_review` (`kind:
 "correction"`). Each item has:
 
 - `id` (the deployment), `site_name`, `country_code`, `region`,
+  `latitude`, `longitude`,
   `machine_manufacturer`, `machine_model`, `machine_type`, `quantity`,
   `technology_supplier`, `technology_product`: the record's current values;
 - `kind` and `correction_id` (`null` for a submission);
@@ -491,7 +495,8 @@ every deployment with `verification_status = pending_review` (`kind:
 
 ### `GET /api/admin/deployments/{id}`
 
-`200` with the record in any verification status: `verification_status`, site,
+`200` with the record in any verification status: `verification_status`, site
+(including nullable `latitude` and `longitude`),
 machine, technology, deployment fields (as in the register, plus `valid_from`,
 `valid_to`, `created_at`, `updated_at`), and:
 
@@ -534,6 +539,7 @@ previous status are written in one transaction.
 | `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
 | `409` | `{"error": "a technology product is required before the record can be verified"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
+| `409` | `{"error": "site coordinates are required before the record can be verified"}` |
 
 ### `POST /api/admin/corrections/{id}/reviews`
 
@@ -563,7 +569,8 @@ Takes the fields of the public correction (`quantity`, `environment`,
 `deployment_status`, `automation_level`, `installation_type`,
 `commissioning_date`, `evidence_urls`, `change_note`) plus
 `technology_supplier` and `technology_product`, which must be given together,
-and `clear_automation_level: true`, which removes the deployment's automation
+`latitude` and `longitude` together for a contributed site, and
+`clear_automation_level: true`, which removes the deployment's automation
 level (FR-57); it cannot be combined with `automation_level`.
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification

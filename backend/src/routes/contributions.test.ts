@@ -20,6 +20,8 @@ const formBody = {
   country_code: 'au',
   region: 'Pilbara',
   commodity: 'iron_ore',
+  latitude: -22.3,
+  longitude: 118.7,
   machine_type: 'haul_truck',
   machine_manufacturer: 'Komatsu',
   machine_model: '930E',

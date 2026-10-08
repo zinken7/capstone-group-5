@@ -86,6 +86,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('MapPage', () => {
@@ -164,7 +165,7 @@ describe('MapPage', () => {
     const user = userEvent.setup()
     
     const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
-    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside')
+    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside').mockImplementation(function (this: LeafletMap) { return this })
     const flyTo = vi.spyOn(LeafletMap.prototype, 'flyTo')
     vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(390, 544))
 
@@ -173,7 +174,7 @@ describe('MapPage', () => {
     const site = await screen.findByRole('button', { name: /roy hill/i })
     await user.click(site)
 
-    expect(panTo).toHaveBeenCalled()
+    expect(panTo).not.toHaveBeenCalled()
     expect(panInside).toHaveBeenCalledWith([-22.3, 118.7], expect.objectContaining({
       paddingTopLeft: expect.any(Array),
       paddingBottomRight: expect.any(Array),
@@ -201,6 +202,23 @@ describe('MapPage', () => {
     expect(document.querySelector('.map-stage')).not.toHaveClass('map-stage--selected')
     expect(screen.queryByRole('button', { name: 'Show legend' })).not.toBeInTheDocument()
     expect(site).toHaveFocus()
+  })
+
+  test('keeps the selected site in the visible area on a 320px phone map', async () => {
+    const user = userEvent.setup()
+    const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
+    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside').mockImplementation(function (this: LeafletMap) { return this })
+    vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(320, 544))
+
+    renderMap()
+    await user.click(await screen.findByRole('button', { name: /roy hill/i }))
+    await screen.findByRole('article', { name: 'Roy Hill' })
+
+    expect(panTo).not.toHaveBeenCalled()
+    expect(panInside).toHaveBeenCalledWith([-22.3, 118.7], expect.objectContaining({
+      paddingTopLeft: expect.any(Array),
+      paddingBottomRight: expect.any(Array),
+    }))
   })
 
   test('lists ended deployments in the card when decommissioned deployments are included', async () => {
