@@ -96,12 +96,10 @@ function MapPage() {
   const selectSite = (id: number) => {
     setSelectedId(id)
     const marker = markers.find((item) => item.id === id)
-    // On phones, MapEffects pans inside the selected-state padding after the
-    // sheet is mounted. Do not first pan to the map centre, or the marker can
-    // land underneath the bottom sheet during the opening animation.
-    if (map && marker && map.getSize().x > 900) {
-      map.panTo([marker.latitude, marker.longitude], { animate: true, duration: 0.6 })
-    }
+    // Focus the selected site immediately. On phones, MapEffects applies the
+    // selected-sheet padding after the card has mounted so the marker stays
+    // above the sheet.
+    if (map && marker) flyTo(marker.latitude, marker.longitude, Math.max(map.getZoom(), 5))
   }
 
   const closeCard = () => {
@@ -153,7 +151,7 @@ function MapPage() {
       )}
 
       <div className={card ? 'map-stage map-stage--selected' : 'map-stage'} role="region" aria-label="Site map" ref={stage}>
-        <SiteMap markers={markers} selectedId={selectedId} onSelect={setSelectedId} onMapReady={onMapReady} />
+        <SiteMap markers={markers} selectedId={selectedId} onSelect={selectSite} onMapReady={onMapReady} />
         {slowUpdate && <div className="map-progress" role="status"><span className="visually-hidden">Updating the map…</span></div>}
 
         <dl className="map-overlay map-headline" aria-label="Totals for the current view">

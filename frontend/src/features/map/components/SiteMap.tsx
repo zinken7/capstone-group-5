@@ -1,6 +1,6 @@
 import type { FeatureCollection } from 'geojson'
 import type { Map as LeafletMap } from 'leaflet'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CircleMarker, GeoJSON, MapContainer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -30,16 +30,22 @@ function keepSelectedVisible(map: LeafletMap, selected: MapMarker): void {
 
 function MapEffects({ markers, fitKey, selectedId, onMapReady }: { markers: readonly MapMarker[]; fitKey: string; selectedId: number | null; onMapReady: (map: LeafletMap) => void }) {
   const map = useMap()
+  const selectedIdRef = useRef(selectedId)
+  useLayoutEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   useEffect(() => {
     onMapReady(map)
   }, [map, onMapReady])
 
-  // Refit only when the set of sites changes, not on every re-render
+  // Fit the overview when there is no selected site. Once a site is selected,
+  // keep its focus while the details card changes the available map area.
   useEffect(() => {
-    fitToMarkers(map, markers)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, fitKey])
+    const selected = markers.find((marker) => marker.id === selectedId)
+    if (selected) keepSelectedVisible(map, selected)
+    else fitToMarkers(map, markers)
+  }, [map, markers, fitKey, selectedId])
 
   // Refit after a viewport/orientation change, otherwise Leaflet keeps the
   // desktop padding and center when the same page is opened on a phone.
@@ -47,9 +53,9 @@ function MapEffects({ markers, fitKey, selectedId, onMapReady }: { markers: read
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => {
       map.invalidateSize({ pan: false })
-      fitToMarkers(map, markers)
-      const selected = markers.find((marker) => marker.id === selectedId)
+      const selected = markers.find((marker) => marker.id === selectedIdRef.current)
       if (selected) keepSelectedVisible(map, selected)
+      else fitToMarkers(map, markers)
     })
     observer.observe(map.getContainer())
     return () => observer.disconnect()
