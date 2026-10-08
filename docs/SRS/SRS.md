@@ -425,6 +425,8 @@ Entities are grouped into reference data, described once and reused, and the fac
 
 ![Proposed logical data model](../images/erd.png)
 
+The diagram shows the schema as currently built. It will change under issue #171: a deployment will be able to name a supplier without a product, and the level held against a product is no longer used. *(rev 0.6)*
+
 The diagram is maintained as Mermaid source in `docs/database/ERD.md`, which the project plan makes normative for enumerations and constraints. The image above is generated from it. Types shown are those of the chosen PostgreSQL and PostGIS implementation; if PostGIS is unavailable, `point_4326` is held as latitude and longitude columns, which serve the point rendering and bounding-box queries the map requires.
 
 \newpage
@@ -437,7 +439,7 @@ The diagram is maintained as Mermaid source in `docs/database/ERD.md`, which the
 |-----------------|-------------------------------------------------------------------------------------------------------|
 | **Company** | A single table for every organisation — machine manufacturers, technology suppliers, mine owners, operators and contractors. What differs between them is the *role* they hold in a given context, not what they are. |
 | **Region** | A named mining region below national level, described once and reused — the Pilbara, the Bowen Basin, Atacama. Held as reference data rather than as text on the site, so that filtering and grouping by region work at all: free text produces several spellings of one region and a filter list nobody can use. A site's country is recorded on the site, since a site may sit in no named region; where a region is given as well, its country and the site's must agree. |
-| **Machine model** | A model of machine, described once and reused. For example *Caterpillar 793F*: manufacturer, model, machine type, size class, payload. The model name is nullable, so a contributor who knows only the manufacturer and machine type — *a Caterpillar haul truck* — can still be recorded, with the model added later. |
+| **Machine model** | A model of machine, described once and reused. For example *Caterpillar 793F*: manufacturer, model, machine type, size class, payload. A new submission must name the model (FR-07). The model name stays nullable in the database, so a record loaded from an existing dataset that gives only the manufacturer and machine type can still be held; it is shown by machine type (FR-17). *(rev 0.6)* |
 | **Technology product** | An automation system, described once and reused. For example *Cat Command for Hauling*, *Sandvik AutoMine*, *RCT ControlMaster*. Carries the vendor term as published. The schema also has a level and basis against a product, but these are not maintained in the MVP: the automation level belongs to the deployment (Section 7). The four levels are stored as `autonomous`, `semi_autonomous`, `teleremote` and `operator_assistance`. *(rev 0.6)* |
 
 ### Facts
