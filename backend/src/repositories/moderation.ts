@@ -334,14 +334,12 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
 /** Locks the record for a decision and returns what the decision rules need. */
 export async function lockDecisionState(tx: Tx, id: number): Promise<{
   verificationStatus: string
-  technologyProductId: number | null
   evidenceCount: number
   hasCoordinates: boolean
 } | null> {
   const rows = await tx.db
     .select({
       verificationStatus: tables.deployment.verificationStatus,
-      technologyProductId: tables.deployment.technologyProductId,
       evidenceCount,
       hasCoordinates: sql<boolean>`${tables.site.point4326} IS NOT NULL`,
     })

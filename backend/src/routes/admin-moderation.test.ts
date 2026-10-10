@@ -202,16 +202,20 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
     expect((await review(12, { decision: 'approved' })).status).toBe(201)
   })
 
-  it('refuses to approve a record without a technology product until an administrator sets one', async () => {
-    const id = await contribute({ technology_supplier: null, technology_product: null })
+  it('approves a record that names a supplier but no technology product (FR-08)', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const approved = await review(id, { decision: 'approved' })
+    expect(approved.status).toBe(201)
+    expect(approved.body.verification_status).toBe('verified')
+  })
+
+  it('still refuses to approve a record without evidence', async () => {
+    const id = await contribute({ technology_product: null, evidence_urls: [] })
 
     const refused = await review(id, { decision: 'approved' })
     expect(refused.status).toBe(409)
-    expect(refused.body.error).toBe('a technology product is required before the record can be verified')
-
-    const set = await correct(id, { technology_supplier: 'Komatsu', technology_product: 'FrontRunner' })
-    expect(set.status).toBe(200)
-    expect((await review(id, { decision: 'approved' })).status).toBe(201)
+    expect(refused.body.error).toBe('at least one evidence URL is required before the record can be verified')
   })
 
   it('rejects with a note and takes the record out of the queue for good', async () => {
