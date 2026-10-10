@@ -46,7 +46,6 @@ export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
 export type DecisionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_pending'; verificationStatus: string }
-  | { kind: 'missing_technology_product' }
   | { kind: 'missing_evidence' }
   | { kind: 'missing_coordinates' }
   | { kind: 'decided'; reviewId: number; verificationStatus: string }
@@ -62,9 +61,8 @@ export async function decide(deploymentId: number, adminUserId: number, input: R
     if (state.verificationStatus !== 'pending_review') {
       return { kind: 'not_pending', verificationStatus: state.verificationStatus }
     }
-    // The database enforces both rules too; checking first gives a clear answer
+    // Supplier and level are always present (migration 005); a product is not needed to verify (FR-08)
     if (input.decision === 'approved') {
-      if (state.technologyProductId === null) return { kind: 'missing_technology_product' }
       if (state.evidenceCount === 0) return { kind: 'missing_evidence' }
       if (!state.hasCoordinates) return { kind: 'missing_coordinates' }
     }
