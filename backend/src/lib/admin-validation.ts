@@ -30,6 +30,7 @@ export function validateReview(body: unknown): ValidationResult<ReviewInput> {
 
 export interface AdminCorrectionInput {
   changes: DeploymentChanges
+  coordinates: { latitude: number; longitude: number } | null
   technology: { supplier: string; product: string } | null
   evidenceUrls: string[]
   changeNote: string | null
@@ -52,12 +53,25 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const automationLevel = read.choice('automation_level', AUTOMATION_LEVELS)
   const installationType = read.choice('installation_type', INSTALLATION_TYPES)
   const commissioning = read.commissioning('commissioning_date')
+  const latitude = read.coordinate('latitude', -90, 90)
+  const longitude = read.coordinate('longitude', -180, 180)
+  if ((latitude === null) !== (longitude === null)) {
+    if (latitude === null && !read.errors.latitude) read.errors.latitude = 'must be given with longitude'
+    if (longitude === null && !read.errors.longitude) read.errors.longitude = 'must be given with latitude'
+  }
   const validFrom = read.fullDate('valid_from')
   const validTo = read.fullDate('valid_to')
   if (quantity !== null) changes.quantity = quantity
   if (environment !== null) changes.environment = environment
   if (status !== null) changes.status = status
   if (automationLevel !== null) changes.automationLevel = automationLevel
+  const clearLevel = object.clear_automation_level
+  if (clearLevel !== undefined && typeof clearLevel !== 'boolean') {
+    read.errors.clear_automation_level = 'must be true or false'
+  } else if (clearLevel === true) {
+    if (automationLevel !== null) read.errors.clear_automation_level = 'cannot be combined with automation_level'
+    else changes.automationLevel = null
+  }
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
   if (validFrom !== null) changes.validFrom = validFrom
@@ -76,6 +90,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const input: AdminCorrectionInput = {
     changes,
+    coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
     technology: supplier !== null && product !== null ? { supplier, product } : null,
     evidenceUrls: read.urls('evidence_urls'),
     changeNote: read.text('change_note', 1000),
@@ -83,8 +98,8 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
-    'commissioning_date', 'valid_from', 'valid_to', 'technology_supplier', 'technology_product', 'evidence_urls',
-  ].some((field) => read.has(field)) || clearFrom || clearTo
+    'commissioning_date', 'valid_from', 'valid_to', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'evidence_urls',
+  ].some((field) => read.has(field)) || clearLevel === true || clearFrom || clearTo
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }

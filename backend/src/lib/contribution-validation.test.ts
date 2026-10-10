@@ -18,6 +18,7 @@ describe('validateContribution', () => {
       value: {
         siteName: 'Roy Hill',
         countryCode: 'AU',
+        coordinates: null,
         region: null,
         commodity: null,
         machineType: 'haul_truck',

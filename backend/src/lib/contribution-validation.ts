@@ -17,6 +17,7 @@ export interface Commissioning {
 export interface ContributionInput {
   siteName: string
   countryCode: string
+  coordinates: { latitude: number; longitude: number } | null
   region: string | null
   commodity: string | null
   machineType: string
@@ -68,6 +69,16 @@ export class FieldReader {
       return null
     }
     return trimmed
+  }
+
+  coordinate(field: string, minimum: number, maximum: number): number | null {
+    const value = this.body[field]
+    if (!this.has(field)) return null
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+      this.errors[field] = `must be a number between ${minimum} and ${maximum}`
+      return null
+    }
+    return value
   }
 
   choice(field: string, allowed: readonly string[], required = false): string | null {
@@ -185,10 +196,17 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
   if (countryCode !== null && !/^[A-Za-z]{2}$/.test(countryCode)) {
     read.errors.country_code = 'must be a two-letter country code'
   }
+  const latitude = read.coordinate('latitude', -90, 90)
+  const longitude = read.coordinate('longitude', -180, 180)
+  if ((latitude === null) !== (longitude === null)) {
+    if (latitude === null && !read.errors.latitude) read.errors.latitude = 'must be given with longitude'
+    if (longitude === null && !read.errors.longitude) read.errors.longitude = 'must be given with latitude'
+  }
 
   const input: ContributionInput = {
     siteName: read.text('site_name', 200, true) ?? '',
     countryCode: countryCode?.toUpperCase() ?? '',
+    coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
     region: read.text('region', 100),
     commodity: read.text('commodity', 100),
     machineType: read.choice('machine_type', MACHINE_TYPES, true) ?? '',

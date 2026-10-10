@@ -330,6 +330,9 @@ describe('record review', () => {
     expect(screen.queryByLabelText('Quantity')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Edit record' }))
     const quantity = await screen.findByLabelText('Quantity')
+    const automation = screen.getByLabelText('Automation level')
+    expect(within(automation).queryByRole('option', { name: 'Not recorded' })).not.toBeInTheDocument()
+    expect(within(automation).getByRole('option', { name: 'Clear level' })).toBeInTheDocument()
     await user.clear(quantity)
     await user.type(quantity, '9')
     await user.type(screen.getByLabelText('Change note (optional)'), 'Updated fleet count')
@@ -380,7 +383,7 @@ describe('record review', () => {
 
 describe('buildCorrection', () => {
   const record = {
-    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', region: null, commodity: null,
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
@@ -388,7 +391,7 @@ describe('buildCorrection', () => {
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',
-    commissioningDate: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
+    commissioningDate: '', latitude: '', longitude: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
   }
 
   test('asks for a change when nothing differs', () => {
@@ -408,6 +411,12 @@ describe('buildCorrection', () => {
     expect(buildCorrection(record, {
       ...unchanged, technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrl: 'https://example.com/a',
     })).toEqual({ technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrls: ['https://example.com/a'] })
+  })
+
+  test('can explicitly clear a recorded automation level', () => {
+    const recordWithLevel = { ...record, automationLevel: 'semi_autonomous' }
+    const values = { ...unchanged, automationLevel: '', clearAutomationLevel: true }
+    expect(buildCorrection(recordWithLevel, values)).toEqual({ clearAutomationLevel: true })
   })
 })
 

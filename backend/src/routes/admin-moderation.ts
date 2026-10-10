@@ -60,6 +60,9 @@ router.post('/admin/deployments/:id/reviews', ...requireAdmin(), async (req, res
       case 'missing_evidence':
         res.status(409).json({ error: 'at least one evidence URL is required before the record can be verified' })
         return
+      case 'missing_coordinates':
+        res.status(409).json({ error: 'site coordinates are required before the record can be verified' })
+        return
       case 'decided':
         res.status(201).json({ id: outcome.reviewId, verification_status: outcome.verificationStatus })
     }

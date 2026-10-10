@@ -86,6 +86,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('MapPage', () => {
@@ -98,6 +99,7 @@ describe('MapPage', () => {
       expect.stringContaining('Kiruna'),
       expect.stringContaining('Roy Hill'),
     ])
+    expect(within(list).getByRole('button', { name: /roy hill/i })).toHaveTextContent('Operational')
     const totals = screen.getByLabelText('Totals for the current view')
     expect(within(totals).getByText('108')).toBeInTheDocument()
     expect(within(totals).getByText('countries')).toBeInTheDocument()
@@ -163,7 +165,7 @@ describe('MapPage', () => {
     const user = userEvent.setup()
     
     const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
-    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside')
+    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside').mockImplementation(function (this: LeafletMap) { return this })
     const flyTo = vi.spyOn(LeafletMap.prototype, 'flyTo')
     vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(390, 544))
 
@@ -172,12 +174,12 @@ describe('MapPage', () => {
     const site = await screen.findByRole('button', { name: /roy hill/i })
     await user.click(site)
 
-    expect(panTo).toHaveBeenCalled()
+    expect(panTo).not.toHaveBeenCalled()
+    expect(flyTo.mock.calls[0]).toEqual([[-22.3, 118.7], expect.any(Number), expect.objectContaining({ duration: 0.6 })])
     expect(panInside).toHaveBeenCalledWith([-22.3, 118.7], expect.objectContaining({
       paddingTopLeft: expect.any(Array),
       paddingBottomRight: expect.any(Array),
     }))
-    expect(flyTo).not.toHaveBeenCalled()
 
     const card = await screen.findByRole('article', { name: 'Roy Hill' })
     expect(document.querySelector('.map-stage')).toHaveClass('map-stage--selected')
@@ -200,6 +202,63 @@ describe('MapPage', () => {
     expect(document.querySelector('.map-stage')).not.toHaveClass('map-stage--selected')
     expect(screen.queryByRole('button', { name: 'Show legend' })).not.toBeInTheDocument()
     expect(site).toHaveFocus()
+  })
+
+  test('focuses a site from the map marker instead of refitting to all sites', async () => {
+    const flyTo = vi.spyOn(LeafletMap.prototype, 'flyTo')
+    vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(1200, 700))
+    vi.spyOn(LeafletMap.prototype, 'getZoom').mockReturnValue(2)
+
+    renderMap()
+    await screen.findByRole('button', { name: /roy hill/i })
+
+    const markers = document.querySelectorAll('.site-marker')
+    expect(markers.length).toBeGreaterThan(0)
+    fireEvent.click(markers[0] as Element)
+
+    expect(await screen.findByRole('article')).toHaveAccessibleName('Kiruna')
+    expect(flyTo).toHaveBeenCalledWith([67.9, 20.2], 5, { duration: 0.6 })
+  })
+
+  test('keeps the selected zoom when the details panel changes the map size', async () => {
+    let triggerResize: (() => void) | undefined
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: () => void) {
+        triggerResize = callback
+      }
+      observe() {}
+      disconnect() {}
+    })
+    const fitBounds = vi.spyOn(LeafletMap.prototype, 'fitBounds')
+    vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(1200, 700))
+    vi.spyOn(LeafletMap.prototype, 'getZoom').mockReturnValue(2)
+
+    renderMap()
+    await screen.findByRole('button', { name: /roy hill/i })
+    const overviewFits = fitBounds.mock.calls.length
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: /roy hill/i }))
+    await screen.findByRole('article', { name: 'Roy Hill' })
+    triggerResize?.()
+
+    expect(fitBounds.mock.calls.length).toBe(overviewFits)
+  })
+
+  test('keeps the selected site in the visible area on a 320px phone map', async () => {
+    const user = userEvent.setup()
+    const panTo = vi.spyOn(LeafletMap.prototype, 'panTo')
+    const panInside = vi.spyOn(LeafletMap.prototype, 'panInside').mockImplementation(function (this: LeafletMap) { return this })
+    vi.spyOn(LeafletMap.prototype, 'getSize').mockReturnValue(point(320, 544))
+
+    renderMap()
+    await user.click(await screen.findByRole('button', { name: /roy hill/i }))
+    await screen.findByRole('article', { name: 'Roy Hill' })
+
+    expect(panTo).not.toHaveBeenCalled()
+    expect(panInside).toHaveBeenCalledWith([-22.3, 118.7], expect.objectContaining({
+      paddingTopLeft: expect.any(Array),
+      paddingBottomRight: expect.any(Array),
+    }))
   })
 
   test('lists ended deployments in the card when decommissioned deployments are included', async () => {

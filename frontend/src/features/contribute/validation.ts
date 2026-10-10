@@ -34,6 +34,19 @@ export function validateContribution(values: ContributionFormValues): Contributi
     errors.countryCode = 'Enter a two-letter country code, for example AU.'
   }
 
+  const latitude = values.latitude.trim()
+  const longitude = values.longitude.trim()
+  if (latitude || longitude) {
+    if (!latitude || !longitude) {
+      errors.latitude = 'Enter both latitude and longitude, or leave both blank.'
+      errors.longitude = 'Enter both latitude and longitude, or leave both blank.'
+    } else if (!Number.isFinite(Number(latitude)) || Number(latitude) < -90 || Number(latitude) > 90) {
+      errors.latitude = 'Latitude must be between -90 and 90.'
+    } else if (!Number.isFinite(Number(longitude)) || Number(longitude) < -180 || Number(longitude) > 180) {
+      errors.longitude = 'Longitude must be between -180 and 180.'
+    }
+  }
+
   if (!values.machineType) {
     errors.machineType = 'Machine type is required.'
   }

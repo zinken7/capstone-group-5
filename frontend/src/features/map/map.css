@@ -14,9 +14,9 @@
 }
 
 .map-page {
-  --map-ocean: #e9eef4;
-  --map-land: #ffffff;
-  --map-border: #c9d2de;
+  --map-ocean: #DCE6EF;
+  --map-land: #F7F5F0;
+  --map-border: #6B7280;
   --map-overlay-shadow: 0 0.4rem 1.2rem rgb(20 33 61 / 12%);
 
   display: grid;
@@ -371,7 +371,7 @@
   fill: var(--map-land);
   fill-opacity: 1;
   stroke: var(--map-border);
-  stroke-width: 0.6;
+  stroke-width: 1;
 }
 
 .map-progress {
@@ -631,7 +631,7 @@
 
 .site-marker {
   stroke: #ffffff;
-  stroke-width: 1.5;
+  stroke-width: 2;
   fill-opacity: 0.9;
 }
 
@@ -641,6 +641,7 @@
 
 .site-marker--commissioning {
   fill: var(--color-warning);
+  stroke-dasharray: 3 2;
 }
 
 .site-marker--announced {
@@ -870,7 +871,10 @@
      collapsed into a button while the sheet is open, so neither overlay
      covers the other. */
   .map-stage--selected {
-    --map-sheet-height: min(44%, 18rem, calc(100% - 8rem));
+    /* Give the selected state a little more map height, then keep the sheet
+       relative to that stage rather than to the browser viewport. */
+    min-height: 36rem;
+    --map-sheet-height: min(42%, 18rem, calc(100% - 10rem));
   }
 
   .map-stage--selected .map-card-slot {
@@ -886,9 +890,10 @@
   }
 
   .map-stage--selected .map-year {
-    bottom: calc(var(--map-sheet-height) + var(--space-2));
+    bottom: calc(var(--map-sheet-height) + var(--space-2) + var(--space-2));
     left: var(--space-2);
     width: calc(100% - var(--space-4));
+    min-height: 5.5rem;
     padding: var(--space-2) var(--space-3);
     transform: none;
   }

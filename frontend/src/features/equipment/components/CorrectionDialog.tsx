@@ -23,6 +23,8 @@ interface CorrectionValues {
   installationType: string
   commissioningDate: string
   evidenceUrl: string
+  contributorEmail: string
+  organisation: string
   changeNote: string
   disclosureAccepted: boolean
 }
@@ -41,6 +43,8 @@ function initialValues(record: EquipmentRecord): CorrectionValues {
     installationType: controlValue(record.installationType),
     commissioningDate: record.commissioningDate ?? '',
     evidenceUrl: '',
+    contributorEmail: '',
+    organisation: '',
     changeNote: '',
     disclosureAccepted: false,
   }
@@ -59,6 +63,7 @@ function getPayload(record: EquipmentRecord, values: CorrectionValues): Correcti
   const quantity = Number(values.quantity)
   if (values.quantity !== before.quantity && (!Number.isInteger(quantity) || quantity < 1)) fields.quantity = 'Quantity must be a positive whole number.'
   if (values.evidenceUrl.trim() && !/^https?:\/\/\S+$/i.test(values.evidenceUrl.trim())) fields.evidence_urls = 'Evidence must be an http or https URL.'
+  if (values.contributorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.contributorEmail.trim())) fields.contributor_email = 'Enter a valid email address or leave this field blank.'
   if (Object.keys(fields).length > 0) return { message: 'Please correct the highlighted fields.', fields }
 
   const payload: CorrectionPayload = { disclosureAccepted: true }
@@ -70,6 +75,8 @@ function getPayload(record: EquipmentRecord, values: CorrectionValues): Correcti
   if (values.installationType && values.installationType !== before.installationType) { payload.installationType = values.installationType; changed = true }
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) { payload.commissioningDate = values.commissioningDate.trim(); changed = true }
   if (values.evidenceUrl.trim()) { payload.evidenceUrls = [values.evidenceUrl.trim()]; changed = true }
+  if (values.contributorEmail.trim()) payload.contributorEmail = values.contributorEmail.trim()
+  if (values.organisation.trim()) payload.organisation = values.organisation.trim()
   if (values.changeNote.trim()) payload.changeNote = values.changeNote.trim()
   if (!changed) return { message: 'Change at least one field or add an evidence URL.' }
   return payload
@@ -153,6 +160,9 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
         <SelectField id="equipment-correction-installation" label="Installation type" value={values.installationType} options={installationOptions} error={fieldErrors.installation_type} onChange={(value) => set('installationType', value)} />
         <div className="form-field"><label htmlFor="equipment-correction-commissioning">Commissioning date or year</label><input id="equipment-correction-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={setText('commissioningDate')} aria-invalid={Boolean(fieldErrors.commissioning_date)} aria-describedby={fieldErrors.commissioning_date ? 'equipment-correction-commissioning-error' : undefined} />{fieldErrors.commissioning_date && <small id="equipment-correction-commissioning-error" className="field-error">{fieldErrors.commissioning_date}</small>}</div>
         <div className="form-field form-field--wide"><label htmlFor="equipment-correction-evidence">Evidence URL <span className="form-help-inline">(recommended)</span></label><input id="equipment-correction-evidence" type="url" placeholder="https://" value={values.evidenceUrl} onChange={setText('evidenceUrl')} aria-invalid={Boolean(fieldErrors.evidence_urls)} aria-describedby={fieldErrors.evidence_urls ? 'equipment-correction-evidence-error' : undefined} />{fieldErrors.evidence_urls && <small id="equipment-correction-evidence-error" className="field-error">{fieldErrors.evidence_urls}</small>}</div>
+        <div className="form-field"><label htmlFor="equipment-correction-email">Contact email <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-email" type="email" placeholder="you@example.com" value={values.contributorEmail} onChange={setText('contributorEmail')} aria-invalid={Boolean(fieldErrors.contributor_email)} aria-describedby={fieldErrors.contributor_email ? 'equipment-correction-email-error' : undefined} />{fieldErrors.contributor_email && <small id="equipment-correction-email-error" className="field-error">{fieldErrors.contributor_email}</small>}</div>
+        <div className="form-field"><label htmlFor="equipment-correction-organisation">Organisation <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-organisation" value={values.organisation} onChange={setText('organisation')} /></div>
+        <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
         <div className="form-field form-field--wide"><label htmlFor="equipment-correction-note">Note <span className="form-help-inline">(optional)</span></label><textarea id="equipment-correction-note" maxLength={1000} value={values.changeNote} onChange={(event) => set('changeNote', event.target.value)} /></div>
       </div>
       <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>

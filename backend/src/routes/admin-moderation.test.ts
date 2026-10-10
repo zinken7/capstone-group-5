@@ -27,6 +27,8 @@ async function contribute(overrides: Record<string, unknown> = {}): Promise<numb
     country_code: 'au',
     region: 'Pilbara',
     commodity: 'iron_ore',
+    latitude: -22.3,
+    longitude: 118.7,
     machine_type: 'haul_truck',
     machine_manufacturer: 'Komatsu',
     machine_model: '930E',
@@ -158,6 +160,17 @@ describe('GET /api/admin/deployments/:id', () => {
 })
 
 describe('POST /api/admin/deployments/:id/reviews', () => {
+  it('requires coordinates before a contribution can be approved', async () => {
+    const id = await contribute({ latitude: undefined, longitude: undefined })
+
+    const refused = await review(id, { decision: 'approved' })
+    expect(refused.status).toBe(409)
+    expect(refused.body.error).toBe('site coordinates are required before the record can be verified')
+
+    expect((await correct(id, { latitude: -22.3, longitude: 118.7 })).status).toBe(200)
+    expect((await review(id, { decision: 'approved' })).status).toBe(201)
+  })
+
   it('approves a record: review, status and revision change together, and it becomes public', async () => {
     const id = await contribute()
 
@@ -247,6 +260,47 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
 })
 
 describe('PATCH /api/admin/deployments/:id', () => {
+  it('adds coordinates to a contributed site so it can appear on the map', async () => {
+    const id = await contribute({ site_name: 'Unlocated Site', latitude: undefined, longitude: undefined })
+    const response = await correct(id, { latitude: -22.3, longitude: 118.7 })
+
+    expect(response.status).toBe(200)
+    expect((await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)).body).toMatchObject({
+      latitude: -22.3,
+      longitude: 118.7,
+    })
+  })
+
+  it('clears a proposed automation level when asked explicitly, keeping the previous value (FR-57)', async () => {
+    await correct(12, { automation_level: 'teleremote' })
+
+    const response = await correct(12, { clear_automation_level: true })
+    expect(response.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: null }])
+
+    const [latest] = await query<{ previous_values: Record<string, unknown> }>(
+      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id DESC LIMIT 1',
+    )
+    expect(latest?.previous_values).toEqual({ automation_level: 'teleremote' })
+  })
+
+  it('treats clearing a level that is already empty as no change', async () => {
+    const response = await correct(12, { clear_automation_level: true })
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'correction does not change the record' })
+  })
+
+  it('rejects clearing together with a new level, or a flag that is not a boolean', async () => {
+    const both = await correct(12, { automation_level: 'autonomous', clear_automation_level: true })
+    expect(both.status).toBe(400)
+    expect(both.body.fields).toEqual({ clear_automation_level: 'cannot be combined with automation_level' })
+
+    const notBoolean = await correct(12, { clear_automation_level: 'yes' })
+    expect(notBoolean.status).toBe(400)
+    expect(notBoolean.body.fields).toEqual({ clear_automation_level: 'must be true or false' })
+  })
+
   it('corrects a verified record, keeps it verified and records the administrator', async () => {
     const response = await correct(10, { quantity: 90, change_note: 'Fleet count from the 2024 report' })
 

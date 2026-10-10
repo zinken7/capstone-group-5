@@ -142,6 +142,27 @@ describe('createContribution', () => {
     expect({ site: await count('site'), company: await count('company'), model: await count('machine_model'), product: await count('technology_product') }).toEqual(before)
   })
 
+  it('does not let a new submission move an existing site', async () => {
+    const before = await query<{ longitude: number; latitude: number }>(
+      'SELECT ST_X(point_4326)::float AS longitude, ST_Y(point_4326)::float AS latitude FROM site WHERE id = 1',
+    )
+
+    await createContribution(input({
+      site_name: 'Roy Hill',
+      country_code: 'AU',
+      machine_type: 'drill',
+      machine_manufacturer: 'Epiroc',
+      quantity: 2,
+      latitude: -10,
+      longitude: 130,
+    }))
+
+    const after = await query<{ longitude: number; latitude: number }>(
+      'SELECT ST_X(point_4326)::float AS longitude, ST_Y(point_4326)::float AS latitude FROM site WHERE id = 1',
+    )
+    expect(after).toEqual(before)
+  })
+
   it('stores optional details, evidence and year-only commissioning', async () => {
     const result = await createContribution(input({
       ...newSite,

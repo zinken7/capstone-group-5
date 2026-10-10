@@ -79,6 +79,8 @@ export interface ReviewRecord {
   verificationStatus: string
   siteName: string
   countryCode: string
+  latitude: number | null
+  longitude: number | null
   region: string | null
   commodity: string | null
   machineManufacturer: string
@@ -110,8 +112,12 @@ export interface AdminCorrection {
   environment?: string
   deploymentStatus?: string
   automationLevel?: string
+  /** Requests the backend to remove an existing automation level. */
+  clearAutomationLevel?: boolean
   installationType?: string
   commissioningDate?: string
+  latitude?: number
+  longitude?: number
   technologySupplier?: string
   technologyProduct?: string
   evidenceUrls?: string[]

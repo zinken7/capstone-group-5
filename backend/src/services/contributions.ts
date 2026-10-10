@@ -22,6 +22,8 @@ function submissionSnapshot(input: ContributionInput): Record<string, unknown> {
   return {
     site_name: input.siteName,
     country_code: input.countryCode,
+    latitude: input.coordinates?.latitude ?? null,
+    longitude: input.coordinates?.longitude ?? null,
     region: input.region,
     commodity: input.commodity,
     machine_type: input.machineType,
@@ -50,6 +52,7 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       countryCode: input.countryCode,
       regionId,
       commodity: input.commodity,
+      coordinates: input.coordinates,
     })
     const machineModelId = await findOrCreateMachineModel(tx, {
       manufacturerId,
