@@ -101,9 +101,8 @@ export async function correctDeployment(id: number, input: CorrectionInput): Pro
     const newUrls = input.evidenceUrls.filter((url) => !existingUrls.includes(url))
     if (Object.keys(previous).length === 0 && newUrls.length === 0) return { kind: 'unchanged' }
 
-    const contributorId = input.contributorEmail === null && input.organisation === null
-      ? null
-      : await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
+    // Each revision names exactly one actor, so an anonymous correction still gets a contributor row
+    const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
 
     if (current.verificationStatus === 'verified') {
       const correctionId = await insertCorrection(tx, {

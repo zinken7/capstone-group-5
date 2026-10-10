@@ -58,7 +58,10 @@ describe('createContribution', () => {
       installation_type: 'unknown',
       verification_status: 'pending_review',
     })
-    expect(await count('contributor')).toBe(0)
+    // No contact details, so the revision names an anonymous contributor row
+    expect(await query('SELECT email, organisation FROM contributor')).toEqual([{ email: null, organisation: null }])
+    const [revision] = await query<{ contributor_id: number | null }>('SELECT contributor_id::int FROM revision WHERE deployment_id = $1', [result.id])
+    expect(revision?.contributor_id).toEqual(expect.any(Number))
   })
 
   it.each([null, 'Pit Viper 271'])('reuses unknown variants for model %j and records null in revisions', async (modelName) => {
