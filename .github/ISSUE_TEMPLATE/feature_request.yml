@@ -1,0 +1,61 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature from the user's perspective and explain why it is useful.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem or limitation does this feature address?
+      placeholder: Describe the current problem or limitation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature or change you are proposing.
+      placeholder: Explain how the feature should work.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What needs to be true for this feature to be considered complete?
+      placeholder: |
+        - [ ] User can ...
+        - [ ] System displays ...
+        - [ ] Error cases are handled ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternative approaches that were considered.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add mockups, screenshots, references, or other relevant information.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched for existing issues before creating this request.
+          required: true

@@ -1,107 +1,88 @@
-# Problem Statement and Key Deliverables
+\clearpage
+\pagenumbering{arabic}
 
-<!-- Owner: TBC. Page target: 1.25 pages. Drafted from the SRS [7]: Sec. 1.2,
-     2.2, 2.3, 7 and Appendix B. Citations are IEEE, numbered in order of first
-     appearance; see 05-references-and-ai-use.md. [CONFIRM] marks anything
-     needing a team decision. -->
+# Problem Statement and Key Deliverables
 
 ## Client and Context
 
-Our client is Dr Adrian Boeing of UWA. Two industry representative users
-participate alongside him and attended the client meeting of 11 August 2026
-[1]: Yash Singh of RCT Global, in market data analytics, and Milan Ivovic,
-Regional Business Manager for Asia Pacific at Epiroc.
+The client is Dr Adrian Boeing of UWA. Two industry representative users have also contributed to the requirements: Yash Singh of RCT Global, working in market data analytics, and Milan Ivovic, Regional Business Manager for Asia Pacific at Epiroc. Both participated in the client and representative-user meeting on 11 August 2026 [1].
+
+Their involvement helps ensure that the project addresses both the client's goal of creating an open dataset and the practical needs of industry users who use market information to understand technology adoption, competitor activity and potential opportunities.
 
 ## The Problem
 
-Data on autonomous and teleremote mining equipment deployed worldwide is closed
-and commercially held. Market reports exist but cost in the order of $50,000 to
-$100,000 each, placing them beyond startups, small suppliers and academic
-researchers [2]. No open dataset was found to exist [2], and the commercial
-dashboards that do exist draw their figures from a single vendor and cannot be
-independently checked [1].
+Information about autonomous and teleremote mining equipment is currently fragmented across company announcements, mine-site reports, industry publications and commercial market reports. Much of the more complete market data is commercially held. The client reported that relevant market reports can cost in the order of $50,000 to $100,000, placing them beyond many startups, smaller suppliers and academic researchers [2]. No comparable open dataset was found to exist [2].
 
-The cost of the market being poorly observed is concrete. A supplier can learn
-that a competitor has entered its home market only after roughly 1,500 machines
-have been deployed, and a change in the automation supplier behind a machine
-brand can go unnoticed for months [1]. Currency and coverage therefore matter
-as much as accuracy.
+This creates a practical problem for organisations trying to understand the market. Information can be difficult to obtain, slow to update and hard to independently verify. The representative users described cases where a supplier may only become aware of a competitor's presence after a large number of machines have already been deployed, or where changes in the automation technology used behind a machine brand may go unnoticed for months [1]. The usefulness of the data therefore depends not only on accuracy, but also on coverage and how quickly new information becomes visible.
+
+Existing commercial dashboards do not fully solve this problem because their underlying data is not openly available for independent checking [1]. The project therefore needs to provide both a useful interface and an underlying dataset that users can inspect, contribute to and verify.
 
 ## Why the Client Wants This Software
 
-The client's purpose is to return this information to the public domain. He
-asked for an open, crowdsourced equivalent of the commercial dashboards under a
-Creative Commons licence [3], so that the parties currently priced out of
-market data — startups assessing whether a product has a market, small
-suppliers, and academic researchers including the client — can obtain and
-independently verify it. For the representative users the benefit is
-operational: both described identifying sites at a lower automation tier and
-approaching them about the next one [1], which no dataset available to them
-today supports.
+The client's aim is to make this type of market information more openly accessible. The requested system is an open, crowdsourced alternative to commercial market databases, with the structured dataset intended for publication under a Creative Commons licence [3].
 
-## Why an Open Dataset
+For industry users, the value is practical. The system should make it easier to answer questions such as:
 
-The client's requirement that the data be openly licensed [3] (C-02) is not
-incidental to the product. It is the mechanism by which the product solves the
-problem.
+* where autonomous and teleremote equipment is being deployed;
+* which manufacturers and technology suppliers are involved;
+* how many machines are recorded at particular sites or in particular markets;
+* how adoption differs by country, equipment type or automation category; and
+* where competitor activity or potential opportunities may be emerging.
 
-- **Open data creates value the closed market does not capture.** McKinsey
-  estimated that open data could generate more than US$3 trillion a year in
-  additional economic value across seven sectors, oil and gas among them,
-  largely by allowing parties other than the data holder to act on the
-  information [4]. The mining market data problem is exactly this shape: the
-  figures exist, but only inside the organisations that can afford them.
-- **Transparency is established practice in extractives.** Fifty-five countries
-  implement the EITI Standard, which obliges participants to publish
-  extractives data in open formats that are "freely accessible, timely,
-  comprehensive, reliable [and] comprehensible", with approximately US$3.3
-  trillion in government revenues disclosed to date [5]. An open equipment
-  dataset extends an accepted norm in this industry rather than introducing a
-  new one.
-- **Openness is what makes the data checkable.** The commercial dashboards the
-  client cited draw their figures from a single vendor and cannot be
-  independently verified [1]. An openly licensed dataset carrying per-record
-  evidence links and a published verification status can be audited by anyone,
-  which is the only mechanism by which a crowdsourced dataset earns trust.
-- **An open licence lets the work outlive the semester.** Publishing the source
-  under an open licence (NFR-10) allows UWA, a later capstone team or the
-  industry itself to continue it. Harvard Business School estimate the
-  demand-side value of open source software at US$8.8 trillion, and that firms
-  would need to spend 3.5 times more on software were it not available [6].
+For smaller organisations and researchers, the open dataset removes the need to rely entirely on expensive commercial reports. It also makes individual records more transparent. Evidence can be attached to contributed information and each record carries a visible verification state, allowing users to distinguish between submitted and reviewed data.
+
+Openness is therefore part of the solution rather than an additional feature. Data anyone can obtain gets reused in ways its publisher did not plan for, and that is where its value comes from; McKinsey put the annual value of open data across seven sectors, one of them oil and gas, at more than $3 trillion [4]. The extractive industries already publish on this basis, so that reported figures can be checked rather than taken on trust [5]. Open-source software follows the same pattern, most of its value going to those who reuse the code rather than to those who wrote it [6]. A closed version of this system would leave the client's main concern untouched: that useful market information is hard to obtain and hard to verify.
 
 ## Proposed Solution
 
-A web-based, crowdsourced, queryable geospatial database of autonomous mining
-equipment, comprising an interactive map, an analytics view of market-level
-trends, a queryable equipment register with export, and a contribution
-mechanism carrying a verification state on each record. The system is a
-reference dataset and presentation layer; it performs no mine planning, fleet
-management or operational control.
+The project will build a web-based, crowdsourced and queryable geospatial database of autonomous and teleremote mining equipment.
+
+The system will combine four main user-facing functions:
+
+1. an interactive GIS map of mine sites and recorded deployments;
+2. an analytics dashboard for market-level summaries and trends;
+3. a searchable and exportable equipment register; and
+4. a contribution and verification workflow for adding and correcting information.
+
+The underlying data model will connect mine sites, companies, machine models, manufacturers, technology products, technology suppliers and equipment deployments. Records can also include evidence and a verification status.
+
+The system is intended as a market reference dataset and presentation layer. It does not perform mine planning, fleet dispatch or operational control.
 
 ## Minimum Viable Product
 
-This section states *what* the MVP is. Evidence of the client's agreement to it
-is given in Section 2. The MVP is the set of requirements prioritised **Must**
-in our Software Requirements Specification; identifiers refer to [7, Sec. 4].
+The MVP is defined from the requirements currently prioritised **Must** in the Software Requirements Specification [7]. The status of client agreement to this scope is set out in Section 2.
 
-| # | Deliverable | Description | Acceptance criteria |
-|:--|:-------------------|:---------------------------------------------|:-----------------|
-| 1 | Data model | Companies, sites, machine models, technology products, deployments; manufacturer and technology supplier separately queryable; four automation levels | FR-01 to FR-09, FR-11 |
-| 2 | Interactive GIS map | Marker per site coloured by deployment status, detail panel, filter by technology supplier | FR-16 to FR-19 |
-| 3 | Analytics dashboard | Headline counts; cumulative machines over time; counts by country and machine type; share by supplier and manufacturer; filters on every measure | FR-22 to FR-28 |
-| 4 | Equipment register | Searchable, filterable, sortable table with flattened tabular export | FR-37, FR-38 |
-| 5 | Contribution and verification | Submission form publishing immediately; verification status; evidence links; administration interface for review and correction | FR-41 to FR-47 |
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.7cm} >{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{8.0cm} p{2.5cm}}
+\hline
+\textbf{\#} & \textbf{Deliverable} & \textbf{MVP scope} & \textbf{Acceptance criteria} \\
+\hline
+\endfirsthead
+\hline
+\textbf{\#} & \textbf{Deliverable} & \textbf{MVP scope} & \textbf{Acceptance criteria} \\
+\hline
+\endhead
+1 & \textbf{Core data model} & Store companies, mine sites, machine models, technology products and equipment deployments. Manufacturers and technology suppliers are represented separately, with deployment and automation information stored in structured form. & FR-01 to FR-11 \\
+2 & \textbf{Interactive GIS map} & Display one marker per mine site, distinguish deployment status, show deployment details and allow filtering by technology supplier. & FR-15 to FR-19 \\
+3 & \textbf{Analytics dashboard} & Provide headline totals, cumulative machines over time, counts by country and machine type, supplier/manufacturer share and filters that apply to the displayed measures. & FR-21 to FR-28 \\
+4 & \textbf{Equipment register} & Provide a searchable, filterable and sortable view of deployment records with tabular export. & FR-36, FR-37 \\
+5 & \textbf{Contribution and verification} & Allow users to submit new information and supporting evidence. New records carry a verification status, while authorised administrators can review, correct, approve or reject submissions. & FR-40 to FR-46 \\
+\hline
+\end{longtable}
+\normalsize
 
-Deliverables 2 to 5 are the four functions named in the client's brief;
-deliverable 1 is the structure they depend on.
+Deliverables 2 to 5 correspond to the main user-facing functions requested by the client. Deliverable 1 provides the structured data foundation required by all four.
 
-## Out of Scope
+Because the dataset will initially cover only recorded deployments, analytics will describe the contents of the available dataset rather than claim to represent the complete global market. Coverage limitations will be made clear where appropriate.
 
-Each exclusion below is justified in full in [7, Sec. 7]: self-service bulk upload,
-institutional single sign-on via AAF, counting machines from photographs, fleet
-management and dispatch systems, forecasting and market projection, and a
-mobile application. The two that most affect scope are counting from
-photographs, which cannot distinguish automation level or establish what is on
-site rather than in frame, and forecasting, which is economic analysis rather
-than software — data export is provided so that an analyst can do it externally
-[1].
+## MVP Boundary and Out of Scope
+
+The MVP focuses on establishing a complete working flow:
+
+**collect data → review data → store structured records → explore the data through the map, register and analytics dashboard.**
+
+AI-assisted evidence checking and Retrieval-Augmented Generation (RAG) are possible extensions but are not dependencies of the MVP. The core system must remain usable without an LLM, automated web search or AI verification service.
+
+Other features outside the MVP include self-service bulk upload, institutional AAF authentication, automatic machine counting from photographs, fleet-management or dispatch functionality, market forecasting and a dedicated mobile application [7]; Section 2.3 records the reason for each. These exclusions keep the project focused on collecting, maintaining and presenting structured market data within the available project timeframe.

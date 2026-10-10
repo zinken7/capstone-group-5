@@ -1,0 +1,302 @@
+name: Lint
+
+# Do not filter the workflow itself: required checks must exist on every PR.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect affected areas
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.paths.outputs.frontend }}
+      backend: ${{ steps.paths.outputs.backend }}
+      services: ${{ steps.paths.outputs.services }}
+      infra: ${{ steps.paths.outputs.infra }}
+      compose: ${{ steps.paths.outputs.compose }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test CI routing and required-check handling
+        run: node --test .github/scripts/ci/*.test.mjs
+      - name: Detect changes from the PR merge base
+        id: paths
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/ci/changes.mjs
+
+  compose-config:
+    name: Docker Compose Config
+    needs: changes
+    if: needs.changes.outputs.compose == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
+  backend-checks:
+    name: Backend checks and database tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      db:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Apply migrations to the isolated CI database
+        run: npm run db:migrate
+      # Replays migrations/ into a scratch database, re-introspects it with
+      # drizzle-kit and fails when src/db/ no longer matches.
+      - name: Check the committed Drizzle schema for drift against migrations
+        run: npm run db:schema:check
+      # A separate database, so the seed's fixed IDs never meet test fixtures.
+      # The second load checks that re-running the seed is a no-op.
+      - name: Load the seed dataset twice into a fresh database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/seed_check
+        run: |
+          psql postgresql://test:test@localhost:5432/test --no-psqlrc --command 'CREATE DATABASE seed_check'
+          npm run db:migrate
+          npm run db:seed
+          npm run db:seed
+      - name: Run all backend tests (including database tests when present)
+        run: npm test
+
+  frontend-lint:
+    name: Frontend Lint
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  services-checks:
+    name: Service checks
+    needs: changes
+    if: needs.changes.outputs.services == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run checks declared by the service implementation
+        run: bash .github/scripts/ci/services.sh
+
+  infra-checks:
+    name: Infrastructure validation
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Terraform configuration
+        id: terraform
+        run: |
+          if git ls-files infra | grep -Eq '\.tf(\.json)?$'; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: hashicorp/setup-terraform@v4
+        if: steps.terraform.outputs.present == 'true'
+        with:
+          terraform_wrapper: false
+      - name: Validate implemented infrastructure
+        run: bash .github/scripts/ci/infra.sh
+
+  # Keep the existing ruleset's required name. This always-running gate also
+  # protects services/infra/Compose and failures in change detection.
+  backend-lint:
+    name: Backend Lint
+    if: always()
+    needs: [changes, compose-config, backend-checks, frontend-lint, services-checks, infra-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require every selected CI job to succeed
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node .github/scripts/ci/results.mjs
+
+  # M1's Vercel Hobby account deploys only commits authored by M1, whether the
+  # deploy comes from Git or the CLI. Check the merge commit once, before
+  # migrating or deploying. If anyone else authored it, skip both, so schema and
+  # code stay in step, and tell M1 on the pull request; M1's next merge deploys
+  # everything. Gated on the always-running result gate, not on a path-selected
+  # job, so it never depends on change routing.
+  check-deploy-author:
+    name: Check deploy author
+    needs: backend-lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    outputs:
+      allowed: ${{ steps.author.outputs.allowed }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_AUTHOR: ${{ vars.DEPLOY_AUTHOR }}
+    steps:
+      - name: Check the merge commit author
+        id: author
+        run: |
+          if [ -z "$DEPLOY_AUTHOR" ]; then
+            echo '::error::The DEPLOY_AUTHOR repository variable is not set'
+            exit 1
+          fi
+          login=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.author.login // ""')
+          echo "login=$login" >> "$GITHUB_OUTPUT"
+          if [ "$login" = "$DEPLOY_AUTHOR" ]; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'allowed=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Staging not migrated or deployed: commit authored by ${login:-an unknown user}, not $DEPLOY_AUTHOR"
+          fi
+      # Only pull requests that change what runs on staging need M1's attention;
+      # others, such as documentation, may be merged by their authors.
+      - name: Tell M1 on the merged pull request
+        if: steps.author.outputs.allowed == 'false'
+        env:
+          LOGIN: ${{ steps.author.outputs.login }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // ""')
+          if [ -z "$pr" ]; then
+            echo 'No pull request found for this commit; not notifying.'
+            exit 0
+          fi
+          deployable=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$pr/files" --jq '.[].filename' \
+            | grep -E '^(frontend|backend)/' | grep -viE '\.md$' || true)
+          if [ -z "$deployable" ]; then
+            echo "#$pr changes nothing under frontend/ or backend/; not notifying."
+            exit 0
+          fi
+          gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "@$DEPLOY_AUTHOR Staging was not migrated or deployed: this pull request changes frontend/ or backend/, but its merge commit is authored by @${LOGIN:-unknown}, and the Vercel Hobby plan deploys only commits by @$DEPLOY_AUTHOR. Your next merge will deploy it. See docs/staging.md."
+
+  # Runs before deploy-staging, so new code never meets an old schema.
+  migrate-staging:
+    name: Migrate staging database
+    needs: [backend-lint, check-deploy-author]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: staging-database
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Apply pending migrations to Neon staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo '::error::STAGING_DATABASE_URL is not set in the staging environment'
+            exit 1
+          fi
+          npm run db:migrate
+
+  # Vercel's Git integration is off (git.deploymentEnabled in each vercel.json),
+  # so production deploys run here with M1's token. The timeout ends a deploy
+  # that hangs, for example on a deployment Vercel blocked, so it cannot hold
+  # the queue for the 6-hour default.
+  deploy-staging:
+    name: Deploy staging ${{ matrix.project }}
+    needs: [backend-lint, check-deploy-author, migrate-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: frontend
+            project_id_var: VERCEL_FRONTEND_PROJECT_ID
+          - project: backend
+            project_id_var: VERCEL_BACKEND_PROJECT_ID
+    concurrency:
+      group: staging-deploy-${{ matrix.project }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Run from the repository root: each Vercel project sets its own Root
+      # Directory, and Vercel builds it on its own infrastructure.
+      - name: Deploy to the Vercel production environment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars[matrix.project_id_var] }}
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set in the staging environment"
+              exit 1
+            fi
+          done
+          npx --yes vercel@62.2.0 deploy --prod --yes --token "$VERCEL_TOKEN"
