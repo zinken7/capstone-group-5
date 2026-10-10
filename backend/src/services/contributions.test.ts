@@ -31,7 +31,10 @@ const newSite = {
   country_code: 'AU',
   machine_type: 'drill',
   machine_manufacturer: 'Epiroc',
+  machine_model: 'Pit Viper 271',
   quantity: 4,
+  technology_supplier: 'Epiroc',
+  automation_level: 'autonomous',
 }
 
 describe('createContribution', () => {
@@ -50,7 +53,7 @@ describe('createContribution', () => {
     expect(deployment).toEqual({
       site: 'Jimblebar',
       manufacturer: 'Epiroc',
-      model_name: null,
+      model_name: 'Pit Viper 271',
       model_variant: null,
       machine_type: 'drill',
       quantity: 4,
@@ -64,7 +67,7 @@ describe('createContribution', () => {
     expect(revision?.contributor_id).toEqual(expect.any(Number))
   })
 
-  it.each([null, 'Pit Viper 271'])('reuses unknown variants for model %j and records null in revisions', async (modelName) => {
+  it.each(['Pit Viper 271'])('reuses unknown variants for model %j and records null in revisions', async (modelName) => {
     const before = await count('machine_model')
     const modelIds = new Set<number>()
     for (const variant of [undefined, null, '', ' ', '\t\n']) {
@@ -86,7 +89,7 @@ describe('createContribution', () => {
     expect(await count('machine_model')).toBe(before + 1)
   })
 
-  it.each([null, 'Pit Viper 271'])('keeps unknown and base distinct and reuses case variants for model %j', async (modelName) => {
+  it.each(['Pit Viper 271'])('keeps unknown and base distinct and reuses case variants for model %j', async (modelName) => {
     async function submit(variant: string | null) {
       const result = await createContribution(input({
         ...newSite, machine_model: modelName, machine_model_variant: variant,
@@ -135,13 +138,14 @@ describe('createContribution', () => {
       quantity: 3,
       technology_supplier: 'caterpillar',
       technology_product: 'cat minestar command for hauling',
+      automation_level: 'autonomous',
     }))
 
-    const [row] = await query<{ site_id: number; machine_model_id: number; technology_product_id: number }>(
-      'SELECT site_id::int, machine_model_id::int, technology_product_id::int FROM deployment WHERE id = $1',
+    const [row] = await query<{ site_id: number; machine_model_id: number; technology_supplier_id: number; technology_product_id: number }>(
+      'SELECT site_id::int, machine_model_id::int, technology_supplier_id::int, technology_product_id::int FROM deployment WHERE id = $1',
       [result.id],
     )
-    expect(row).toEqual({ site_id: 1, machine_model_id: 1, technology_product_id: 1 })
+    expect(row).toEqual({ site_id: 1, machine_model_id: 1, technology_supplier_id: 1, technology_product_id: 1 })
     expect({ site: await count('site'), company: await count('company'), model: await count('machine_model'), product: await count('technology_product') }).toEqual(before)
   })
 
@@ -155,7 +159,10 @@ describe('createContribution', () => {
       country_code: 'AU',
       machine_type: 'drill',
       machine_manufacturer: 'Epiroc',
+      machine_model: 'Pit Viper 271',
       quantity: 2,
+      technology_supplier: 'Epiroc',
+      automation_level: 'autonomous',
       latitude: -10,
       longitude: 130,
     }))
@@ -210,14 +217,27 @@ describe('createContribution', () => {
     ])
   })
 
-  it('keeps the automation level when no technology product is known', async () => {
+  it('stores the supplier and level on the deployment when no technology product is named', async () => {
     const result = await createContribution(input({ ...newSite, automation_level: 'teleremote', technology_supplier: 'RCT' }))
 
-    const [row] = await query<{ automation_level: string; technology_product_id: number | null }>(
-      'SELECT automation_level::text, technology_product_id FROM deployment WHERE id = $1',
+    const [row] = await query<{ automation_level: string; supplier: string; technology_product_id: number | null }>(
+      `SELECT d.automation_level::text, c.name AS supplier, d.technology_product_id
+       FROM deployment d JOIN company c ON c.id = d.technology_supplier_id WHERE d.id = $1`,
       [result.id],
     )
-    expect(row).toEqual({ automation_level: 'teleremote', technology_product_id: null })
+    expect(row).toEqual({ automation_level: 'teleremote', supplier: 'RCT', technology_product_id: null })
+    expect(await count('technology_product')).toBe(4)
+  })
+
+  it('files a named product under the supplier given with it', async () => {
+    const result = await createContribution(input({ ...newSite, technology_supplier: 'Sandvik', technology_product: 'AutoMine' }))
+
+    const [row] = await query<{ supplier_matches: boolean }>(
+      `SELECT p.supplier_id = d.technology_supplier_id AS supplier_matches
+       FROM deployment d JOIN technology_product p ON p.id = d.technology_product_id WHERE d.id = $1`,
+      [result.id],
+    )
+    expect(row).toEqual({ supplier_matches: true })
   })
 
   it('rolls back every row when a later insert fails', async () => {

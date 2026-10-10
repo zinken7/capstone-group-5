@@ -61,12 +61,11 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       machineType: input.machineType,
     })
 
-    // A supplier without a product name stays only in the snapshot; no placeholder product is invented
-    let technologyProductId: number | null = null
-    if (input.technologySupplier !== null && input.technologyProduct !== null) {
-      const supplierId = await findOrCreateCompany(tx, input.technologySupplier)
-      technologyProductId = await findOrCreateTechnologyProduct(tx, supplierId, input.technologyProduct)
-    }
+    // The supplier is stored on the deployment; a product is optional and, when named, belongs to that supplier
+    const supplierId = await findOrCreateCompany(tx, input.technologySupplier)
+    const technologyProductId = input.technologyProduct === null
+      ? null
+      : await findOrCreateTechnologyProduct(tx, supplierId, input.technologyProduct)
 
     // Each revision names exactly one actor, so an anonymous submission still gets a contributor row
     const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
@@ -74,6 +73,7 @@ export async function createContribution(input: ContributionInput): Promise<Cont
     const deployment = await insertDeployment(tx, {
       siteId,
       machineModelId,
+      technologySupplierId: supplierId,
       technologyProductId,
       quantity: input.quantity,
       environment: input.environment,

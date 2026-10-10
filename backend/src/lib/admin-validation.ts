@@ -67,8 +67,8 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   if (clearLevel !== undefined && typeof clearLevel !== 'boolean') {
     read.errors.clear_automation_level = 'must be true or false'
   } else if (clearLevel === true) {
-    if (automationLevel !== null) read.errors.clear_automation_level = 'cannot be combined with automation_level'
-    else changes.automationLevel = null
+    // Migration 005 makes the level required on every deployment, so it can be corrected but not cleared
+    read.errors.clear_automation_level = 'cannot clear a required automation level'
   }
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
