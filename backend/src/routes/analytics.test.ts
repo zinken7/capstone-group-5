@@ -2,7 +2,7 @@ import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
-const { closeDatabase } = await import('../database.js')
+const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 
 beforeEach(async () => {
@@ -148,6 +148,19 @@ describe('GET /api/analytics/crosstab', () => {
         { row: 'Sandvik', column: 'drill', machine_count: 5 },
       ],
     })
+  })
+
+  it('counts a deployment with no product under its own supplier', async () => {
+    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+
+    const breakdowns = await request(app).get('/api/analytics/breakdowns')
+    expect(breakdowns.body.by_supplier).toContainEqual({ key: 'RCT', machine_count: 5, share: 5 / 121 })
+
+    const summary = await request(app).get('/api/analytics/summary?supplier=RCT')
+    expect(summary.body).toMatchObject({ machine_count: 5, site_count: 1 })
+
+    const crosstab = await request(app).get('/api/analytics/crosstab?rows=supplier&columns=automation_level')
+    expect(crosstab.body.cells).toContainEqual({ row: 'RCT', column: 'teleremote', machine_count: 5 })
   })
 
   it('groups by commissioning year as the timeline does, keeping undated machines under a null year', async () => {
