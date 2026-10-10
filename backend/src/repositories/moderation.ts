@@ -383,12 +383,16 @@ export async function setVerificationStatus(tx: Tx, id: number, status: string):
 }
 
 /** Supplier and product names of a technology product, for revision history. */
-export async function findTechnologyNames(tx: Tx, productId: number | null): Promise<{ supplier: string; product: string } | null> {
-  if (productId === null) return null
+export async function findTechnologyNames(tx: Tx, supplierId: number, productId: number | null): Promise<{ supplier: string; product: string | null }> {
   const rows = await tx.db
     .select({ supplier: tables.company.name, product: tables.technologyProduct.productName })
-    .from(tables.technologyProduct)
-    .innerJoin(tables.company, eq(tables.company.id, tables.technologyProduct.supplierId))
-    .where(eq(tables.technologyProduct.id, productId))
-  return rows[0] ?? null
+    .from(tables.company)
+    .leftJoin(tables.technologyProduct, and(
+      eq(tables.technologyProduct.supplierId, tables.company.id),
+      productId === null ? sql`false` : eq(tables.technologyProduct.id, productId),
+    ))
+    .where(eq(tables.company.id, supplierId))
+  const row = rows[0]
+  if (!row) throw new Error(`Supplier ${supplierId} not found`)
+  return row
 }
