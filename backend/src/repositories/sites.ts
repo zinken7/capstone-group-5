@@ -169,6 +169,13 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
 
   for (const row of rows) {
     if (row.excluded) excludedCount += 1
+    // FR-16: only operational deployments appear by default.
+    // Decommissioned deployments require the explicit checkbox.
+    if (row.status !== 'operational' &&
+        !(filters.includeDecommissioned && row.status === 'decommissioned')) {
+      continue
+    }
+
     if (!row.in_window && !row.ended) continue
 
     let entry = bySite.get(row.site_id)
