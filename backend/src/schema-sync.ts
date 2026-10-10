@@ -33,7 +33,32 @@ const SCRATCH_DATABASE = 'schema_drift_check'
  * runs on the update and the check path, so the comparison stays byte-exact.
  */
 function normalise(source: string): string {
-  return source.replace(/ from "\.\/(schema|relations)"/g, ' from "./$1.js"')
+  return dropRepeatedRelations(source.replace(/ from "\.\/(schema|relations)"/g, ' from "./$1.js"'))
+}
+
+/** drizzle-kit repeats a relation for a column in two foreign keys; drops exact repeats TypeScript would reject. */
+function dropRepeatedRelations(source: string): string {
+  const lines = source.split('\n')
+  const output: string[] = []
+  let seen = new Set<string>()
+  for (let start = 0; start < lines.length; start += 1) {
+    const line = lines[start] ?? ''
+    if (line.startsWith('export const ')) seen = new Set()
+    if (!/^\t\w+: (one|many)\(/.test(line)) {
+      output.push(line)
+      continue
+    }
+    let end = start
+    for (let depth = 0; end < lines.length; end += 1) {
+      for (const character of lines[end] ?? '') depth += character === '(' ? 1 : character === ')' ? -1 : 0
+      if (depth === 0) break
+    }
+    const entry = lines.slice(start, end + 1).join('\n')
+    if (!seen.has(entry)) output.push(entry)
+    seen.add(entry)
+    start = end
+  }
+  return output.join('\n')
 }
 
 function run(command: string, args: readonly string[], env: NodeJS.ProcessEnv, cwd = backendRoot): void {
