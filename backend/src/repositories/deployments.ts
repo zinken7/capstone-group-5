@@ -150,7 +150,7 @@ export async function findRegisterRows(filters: DeploymentFilters, options: Regi
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(buildWhere(filters))
     .orderBy(sql`${REGISTER_SORTS[options.sort]} ${direction} NULLS LAST`, asc(tables.deployment.id))
     // Dynamic mode so pagination can be chained conditionally
@@ -172,7 +172,7 @@ export async function countRegisterRows(filters: DeploymentFilters): Promise<num
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(buildWhere(filters))
   return rows[0]?.count ?? 0
 }
@@ -190,7 +190,7 @@ export async function summariseDeployments(filters: DeploymentFilters): Promise<
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(buildWhere(filters))
   const row = rows[0]
 
