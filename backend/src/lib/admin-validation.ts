@@ -31,15 +31,15 @@ export function validateReview(body: unknown): ValidationResult<ReviewInput> {
 export interface AdminCorrectionInput {
   changes: DeploymentChanges
   coordinates: { latitude: number; longitude: number } | null
-  technology: { supplier: string; product: string } | null
+  technology: { supplier: string; product: string | null } | null
   evidenceUrls: string[]
   changeNote: string | null
 }
 
 /**
  * Validates a PATCH /api/admin/deployments/:id body: the public correction
- * fields, plus the technology supplier and product, which a record needs
- * before it can be verified. No contributor details or disclosure.
+ * fields, plus the technology supplier and, optionally, a product of that
+ * supplier. No contributor details or disclosure.
  */
 export function validateAdminCorrection(body: unknown): ValidationResult<AdminCorrectionInput> {
   const object = asObject(body)
@@ -75,14 +75,14 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
 
   const supplier = read.text('technology_supplier', 200)
   const product = read.text('technology_product', 200)
-  if ((supplier === null) !== (product === null)) {
-    read.errors.technology_product = 'technology_supplier and technology_product must be given together'
+  if (product !== null && supplier === null) {
+    read.errors.technology_supplier = 'is required when technology_product is given'
   }
 
   const input: AdminCorrectionInput = {
     changes,
     coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
-    technology: supplier !== null && product !== null ? { supplier, product } : null,
+    technology: supplier !== null ? { supplier, product } : null,
     evidenceUrls: read.urls('evidence_urls'),
     changeNote: read.text('change_note', 1000),
   }

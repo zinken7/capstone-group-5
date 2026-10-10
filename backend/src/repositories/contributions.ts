@@ -238,6 +238,7 @@ export interface CurrentDeployment {
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
+  technologySupplierId: number
   technologyProductId: number | null
   verificationStatus: string
 }
@@ -257,6 +258,7 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       installationType: tables.deployment.installationType,
       commissioningDate: tables.deployment.commissioningDate,
       commissioningYear: tables.deployment.commissioningYear,
+      technologySupplierId: tables.deployment.technologySupplierId,
       technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
     })
@@ -299,6 +301,7 @@ const CORRECTABLE_COLUMNS = {
   installation_type: 'installationType',
   commissioning_date: 'commissioningDate',
   commissioning_year: 'commissioningYear',
+  technology_supplier_id: 'technologySupplierId',
   technology_product_id: 'technologyProductId',
 } as const satisfies Record<string, keyof DeploymentInsert>
 

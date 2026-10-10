@@ -319,6 +319,24 @@ describe('PATCH /api/admin/deployments/:id', () => {
     expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
   })
 
+  it('changes the supplier on its own, dropping a product that belongs to the old supplier', async () => {
+    const response = await correct(12, { technology_supplier: 'RCT' })
+    expect(response.status).toBe(200)
+
+    expect(await query(
+      'SELECT c.name AS supplier, d.technology_product_id FROM deployment d JOIN company c ON c.id = d.technology_supplier_id WHERE d.id = 12',
+    )).toEqual([{ supplier: 'RCT', technology_product_id: null }])
+    const [revision] = await query<{ previous_values: Record<string, unknown> }>('SELECT previous_values FROM revision')
+    expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
+  })
+
+  it('keeps the product when the same supplier is given without one', async () => {
+    const response = await correct(12, { technology_supplier: 'sandvik' })
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('correction does not change the record')
+    expect(await query('SELECT technology_product_id::int AS id FROM deployment WHERE id = 12')).toEqual([{ id: 3 }])
+  })
+
   it.each([
     [{ quantity: 8 }, 'correction does not change the record'],
     [{ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' }, 'correction does not change the record'],
@@ -329,7 +347,7 @@ describe('PATCH /api/admin/deployments/:id', () => {
   })
 
   it.each([
-    [{ technology_supplier: 'RCT' }, 'technology_product'],
+    [{ technology_product: 'AutoMine' }, 'technology_supplier'],
     [{ quantity: -1 }, 'quantity'],
     [{}, 'body'],
   ])('returns 400 with field errors for %j', async (body, field) => {
