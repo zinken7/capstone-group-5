@@ -271,30 +271,19 @@ describe('PATCH /api/admin/deployments/:id', () => {
     })
   })
 
-  it('clears a proposed automation level when asked explicitly, keeping the previous value (FR-57)', async () => {
-    await correct(12, { automation_level: 'teleremote' })
-
-    const response = await correct(12, { clear_automation_level: true })
-    expect(response.status).toBe(200)
-    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: null }])
-
-    const [latest] = await query<{ previous_values: Record<string, unknown> }>(
-      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id DESC LIMIT 1',
-    )
-    expect(latest?.previous_values).toEqual({ automation_level: 'teleremote' })
-  })
-
-  it('treats clearing a level that is already empty as no change', async () => {
+  it('refuses to clear the automation level, which every deployment must carry (FR-57)', async () => {
     const response = await correct(12, { clear_automation_level: true })
 
     expect(response.status).toBe(400)
-    expect(response.body).toEqual({ error: 'correction does not change the record' })
+    expect(response.body.fields).toEqual({ clear_automation_level: 'cannot clear a required automation level' })
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'semi_autonomous' }])
+    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
   })
 
-  it('rejects clearing together with a new level, or a flag that is not a boolean', async () => {
-    const both = await correct(12, { automation_level: 'autonomous', clear_automation_level: true })
-    expect(both.status).toBe(400)
-    expect(both.body.fields).toEqual({ clear_automation_level: 'cannot be combined with automation_level' })
+  it('still corrects the level, and rejects a clear flag that is not a boolean', async () => {
+    const corrected = await correct(12, { automation_level: 'teleremote' })
+    expect(corrected.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'teleremote' }])
 
     const notBoolean = await correct(12, { clear_automation_level: 'yes' })
     expect(notBoolean.status).toBe(400)

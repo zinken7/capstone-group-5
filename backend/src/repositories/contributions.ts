@@ -158,11 +158,12 @@ export async function insertContributor(tx: Tx, contributor: { email: string | n
 export interface NewDeployment {
   siteId: number
   machineModelId: number
+  technologySupplierId: number
   technologyProductId: number | null
   quantity: number
   environment: string | null
   status: string | null
-  automationLevel: string | null
+  automationLevel: string
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
@@ -175,6 +176,7 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
     .values({
       siteId: deployment.siteId,
       machineModelId: deployment.machineModelId,
+      technologySupplierId: deployment.technologySupplierId,
       technologyProductId: deployment.technologyProductId,
       quantity: deployment.quantity,
       // Validated against the controlled values upstream; the database enums still reject anything else

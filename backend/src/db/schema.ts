@@ -1,4 +1,4 @@
-import { pgTable, unique, bigint, text, index, foreignKey, geometry, timestamp, check, boolean, integer, date, smallint, jsonb, uniqueIndex, numeric, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, unique, bigint, text, index, foreignKey, geometry, timestamp, check, integer, date, smallint, boolean, jsonb, uniqueIndex, numeric, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const adminRole = pgEnum("admin_role", ['root', 'admin'])
@@ -42,7 +42,7 @@ export const site = pgTable("site", {
 	index("site_region_id_idx").using("btree", table.regionId.asc().nullsLast().op("int8_ops")),
 	foreignKey({
 			columns: [table.countryCode, table.regionId],
-			foreignColumns: [region.id, region.countryCode],
+			foreignColumns: [region.countryCode, region.id],
 			name: "site_region_same_country_fkey"
 		}),
 ]);
@@ -79,6 +79,70 @@ export const company = pgTable("company", {
 	unique("company_name_key").on(table.name),
 ]);
 
+export const deployment = pgTable("deployment", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "deployment_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	siteId: bigint("site_id", { mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	machineModelId: bigint("machine_model_id", { mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	technologyProductId: bigint("technology_product_id", { mode: "number" }),
+	quantity: integer().notNull(),
+	environment: miningEnvironment(),
+	commissioningDate: date("commissioning_date"),
+	status: deploymentStatus(),
+	verificationStatus: verificationStatus("verification_status").default('unverified').notNull(),
+	validFrom: date("valid_from"),
+	validTo: date("valid_to"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	automationLevel: automationLevel("automation_level").notNull(),
+	installationType: installationType("installation_type").default('unknown').notNull(),
+	commissioningYear: smallint("commissioning_year"),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	technologySupplierId: bigint("technology_supplier_id", { mode: "number" }).notNull(),
+}, (table) => [
+	index("deployment_automation_level_idx").using("btree", table.automationLevel.asc().nullsLast().op("enum_ops")),
+	index("deployment_commissioning_date_idx").using("btree", table.commissioningDate.asc().nullsLast().op("date_ops")),
+	index("deployment_commissioning_year_idx").using("btree", table.commissioningYear.asc().nullsLast().op("int2_ops")),
+	index("deployment_installation_type_idx").using("btree", table.installationType.asc().nullsLast().op("enum_ops")),
+	index("deployment_machine_model_id_idx").using("btree", table.machineModelId.asc().nullsLast().op("int8_ops")),
+	index("deployment_site_id_idx").using("btree", table.siteId.asc().nullsLast().op("int8_ops")),
+	index("deployment_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("deployment_technology_product_id_idx").using("btree", table.technologyProductId.asc().nullsLast().op("int8_ops")),
+	index("deployment_technology_supplier_id_idx").using("btree", table.technologySupplierId.asc().nullsLast().op("int8_ops")),
+	index("deployment_verification_status_idx").using("btree", table.verificationStatus.asc().nullsLast().op("enum_ops")),
+	foreignKey({
+			columns: [table.siteId],
+			foreignColumns: [site.id],
+			name: "deployment_site_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.machineModelId],
+			foreignColumns: [machineModel.id],
+			name: "deployment_machine_model_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.technologyProductId],
+			foreignColumns: [technologyProduct.id],
+			name: "deployment_technology_product_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.technologySupplierId],
+			foreignColumns: [company.id],
+			name: "deployment_technology_supplier_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.technologyProductId, table.technologySupplierId],
+			foreignColumns: [technologyProduct.id, technologyProduct.supplierId],
+			name: "deployment_product_same_supplier_fkey"
+		}),
+	check("deployment_quantity_check", sql`quantity > 0`),
+	check("deployment_validity_ordered", sql`(valid_to IS NULL) OR (valid_from IS NULL) OR (valid_to >= valid_from)`),
+	check("deployment_commissioning_precision", sql`(commissioning_date IS NULL) OR ((commissioning_year IS NOT NULL) AND ((commissioning_year)::numeric = EXTRACT(year FROM commissioning_date)))`),
+]);
+
 export const technologyProduct = pgTable("technology_product", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "technology_product_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
@@ -94,6 +158,7 @@ export const technologyProduct = pgTable("technology_product", {
 			foreignColumns: [company.id],
 			name: "technology_product_supplier_id_fkey"
 		}),
+	unique("technology_product_id_supplier_unique").on(table.id, table.supplierId),
 	unique("technology_product_supplier_product_unique").on(table.supplierId, table.productName),
 ]);
 
@@ -139,61 +204,9 @@ export const verificationReview = pgTable("verification_review", {
 		}),
 	foreignKey({
 			columns: [table.deploymentId, table.correctionId],
-			foreignColumns: [deploymentCorrection.id, deploymentCorrection.deploymentId],
+			foreignColumns: [deploymentCorrection.deploymentId, deploymentCorrection.id],
 			name: "verification_review_correction_same_deployment_fkey"
 		}),
-]);
-
-export const deployment = pgTable("deployment", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "deployment_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	siteId: bigint("site_id", { mode: "number" }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	machineModelId: bigint("machine_model_id", { mode: "number" }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	technologyProductId: bigint("technology_product_id", { mode: "number" }),
-	quantity: integer().notNull(),
-	environment: miningEnvironment(),
-	commissioningDate: date("commissioning_date"),
-	status: deploymentStatus(),
-	verificationStatus: verificationStatus("verification_status").default('unverified').notNull(),
-	validFrom: date("valid_from"),
-	validTo: date("valid_to"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	automationLevel: automationLevel("automation_level"),
-	installationType: installationType("installation_type").default('unknown').notNull(),
-	commissioningYear: smallint("commissioning_year"),
-}, (table) => [
-	index("deployment_automation_level_idx").using("btree", table.automationLevel.asc().nullsLast().op("enum_ops")),
-	index("deployment_commissioning_date_idx").using("btree", table.commissioningDate.asc().nullsLast().op("date_ops")),
-	index("deployment_commissioning_year_idx").using("btree", table.commissioningYear.asc().nullsLast().op("int2_ops")),
-	index("deployment_installation_type_idx").using("btree", table.installationType.asc().nullsLast().op("enum_ops")),
-	index("deployment_machine_model_id_idx").using("btree", table.machineModelId.asc().nullsLast().op("int8_ops")),
-	index("deployment_site_id_idx").using("btree", table.siteId.asc().nullsLast().op("int8_ops")),
-	index("deployment_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
-	index("deployment_technology_product_id_idx").using("btree", table.technologyProductId.asc().nullsLast().op("int8_ops")),
-	index("deployment_verification_status_idx").using("btree", table.verificationStatus.asc().nullsLast().op("enum_ops")),
-	foreignKey({
-			columns: [table.siteId],
-			foreignColumns: [site.id],
-			name: "deployment_site_id_fkey"
-		}),
-	foreignKey({
-			columns: [table.machineModelId],
-			foreignColumns: [machineModel.id],
-			name: "deployment_machine_model_id_fkey"
-		}),
-	foreignKey({
-			columns: [table.technologyProductId],
-			foreignColumns: [technologyProduct.id],
-			name: "deployment_technology_product_id_fkey"
-		}),
-	check("deployment_quantity_check", sql`quantity > 0`),
-	check("deployment_verified_requires_technology_product", sql`(verification_status <> 'verified'::verification_status) OR (technology_product_id IS NOT NULL)`),
-	check("deployment_validity_ordered", sql`(valid_to IS NULL) OR (valid_from IS NULL) OR (valid_to >= valid_from)`),
-	check("deployment_commissioning_precision", sql`(commissioning_date IS NULL) OR ((commissioning_year IS NOT NULL) AND ((commissioning_year)::numeric = EXTRACT(year FROM commissioning_date)))`),
 ]);
 
 export const revision = pgTable("revision", {
@@ -226,7 +239,7 @@ export const revision = pgTable("revision", {
 			foreignColumns: [adminUser.id],
 			name: "revision_admin_user_id_fkey"
 		}),
-	check("revision_at_most_one_actor", sql`(contributor_id IS NULL) OR (admin_user_id IS NULL)`),
+	check("revision_exactly_one_actor", sql`(contributor_id IS NOT NULL) <> (admin_user_id IS NOT NULL)`),
 ]);
 
 export const contributor = pgTable("contributor", {
