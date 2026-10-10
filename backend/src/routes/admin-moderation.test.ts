@@ -129,6 +129,16 @@ describe('GET /api/admin/reviews', () => {
 })
 
 describe('GET /api/admin/deployments/:id', () => {
+  it('shows the supplier of a submission that names no product, in the queue and on the record', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const queue = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(queue.body.items).toContainEqual(expect.objectContaining({ id, technology_supplier: 'Komatsu' }))
+
+    const record = await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)
+    expect(record.body).toMatchObject({ technology_supplier: 'Komatsu', technology_product: null })
+  })
+
   it('returns a record in any status with its evidence and history', async () => {
     const response = await request(app).get('/api/admin/deployments/10').set('Cookie', cookie)
 

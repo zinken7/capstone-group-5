@@ -64,7 +64,7 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(eq(tables.deployment.verificationStatus, 'pending_review'))
     .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
 
@@ -138,7 +138,7 @@ export async function listPendingCorrections(): Promise<QueueItem[]> {
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .leftJoin(tables.contributor, eq(tables.contributor.id, tables.deploymentCorrection.contributorId))
     .where(eq(tables.deploymentCorrection.status, 'pending'))
     .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id))
@@ -254,7 +254,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
