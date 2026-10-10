@@ -68,9 +68,8 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       technologyProductId = await findOrCreateTechnologyProduct(tx, supplierId, input.technologyProduct)
     }
 
-    const contributorId = input.contributorEmail === null && input.organisation === null
-      ? null
-      : await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
+    // Each revision names exactly one actor, so an anonymous submission still gets a contributor row
+    const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
 
     const deployment = await insertDeployment(tx, {
       siteId,
