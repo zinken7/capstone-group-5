@@ -95,27 +95,59 @@ All commands in the next step are run **inside the `capstone-group-5` folder**.
 
 ### 3. Start the backend and database
 
+Copy the example settings file. This is the only command in this step that
+differs between systems.
+
+macOS / Linux:
+
 ```sh
 cp .env.example .env
+```
+
+Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then, on every system, start the stack, create the tables and load the
+demonstration data:
+
+```sh
 docker compose up --build -d
 docker compose exec backend npm run db:migrate
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X' < backend/seeds/seed_global.sql
+docker compose cp backend/seeds/seed_global.sql db:/tmp/seed_global.sql
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -v ON_ERROR_STOP=1 -f /tmp/seed_global.sql'
 ```
 
 The first run downloads images and can take several minutes. The migration
 command upgrades both fresh and existing databases. The seed command loads the
 deterministic synthetic demonstration dataset and is safe to repeat. After the
-first image build, `docker compose up -d` is sufficient.
+first image build, `docker compose up -d` is sufficient. The seed is copied
+into the database container first so that the same commands work in every
+shell, including PowerShell, and `ON_ERROR_STOP=1` makes a failed seed stop
+with an error instead of looking successful.
 The services are available at:
 
 - Backend API: `http://localhost:3000`
 - PostgreSQL/PostGIS: `localhost:5432`
 
-Confirm that the backend can reach PostgreSQL and that PostGIS is enabled:
+Confirm that the backend can reach PostgreSQL and that PostGIS is enabled.
+
+macOS / Linux:
 
 ```sh
 curl --fail http://localhost:3000/health/database
 ```
+
+Windows (PowerShell; `curl` on its own is a different command there):
+
+```powershell
+curl.exe --fail http://localhost:3000/health/database
+```
+
+On any system you can also open <http://localhost:3000/health/database> in a
+browser.
 
 A working setup returns `"status":"ok"` together with the PostgreSQL and
 PostGIS versions. Stop the stack with `docker compose down`. The named database
@@ -124,7 +156,10 @@ all local database data.
 
 ### 4. Start the frontend
 
-Open a **second terminal** and run:
+Open a **second terminal** and run the commands for your system. Use the path
+to wherever you cloned the repository.
+
+macOS / Linux:
 
 ```sh
 cd capstone-group-5/frontend
@@ -133,10 +168,19 @@ cp .env.example .env
 npm run dev
 ```
 
-(Use the path to wherever you cloned the repository.) `npm ci` may finish with
-messages about vulnerabilities or a newer npm version. These are not errors and
-can be ignored. Do **not** run `npm audit fix` or upgrade npm, because that
-changes the project's locked dependencies.
+Windows (PowerShell):
+
+```powershell
+cd capstone-group-5\frontend
+npm ci
+Copy-Item .env.example .env
+npm run dev
+```
+
+`npm ci` may finish with messages about vulnerabilities or a newer npm
+version. These are not errors and can be ignored. Do **not** run
+`npm audit fix` or upgrade npm, because that changes the project's locked
+dependencies.
 
 Vite prints the local URL, normally `http://localhost:5173`. Open it in your
 browser: the map page should show the demonstration mine sites. The checked-in
@@ -145,14 +189,29 @@ frontend environment example sends `/api` requests to the backend at
 
 Keep this terminal open while you use the site; press `Ctrl+C` to stop it.
 
+### 5. (Optional) Create an administrator account
+
+The review queue, approvals and corrections are only available to signed-in
+administrators. To try them, create an account from the project folder. The
+command is the same on every system:
+
+```sh
+docker compose exec backend npm run admin:create -- --email you@example.com --root
+```
+
+The command prints a temporary password once. Sign in at
+<http://localhost:5173/admin> and set a new password when asked. This works
+with the default `SESSION_SECRET` copied from `.env.example`.
+
 ### Troubleshooting
 
 | What you see | Cause and fix |
 |---|---|
-| `cp: cannot stat '.env.example': No such file or directory` | You are not in the project folder. Run `cd capstone-group-5` (step 2) first. |
+| `cp: cannot stat '.env.example': No such file or directory`, or in PowerShell `Cannot find path '...\.env.example'` | You are not in the project folder. Run `cd capstone-group-5` (step 2) first. |
 | `git clone` asks for a username, or GitHub shows 404 | You don't have access yet, or you are not signed in. See step 1b. |
 | `permission denied while trying to connect to the docker API` | Linux only: complete the Docker post-install steps in step 1c, then log out and back in. |
 | `Cannot connect to the Docker daemon` | Docker Desktop is not running. Open the app and wait until it shows that it is running. |
+| `A parameter cannot be found that matches parameter name 'fail'` | Windows PowerShell: use `curl.exe` instead of `curl`, or open the URL in a browser. |
 | `npm: command not found` | Node.js is not installed. See step 1d. |
 | `EBADENGINE` / `Unsupported engine` | Wrong Node.js version. Run `nvm install 22` (or install v22), then `node -v` to check. |
 
