@@ -61,9 +61,10 @@ also works.
    repository's **Settings → Collaborators → Add people**.
 2. Accept the invitation from the email GitHub sends you, or at
    <https://github.com/zinken7/capstone-group-5/invitations>.
-3. Install the GitHub CLI (macOS: `brew install gh`; Windows: see the `winget`
-   commands above; Linux: see <https://github.com/cli/cli#installation>), then
-   run:
+3. Install the GitHub CLI (macOS: download the installer from
+   <https://cli.github.com/>, or run `brew install gh` if you use Homebrew;
+   Windows: see the `winget` commands above; Linux: see
+   <https://github.com/cli/cli#installation>), then run:
 
    ```sh
    gh auth login
@@ -108,7 +109,16 @@ Check: `docker ps` prints a table header and no error.
 
 The project requires **Node.js 22.13 or later, but not 23 or later**. The
 newest version offered on nodejs.org is usually *not* 22, so pick it
-explicitly. The easiest way on macOS and Linux is [nvm](https://github.com/nvm-sh/nvm):
+explicitly. The easiest way on macOS and Linux is [nvm](https://github.com/nvm-sh/nvm).
+
+On macOS only, first create the shell settings file that nvm adds itself to
+(a new Mac does not have one):
+
+```sh
+touch ~/.zshrc
+```
+
+Then, on macOS and Linux:
 
 ```sh
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
@@ -136,8 +146,8 @@ All commands in the next step are run **inside the `capstone-group-5` folder**.
 
 ### 3. Start the backend and database
 
-Copy the example settings file. This is the only command in this step that
-differs between systems.
+Copy the example settings file. This command and the health check below are
+the only ones in this step that differ between systems.
 
 macOS / Linux:
 
@@ -247,7 +257,7 @@ with the default `SESSION_SECRET` copied from `.env.example`.
 ### Starting again later
 
 Steps 1 to 5 are only needed once. Next time, make sure Docker Desktop is
-running, then:
+running, then, inside the `capstone-group-5` folder:
 
 ```sh
 docker compose up -d
@@ -276,6 +286,7 @@ To stop, press `Ctrl+C` in the frontend terminal and run `docker compose down`.
 | Windows: `The term 'git' (or 'node', 'npm', 'gh', 'docker') is not recognized` | The program is not installed, or the terminal was opened before it was installed. Install it (step 1), then close the terminal and open a new one. |
 | `port is already allocated` or `ports are not available` for 5432 or 3000 | Another program, often a local PostgreSQL, is using the port. Stop it, or set another `POSTGRES_PORT` or `BACKEND_PORT` in `.env`. If you change `BACKEND_PORT`, also change `API_PROXY_TARGET` in `frontend/.env`. |
 | `A parameter cannot be found that matches parameter name 'fail'` | Windows PowerShell: use `curl.exe` instead of `curl`, or open the URL in a browser. |
+| `nvm: command not found` after installing nvm | macOS: run `touch ~/.zshrc`, run the nvm install command again, then close the terminal and open a new one. Linux: close the terminal and open a new one. |
 | `npm: command not found` | Node.js is not installed. See step 1d. |
 | `EBADENGINE` / `Unsupported engine` | Wrong Node.js version. Run `nvm install 22` (or install v22), then `node -v` to check. |
 
