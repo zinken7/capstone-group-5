@@ -67,7 +67,7 @@ describe('AdminSubmissionHistoryPage', () => {
     expect(await screen.findByText('Example Mine')).toBeTruthy()
     expect(screen.getByText('Approved')).toBeTruthy()
     expect(screen.getByText('verified')).toBeTruthy()
-    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(50, 0, undefined)
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
   })
 
   it('searches by submission ID', async () => {
@@ -94,7 +94,7 @@ describe('AdminSubmissionHistoryPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => {
-      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(50, 0, 12)
+      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
     })
   })
 
@@ -156,5 +156,32 @@ describe('AdminSubmissionHistoryPage', () => {
       'href',
       '/admin/deployments/12',
     )
+  })
+
+  it('disables Next on a full final page', async () => {
+    const items = Array.from({ length: 50 }, (_, index) => ({
+      ...sampleItems[0],
+      id: 200 - index,
+    }))
+
+    getSubmissionHistoryMock.mockResolvedValue(items)
+
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect((await screen.findAllByText('Example Mine')).length).toBe(50)
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 })

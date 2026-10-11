@@ -12,7 +12,7 @@ const PAGE_SIZE = 50
 type PageState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; items: SubmissionHistoryItem[] }
+  | { status: 'ready'; items: SubmissionHistoryItem[]; hasNextPage: boolean }
 
 function decisionLabel(decision: string | null, verificationStatus: string): string {
   if (decision === 'needs_changes') return 'Needs Changes'
@@ -32,9 +32,15 @@ function AdminSubmissionHistoryPage() {
     let active = true
 
 
-    getSubmissionHistory(PAGE_SIZE, offset, activeId)
+    getSubmissionHistory(PAGE_SIZE + 1, offset, activeId)
       .then((items) => {
-        if (active) setPage({ status: 'ready', items })
+        if (active) {
+          setPage({
+            status: 'ready',
+            items: items.slice(0, PAGE_SIZE),
+            hasNextPage: items.length > PAGE_SIZE,
+          })
+        }
       })
       .catch((error: unknown) => {
         if (active) {
@@ -159,7 +165,7 @@ function AdminSubmissionHistoryPage() {
                 <span>Showing {offset + 1}–{offset + page.items.length}</span>
                 <button
                   type="button"
-                  disabled={page.items.length < PAGE_SIZE}
+                  disabled={!page.hasNextPage}
                   onClick={() => setOffset(offset + PAGE_SIZE)}
                 >
                   Next
