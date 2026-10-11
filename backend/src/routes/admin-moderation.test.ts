@@ -84,6 +84,57 @@ describe('access control', () => {
   })
 })
 
+describe('GET /api/admin/submissions', () => {
+  it('requires an administrator session', async () => {
+    const response = await request(app).get('/api/admin/submissions')
+    expect(response.status).toBe(401)
+  })
+
+  it('returns submission history with the default pagination', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(Number),
+          site_name: expect.any(String),
+          country_code: expect.any(String),
+          verification_status: expect.any(String),
+          updated_at: expect.any(String),
+        }),
+      ]),
+    )
+  })
+
+  it('filters history by deployment ID', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions?id=12')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items.map((item: { id: number }) => item.id)).toEqual([12])
+  })
+
+  it.each([
+    'limit=0',
+    'limit=101',
+    'limit=abc',
+    'offset=-1',
+    'offset=abc',
+    'id=0',
+    'id=abc',
+  ])('rejects invalid query parameters: %s', async (query) => {
+    const response = await request(app)
+      .get(`/api/admin/submissions?${query}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('invalid pagination or submission ID')
+  })
+})
 describe('GET /api/admin/reviews', () => {
   it('lists records pending review, least recently changed first', async () => {
     const contributed = await contribute()

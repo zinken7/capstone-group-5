@@ -20,6 +20,7 @@ import {
   insertReview,
   listPendingCorrections,
   listPendingSubmissions,
+  listSubmissionHistory,
   lockDecisionState,
   setVerificationStatus,
 } from '../repositories/moderation.js'
@@ -39,6 +40,14 @@ export async function listQueue(): Promise<QueueItem[]> {
   return [...submissions, ...corrections].sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))
 }
 
+/** Lists submission history for administrator discovery. */
+export function getSubmissionHistory(
+  limit: number,
+  offset: number,
+  deploymentId?: number,
+) {
+  return listSubmissionHistory(limit, offset, deploymentId)
+}
 export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
   return findReviewRecord(id)
 }

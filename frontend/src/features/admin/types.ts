@@ -143,3 +143,13 @@ export interface NewAdministrator {
   email: string
   temporaryPassword: string
 }
+
+
+export interface SubmissionHistoryItem {
+  id: number
+  siteName: string
+  countryCode: string
+  verificationStatus: string
+  latestDecision: ReviewDecision | null
+  updatedAt: string
+}

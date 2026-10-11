@@ -293,3 +293,36 @@ export async function setAdministratorActive(id: number, active: boolean): Promi
     body: JSON.stringify({ active }),
   })
 }
+
+
+/** Retrieves submission history, optionally filtered by an exact deployment ID. */
+export async function getSubmissionHistory(
+  limit = 50,
+  offset = 0,
+  id?: number,
+): Promise<SubmissionHistoryItem[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  if (id !== undefined) params.set('id', String(id))
+
+  const response = await requestJson<{ items: {
+    id: number
+    site_name: string
+    country_code: string
+    verification_status: string
+    latest_decision: ReviewDecision | null
+    updated_at: string
+  }[] }>(`admin/submissions?${params.toString()}`)
+
+  return response.items.map((item) => ({
+    id: item.id,
+    siteName: item.site_name,
+    countryCode: item.country_code,
+    verificationStatus: item.verification_status,
+    latestDecision: item.latest_decision,
+    updatedAt: item.updated_at,
+  }))
+}

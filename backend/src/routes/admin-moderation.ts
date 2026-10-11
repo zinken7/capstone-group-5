@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { validateAdminCorrection, validateReview } from '../lib/admin-validation.js'
 import { parseId } from '../lib/ids.js'
 import { currentAdmin, requireAdmin } from '../middleware/require-admin.js'
-import { correctAsAdministrator, decide, decideCorrection, getReviewRecord, listQueue } from '../services/moderation.js'
+import { correctAsAdministrator, decide, decideCorrection, getReviewRecord, getSubmissionHistory, listQueue } from '../services/moderation.js'
 
 const router = Router()
 
@@ -15,6 +15,32 @@ router.get('/admin/reviews', ...requireAdmin(), async (_req, res, next) => {
   }
 })
 
+router.get('/admin/submissions', ...requireAdmin(), async (req, res, next) => {
+  const rawLimit = req.query.limit
+  const rawOffset = req.query.offset
+  const rawId = req.query.id
+
+  const limit = rawLimit === undefined ? 50 : Number(rawLimit)
+  const offset = rawOffset === undefined ? 0 : Number(rawOffset)
+  const id = rawId === undefined ? undefined : Number(rawId)
+
+  if (
+    !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
+    !Number.isSafeInteger(offset) || offset < 0 ||
+    (id !== undefined && (!Number.isSafeInteger(id) || id < 1))
+  ) {
+    res.status(400).json({ error: 'invalid pagination or submission ID' })
+    return
+  }
+
+  try {
+    res.status(200).json({
+      items: await getSubmissionHistory(limit, offset, id),
+    })
+  } catch (error) {
+    next(error)
+  }
+})
 router.get('/admin/deployments/:id', ...requireAdmin(), async (req, res, next) => {
   const id = parseId(req.params.id)
   if (id === null) {
