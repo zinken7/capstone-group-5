@@ -80,8 +80,10 @@ describe('inServiceAt', () => {
     expect(inServiceAt(yearOnly, 2023)).toBe(true)
   })
 
-  it('leaves out announced and undated deployments', () => {
+  it('leaves out announced, commissioning and undated deployments', () => {
     expect(inServiceAt({ ...deployment, status: 'announced' }, 2026)).toBe(false)
+    expect(inServiceAt({ ...deployment, status: 'commissioning' }, 2026)).toBe(false)
+    expect(inServiceAt({ ...deployment, status: 'decommissioned' }, 2021)).toBe(true)
     expect(inServiceAt({ ...deployment, commissioningYear: null, commissioningDate: null }, 2026)).toBe(false)
   })
 
@@ -95,5 +97,6 @@ describe('inServiceAt', () => {
 
   it('never counts an announced deployment as ended', () => {
     expect(endedBy({ ...deployment, status: 'announced', validTo: '2022-06-30' }, 2024)).toBe(false)
+    expect(endedBy({ ...deployment, status: 'commissioning', validTo: '2022-06-30' }, 2024)).toBe(false)
   })
 })

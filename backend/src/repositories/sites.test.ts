@@ -25,7 +25,7 @@ describe('findMapSites', () => {
     expect(result.sites[0]?.deploymentCount).toBe(1)
   })
 
-  it('includes historical decommissioned deployments only when requested', async () => {
+  it('includes historically in-service deployments regardless of current status', async () => {
     const hidden = await findMapSites({
       ...noFilters,
       date: '2018-01-01',
@@ -37,7 +37,9 @@ describe('findMapSites', () => {
       includeDecommissioned: true,
     })
 
-    expect(hidden.sites).toEqual([])
+    expect(hidden.sites.map((site) => site.id)).toEqual([1])
+    expect(hidden.sites[0]?.machineCount).toBe(20)
+    expect(hidden.sites[0]?.status).toBe('decommissioned')
     expect(visible.sites.map((site) => site.id)).toEqual([1])
     expect(visible.sites[0]?.status).toBe('decommissioned')
     expect(visible.sites[0]?.machineCount).toBe(20)
@@ -129,7 +131,7 @@ describe('findMapSites', () => {
     expect(result.sites.map((site) => site.id)).toEqual([1])
     expect(result.sites[0]?.status).toBe('decommissioned')
     // Deployment 11 has no commissioning date
-    expect(result.excludedCount).toBe(1)
+    expect(result.excludedCount).toBe(0)
   })
 
   it('moves to the later deployment once the date passes the earlier one', async () => {

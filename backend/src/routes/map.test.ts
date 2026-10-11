@@ -56,7 +56,7 @@ describe('GET /api/map', () => {
 
     expect(response.status).toBe(200)
     // Deployment 11 (Mount Whaleback) has no commissioning date.
-    expect(response.body.excluded_count).toBe(1)
+    expect(response.body.excluded_count).toBe(0)
   })
 
   it('rejects a malformed bbox parameter', async () => {
@@ -117,7 +117,7 @@ describe('GET /api/map?year=', () => {
     expect(site(in2022.body.features, 1)).toMatchObject({ status: 'operational', machine_count: 96, deployment_count: 1 })
     // Deployment 11 has no commissioning year, so it is excluded rather than placed
     expect(siteIds(in2022.body.features)).toEqual([1])
-    expect(in2022.body.excluded_count).toBe(1)
+    expect(in2022.body.excluded_count).toBe(0)
   })
 
   it('places a record known only by its year, which a date cannot', async () => {
@@ -137,19 +137,20 @@ describe('GET /api/map?year=', () => {
     const response = await request(app).get('/api/map?year=2022')
 
     expect(siteIds(response.body.features)).toEqual([])
-    expect(response.body.excluded_count).toBe(1)
+    expect(response.body.excluded_count).toBe(0)
   })
 
-  it('keeps operational-only map totals within analytics in-service totals for every year', async () => {
+  it('reconciles historical map totals with timeline totals excluding commissioning machines', async () => {
     await query('UPDATE deployment SET commissioning_year = 2023 WHERE id = 11')
     const timeline = await request(app).get('/api/analytics/timeline')
 
     for (const { year, in_service: inService } of timeline.body.years as Array<{ year: number; in_service: number }>) {
       const map = await request(app).get(`/api/map?year=${year}`)
       const machines = (map.body.features as Feature[]).reduce((sum, feature) => sum + feature.properties.machine_count, 0)
-      const expectedOperationalMachines = year >= 2021 ? 96 : 0
+      const expectedOperationalMachines = year >= 2021 ? 96 : year >= 2015 && year <= 2020 ? 20 : 0
       expect(machines, String(year)).toBe(expectedOperationalMachines)
-      expect(machines, String(year)).toBeLessThanOrEqual(inService)
+      const commissioningMachines = year >= 2023 ? 5 : 0
+      expect(machines, String(year)).toBe(inService - commissioningMachines)
     }
   })
 

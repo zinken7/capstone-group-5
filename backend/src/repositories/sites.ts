@@ -168,13 +168,20 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
   const bySite = new Map<number, SiteEntry>()
 
   for (const row of rows) {
-    if (row.excluded) excludedCount += 1
-    // FR-16: only operational deployments appear by default.
-    // Decommissioned deployments require the explicit checkbox.
-    if (row.status !== 'operational' &&
+    // Exclude deployments that have not entered operational service.
+    if (row.status === 'announced' || row.status === 'commissioning') {
+      continue
+    }
+
+    // Historical views use the validity window, not the current status.
+    // Without a reference date, show only currently operational deployments.
+    if (date === null && year === null &&
+        row.status !== 'operational' &&
         !(filters.includeDecommissioned && row.status === 'decommissioned')) {
       continue
     }
+
+    if (row.excluded) excludedCount += 1
 
     if (!row.in_window && !row.ended) continue
 
