@@ -128,7 +128,6 @@ export async function listSubmissionHistory(
     SELECT vr.decision::text
     FROM ${tables.verificationReview} vr
     WHERE vr.deployment_id = "deployment"."id"
-      AND vr.correction_id IS NULL
     ORDER BY vr.reviewed_at DESC, vr.id DESC
     LIMIT 1
   )`
