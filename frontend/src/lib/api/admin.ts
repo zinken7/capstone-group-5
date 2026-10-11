@@ -9,6 +9,7 @@ import type {
   ReviewDecision,
   ReviewQueueItem,
   ReviewRecord,
+  SubmissionHistoryItem,
 } from '../../features/admin/types'
 
 // The backend refuses modifying admin requests without this header (CSRF protection).
