@@ -99,7 +99,7 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
     'commissioning_date', 'valid_from', 'valid_to', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'evidence_urls',
-  ].some((field) => read.has(field)) || clearLevel === true || clearFrom || clearTo
+  ].some((field) => read.has(field)) || clearFrom || clearTo
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }
