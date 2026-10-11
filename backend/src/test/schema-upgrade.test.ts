@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { resolve } from 'node:path'
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Client } from 'pg'
@@ -58,13 +59,20 @@ async function createSprint2Database(suffix: string, data: string): Promise<stri
 }
 
 function runMigrations(connectionString: string): { status: number | null; output: string } {
-  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-  const result = spawnSync(npm, ['run', '--silent', 'db:migrate'], {
+  const tsxCli = resolve(backendRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+  const result = spawnSync(process.execPath, [tsxCli, 'src/migrate.ts'], {
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     encoding: 'utf8',
   })
-  return { status: result.status, output: `${result.stdout}${result.stderr}` }
+
+  const output = [
+    result.stdout ?? '',
+    result.stderr ?? '',
+    result.error ? `Migration process error: ${result.error.message}` : '',
+  ].filter(Boolean).join('\n')
+
+  return { status: result.status, output }
 }
 
 async function appliedMigrations(client: Client): Promise<string[]> {

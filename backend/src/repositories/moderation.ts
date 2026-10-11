@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql, ne, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
@@ -166,6 +166,15 @@ export interface ReviewRecord {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  possible_duplicates: {
+    id: number
+    verification_status: string
+    machine_manufacturer: string
+    machine_model: string | null
+    machine_type: string
+    technology_product: string | null
+    quantity: number
+  }[]
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -202,7 +211,7 @@ export interface CorrectionView {
   changes: { field: string; before: unknown; proposed: unknown; current: unknown }[]
 }
 
-type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections'>
+type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections' | 'possible_duplicates'>
 
 /** A record's current value for each field a correction can propose, in the stored proposal format. */
 function currentValue(record: RecordFields, field: string): unknown {
@@ -223,6 +232,8 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .select({
       id: tables.deployment.id,
       verification_status: tables.deployment.verificationStatus,
+      machine_model_id: tables.deployment.machineModelId,
+      technology_product_id: tables.deployment.technologyProductId,
       site_id: tables.site.id,
       site_name: tables.site.name,
       country_code: tables.site.countryCode,
@@ -258,6 +269,36 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
+
+  const possible_duplicates = record.technology_product_id === null
+    ? []
+    : await db
+      .select({
+        id: tables.deployment.id,
+        verification_status: tables.deployment.verificationStatus,
+        machine_manufacturer: manufacturer.name,
+        machine_model: tables.machineModel.modelName,
+        machine_type: tables.machineModel.machineType,
+        technology_product: tables.technologyProduct.productName,
+        quantity: tables.deployment.quantity,
+      })
+      .from(tables.deployment)
+      .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+      .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+      .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+      .innerJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+      .where(and(
+        ne(tables.deployment.id, id),
+        eq(tables.deployment.siteId, record.site_id),
+        eq(tables.deployment.technologyProductId, record.technology_product_id),
+        inArray(tables.deployment.verificationStatus, ['pending_review', 'verified']),
+        or(
+          eq(tables.deployment.machineModelId, record.machine_model_id),
+          eq(tables.machineModel.machineType, record.machine_type),
+        ),
+      ))
+      .orderBy(asc(tables.deployment.id))
+
 
   const [evidence, reviews, revisions, corrections] = await Promise.all([
     db
@@ -314,8 +355,10 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       .where(eq(tables.deploymentCorrection.deploymentId, id))
       .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id)),
   ])
+  const { machine_model_id, technology_product_id, ...publicRecord } = record
   return {
-    ...record,
+    ...publicRecord,
+    possible_duplicates,
     evidence,
     reviews,
     revisions,

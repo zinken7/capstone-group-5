@@ -37,6 +37,7 @@ const recordDto = (overrides: Record<string, unknown> = {}) => ({
   created_at: '2026-10-01T00:00:00Z',
   updated_at: '2026-10-02T00:00:00Z',
   evidence: [{ url: 'https://example.com/evidence/12', source_type: 'news', publisher: null, published_date: null }],
+  possible_duplicates: [],
   reviews: [],
   revisions: [],
   corrections: [],
@@ -290,6 +291,58 @@ describe('record review', () => {
     expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate' })
   })
 
+  test('shows possible duplicate deployments with a link to the matching record', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        possible_duplicates: [{
+          id: 13,
+          verification_status: 'pending_review',
+          machine_manufacturer: 'Sandvik',
+          machine_model: '930E',
+          machine_type: 'haul_truck',
+          technology_product: 'AutoMine',
+          quantity: 15,
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByRole('heading', {
+      name: 'Possible duplicate deployments',
+    })).toBeInTheDocument()
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /1 possible matching record was found at this site/,
+    )
+
+    const duplicateLink = screen.getByRole('link', {
+      name: /Record 13: Sandvik 930E/,
+    })
+    expect(duplicateLink).toHaveAttribute('href', '/admin/deployments/13')
+    expect(screen.getByText(/Quantity: 15/)).toBeInTheDocument()
+  })
+
+  test('does not show a duplicate warning when there are no possible duplicates', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        possible_duplicates: [],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByRole('heading', { name: 'Details' }))
+      .toBeInTheDocument()
+    expect(screen.queryByRole('heading', {
+      name: 'Possible duplicate deployments',
+    })).not.toBeInTheDocument()
+  })
+
   test('shows why an approval was refused', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),
@@ -385,7 +438,8 @@ describe('buildCorrection', () => {
   const record = {
     id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
-    technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
+    technologySupplier: null, technologyProduct: null, possibleDuplicates: [],
+    automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
     validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],
   } satisfies ReviewRecord

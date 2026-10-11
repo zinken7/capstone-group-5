@@ -90,6 +90,15 @@ export interface ReviewRecord {
   quantity: number
   technologySupplier: string | null
   technologyProduct: string | null
+  possibleDuplicates: {
+    id: number
+    verificationStatus: string
+    machineManufacturer: string
+    machineModel: string | null
+    machineType: string
+    technologyProduct: string | null
+    quantity: number
+  }[]
   automationLevel: string | null
   environment: string | null
   installationType: string

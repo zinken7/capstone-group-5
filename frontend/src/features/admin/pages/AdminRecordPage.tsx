@@ -159,6 +159,40 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             </dl>
           </section>}
 
+          {record.possibleDuplicates.length > 0 && (
+            <section
+              className="admin-panel admin-record__lead"
+              aria-labelledby="duplicates-heading"
+            >
+              <h2 id="duplicates-heading">Possible duplicate deployments</h2>
+              <p className="admin-notice admin-notice--warning" role="status">
+                {record.possibleDuplicates.length} possible matching
+                {record.possibleDuplicates.length === 1 ? ' record was' : ' records were'}
+                {' '}found at this site. Review them before making a decision.
+              </p>
+              <ul>
+                {record.possibleDuplicates.map((duplicate) => (
+                  <li key={duplicate.id}>
+                    <p>
+                      <Link to={`/admin/deployments/${duplicate.id}`}>
+                        Record {duplicate.id}: {duplicate.machineManufacturer}
+                        {' '}{duplicate.machineModel ?? 'Model not recorded'}
+                      </Link>
+                    </p>
+                    <p>
+                      Machine type: {formatEnumLabel(duplicate.machineType)}
+                      {' | '}Quantity: {formatNumber(duplicate.quantity)}
+                    </p>
+                    <p>
+                      Technology: {duplicate.technologyProduct ?? 'Not recorded'}
+                      {' | '}Status: {formatEnumLabel(duplicate.verificationStatus)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="admin-panel admin-record__rest" aria-labelledby="details-heading">
             <h2 id="details-heading">Details</h2>
             <dl className="record-fields">
