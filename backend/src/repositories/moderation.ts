@@ -355,7 +355,11 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       .where(eq(tables.deploymentCorrection.deploymentId, id))
       .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id)),
   ])
-  const { machine_model_id, technology_product_id, ...publicRecord } = record
+  const publicRecord = Object.fromEntries(
+    Object.entries(record).filter(
+      ([key]) => key !== 'machine_model_id' && key !== 'technology_product_id',
+    ),
+  ) as Omit<typeof record, 'machine_model_id' | 'technology_product_id'>
   return {
     ...publicRecord,
     possible_duplicates,
