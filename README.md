@@ -26,7 +26,20 @@ Follow the steps in order. Every command is typed into a terminal
 
 ### 1. Install the requirements
 
-You need four things. Install each one once.
+You need four things. Install each one once. After installing anything, **close
+the terminal and open a new one**, so that it finds the new commands.
+
+On Windows 10/11 you can install all of them from PowerShell with `winget`,
+which is built in. Accept the administrator prompts that appear:
+
+```powershell
+winget install --id Git.Git -e
+winget install --id GitHub.cli -e
+winget install --id OpenJS.NodeJS.22 -e
+winget install --id Docker.DockerDesktop -e
+```
+
+Then continue with the sign-in in step 1b and the Docker set-up in step 1c.
 
 **a. Git**, to download the code
 
@@ -38,10 +51,31 @@ Check: `git --version` prints a version number.
 
 **b. Access to this repository**
 
-The repository is private. Ask a repository owner to add your GitHub account
-as a collaborator, then sign in to GitHub on your computer, for example with
-the [GitHub CLI](https://cli.github.com/) (`gh auth login`) or a
-[personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+The repository is private, so your GitHub account must be a collaborator and
+you must be signed in to GitHub on your computer. The steps below use the
+[GitHub CLI](https://cli.github.com/); a
+[personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+also works.
+
+1. Send your GitHub username to a repository owner. They add it under the
+   repository's **Settings → Collaborators → Add people**.
+2. Accept the invitation from the email GitHub sends you, or at
+   <https://github.com/zinken7/capstone-group-5/invitations>.
+3. Install the GitHub CLI (macOS: `brew install gh`; Windows: see the `winget`
+   commands above; Linux: see <https://github.com/cli/cli#installation>), then
+   run:
+
+   ```sh
+   gh auth login
+   ```
+
+   Answer **GitHub.com**, **HTTPS**, **Yes** (authenticate Git with your
+   GitHub credentials) and **Login with a web browser**. The terminal shows an
+   eight-character code; enter it at <https://github.com/login/device> and
+   select **Authorize**.
+
+Check: `gh repo view zinken7/capstone-group-5` prints the repository
+description instead of an error.
 
 **c. Docker**
 
@@ -51,6 +85,12 @@ the [GitHub CLI](https://cli.github.com/) (`gh auth login`) or a
     emulation. In Docker Desktop, open **Settings → General** and make sure
     **Use Rosetta for x86_64/amd64 emulation on Apple Silicon** is ticked
     (it is on by default in recent versions).
+  - On Windows, Docker Desktop needs the Windows Subsystem for Linux (WSL 2).
+    If `wsl --status` says that WSL is not installed, open PowerShell **as
+    administrator** (right-click **Windows PowerShell** → **Run as
+    administrator**), run `wsl --install`, and restart the computer. Then open
+    Docker Desktop, accept its licence agreement, and wait until it shows
+    **Engine running**.
 - Linux: install [Docker Engine](https://docs.docker.com/engine/install/) with
   the Compose plugin, then complete the
   [post-install steps](https://docs.docker.com/engine/install/linux-postinstall/)
@@ -80,7 +120,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
 nvm install 22
 ```
 
-On Windows, download the **v22** installer from <https://nodejs.org/en/download>.
+On Windows, download the **v22** installer from <https://nodejs.org/en/download>,
+or use `winget install --id OpenJS.NodeJS.22 -e`.
 
 Check: `node -v` prints `v22.x.x`, and `npm -v` prints a version number.
 
@@ -203,6 +244,27 @@ The command prints a temporary password once. Sign in at
 <http://localhost:5173/admin> and set a new password when asked. This works
 with the default `SESSION_SECRET` copied from `.env.example`.
 
+### Starting again later
+
+Steps 1 to 5 are only needed once. Next time, make sure Docker Desktop is
+running, then:
+
+```sh
+docker compose up -d
+```
+
+and, in a second terminal inside `frontend`:
+
+```sh
+npm run dev
+```
+
+After pulling new changes, run `docker compose up --build -d`,
+`docker compose exec backend npm run db:migrate` and, inside `frontend`,
+`npm ci`, so that the image, database schema and dependencies match the code.
+
+To stop, press `Ctrl+C` in the frontend terminal and run `docker compose down`.
+
 ### Troubleshooting
 
 | What you see | Cause and fix |
@@ -210,7 +272,9 @@ with the default `SESSION_SECRET` copied from `.env.example`.
 | `cp: cannot stat '.env.example': No such file or directory`, or in PowerShell `Cannot find path '...\.env.example'` | You are not in the project folder. Run `cd capstone-group-5` (step 2) first. |
 | `git clone` asks for a username, or GitHub shows 404 | You don't have access yet, or you are not signed in. See step 1b. |
 | `permission denied while trying to connect to the docker API` | Linux only: complete the Docker post-install steps in step 1c, then log out and back in. |
-| `Cannot connect to the Docker daemon` | Docker Desktop is not running. Open the app and wait until it shows that it is running. |
+| `Cannot connect to the Docker daemon`, or on Windows `failed to connect to the docker API at npipe:////./pipe/docker_engine` | Docker Desktop is not running. Open the app and wait until it shows that it is running. On Windows, if it does not start, install WSL as described in step 1c. |
+| Windows: `The term 'git' (or 'node', 'npm', 'gh', 'docker') is not recognized` | The program is not installed, or the terminal was opened before it was installed. Install it (step 1), then close the terminal and open a new one. |
+| `port is already allocated` or `ports are not available` for 5432 or 3000 | Another program, often a local PostgreSQL, is using the port. Stop it, or set another `POSTGRES_PORT` or `BACKEND_PORT` in `.env`. If you change `BACKEND_PORT`, also change `API_PROXY_TARGET` in `frontend/.env`. |
 | `A parameter cannot be found that matches parameter name 'fail'` | Windows PowerShell: use `curl.exe` instead of `curl`, or open the URL in a browser. |
 | `npm: command not found` | Node.js is not installed. See step 1d. |
 | `EBADENGINE` / `Unsupported engine` | Wrong Node.js version. Run `nvm install 22` (or install v22), then `node -v` to check. |
