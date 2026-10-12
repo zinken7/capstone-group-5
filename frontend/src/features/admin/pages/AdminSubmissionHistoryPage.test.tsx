@@ -66,7 +66,8 @@ describe('AdminSubmissionHistoryPage', () => {
 
     expect(await screen.findByText('Example Mine')).toBeTruthy()
     expect(screen.getByText('Approved')).toBeTruthy()
-    expect(screen.getByText('verified')).toBeTruthy()
+    expect(screen.getByText('Verified')).toBeTruthy()
+    expect(screen.getByText('Australia')).toBeTruthy()
     expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
   })
 
@@ -183,5 +184,103 @@ describe('AdminSubmissionHistoryPage', () => {
     expect((await screen.findAllByText('Example Mine')).length).toBe(50)
     expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+  })
+  it('keeps submission history visible after invalid search', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter a valid positive Submission ID.',
+    )
+    expect(screen.getByText('Example Mine')).toBeTruthy()
+    expect(getSubmissionHistoryMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears validation error when Show all is clicked', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Example Mine')).toBeTruthy()
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+  })
+
+  it('allows a valid search after an invalid search', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: '12' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
+    })
+
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

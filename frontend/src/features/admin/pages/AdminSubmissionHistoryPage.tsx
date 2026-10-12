@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getSubmissionHistory } from '../../../lib/api/admin'
+import { formatCountry, formatDateTime, formatEnumLabel } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import AdminBar from '../components/AdminBar'
 import type { SubmissionHistoryItem } from '../types'
@@ -25,6 +26,7 @@ function decisionLabel(decision: string | null, verificationStatus: string): str
 function AdminSubmissionHistoryPage() {
   const [page, setPage] = useState<PageState>({ status: 'loading' })
   const [search, setSearch] = useState('')
+  const [validationError, setValidationError] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<number | undefined>()
   const [offset, setOffset] = useState(0)
 
@@ -61,9 +63,11 @@ function AdminSubmissionHistoryPage() {
     const value = search.trim()
 
     if (value && (!/^\d+$/.test(value) || Number(value) < 1 || !Number.isSafeInteger(Number(value)))) {
-      setPage({ status: 'error', message: 'Enter a valid positive Submission ID.' })
+      setValidationError('Enter a valid positive Submission ID.')
       return
     }
+
+    setValidationError(null)
 
     setOffset(0)
     setActiveId(value ? Number(value) : undefined)
@@ -90,15 +94,22 @@ function AdminSubmissionHistoryPage() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Enter a Submission ID"
           />
-          <button type="submit">Search</button>
-          <button type="button" onClick={() => {
+          <button type="submit" className="button button--primary">Search</button>
+          <button type="button" className="button button--secondary" onClick={() => {
             setSearch('')
+            setValidationError(null)
             setOffset(0)
             setActiveId(undefined)
           }}>
             Show all
           </button>
         </form>
+
+        {validationError && (
+          <p role="alert" className="admin-search-error">
+            {validationError}
+          </p>
+        )}
 
         {page.status === 'loading' && (
           <StateMessage variant="loading" title="Loading submission history" message="Fetching historical submissions." />
@@ -130,17 +141,15 @@ function AdminSubmissionHistoryPage() {
                     <tr key={item.id}>
                       <td data-label="Submission ID">{item.id}</td>
                       <td data-label="Site">{item.siteName}</td>
-                      <td data-label="Country">{item.countryCode || '—'}</td>
+                      <td data-label="Country">{formatCountry(item.countryCode)}</td>
                       <td data-label="Latest decision">
                         {item.latestDecision
                           ? decisionLabel(item.latestDecision, item.verificationStatus)
                           : 'No review recorded'}
                       </td>
-                      <td data-label="Current status">{item.verificationStatus.replaceAll('_', ' ')}</td>
+                      <td data-label="Current status">{formatEnumLabel(item.verificationStatus)}</td>
                       <td data-label="Last updated">
-                        {Number.isNaN(Date.parse(item.updatedAt))
-                          ? item.updatedAt
-                          : new Date(item.updatedAt).toLocaleString()}
+                        {formatDateTime(item.updatedAt)}
                       </td>
                       <td data-label="Action">
                         <Link className="admin-review-link" to={`/admin/deployments/${item.id}`}>
@@ -155,7 +164,7 @@ function AdminSubmissionHistoryPage() {
 
             {!activeId && (
               <div className="admin-pagination">
-                <button
+                <button className="button button--secondary"
                   type="button"
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
@@ -163,7 +172,7 @@ function AdminSubmissionHistoryPage() {
                   Previous
                 </button>
                 <span>Showing {offset + 1}–{offset + page.items.length}</span>
-                <button
+                <button className="button button--secondary"
                   type="button"
                   disabled={!page.hasNextPage}
                   onClick={() => setOffset(offset + PAGE_SIZE)}

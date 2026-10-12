@@ -22,12 +22,12 @@ router.get('/admin/submissions', ...requireAdmin(), async (req, res, next) => {
 
   const limit = rawLimit === undefined ? 50 : Number(rawLimit)
   const offset = rawOffset === undefined ? 0 : Number(rawOffset)
-  const id = rawId === undefined ? undefined : Number(rawId)
+  const id = rawId === undefined ? undefined : parseId(rawId)
 
   if (
     !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
     !Number.isSafeInteger(offset) || offset < 0 ||
-    (id !== undefined && (!Number.isSafeInteger(id) || id < 1))
+    (id === null)
   ) {
     res.status(400).json({ error: 'invalid pagination or submission ID' })
     return

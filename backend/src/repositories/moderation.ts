@@ -127,7 +127,7 @@ export async function listSubmissionHistory(
   const latestDecision = sql<string | null>`(
     SELECT vr.decision::text
     FROM ${tables.verificationReview} vr
-    WHERE vr.deployment_id = "deployment"."id"
+    WHERE vr.deployment_id = ${tables.deployment.id}
     ORDER BY vr.reviewed_at DESC, vr.id DESC
     LIMIT 1
   )`
