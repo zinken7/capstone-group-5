@@ -36,9 +36,11 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
-type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'validFrom' | 'validTo'> & {
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'validFrom' | 'validTo' | 'clearValidFrom' | 'clearValidTo'> & {
   validFrom?: string
   validTo?: string
+  clearValidFrom?: boolean
+  clearValidTo?: boolean
 }
 
 function isFullDate(value: string): boolean {
