@@ -115,6 +115,7 @@ export interface SubmissionHistoryItem {
   country_code: string
   verification_status: string
   latest_decision: string | null
+  latest_decision_is_correction: boolean | null
   updated_at: string
 }
 
@@ -132,6 +133,14 @@ export async function listSubmissionHistory(
     LIMIT 1
   )`
 
+  const latestDecisionIsCorrection = sql<boolean | null>`(
+    SELECT vr.correction_id IS NOT NULL
+    FROM ${tables.verificationReview} vr
+    WHERE vr.deployment_id = ${tables.deployment.id}
+    ORDER BY vr.reviewed_at DESC, vr.id DESC
+    LIMIT 1
+  )`
+
   return db
     .select({
       id: tables.deployment.id,
@@ -139,6 +148,7 @@ export async function listSubmissionHistory(
       country_code: tables.site.countryCode,
       verification_status: tables.deployment.verificationStatus,
       latest_decision: latestDecision,
+      latest_decision_is_correction: latestDecisionIsCorrection,
       updated_at: isoTimestamp(tables.deployment.updatedAt),
     })
     .from(tables.deployment)

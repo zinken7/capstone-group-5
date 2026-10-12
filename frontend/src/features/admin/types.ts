@@ -151,5 +151,6 @@ export interface SubmissionHistoryItem {
   countryCode: string
   verificationStatus: string
   latestDecision: ReviewDecision | null
+  latestDecisionIsCorrection: boolean | null
   updatedAt: string
 }

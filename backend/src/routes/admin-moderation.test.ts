@@ -141,6 +141,7 @@ describe('GET /api/admin/submissions', () => {
       expect.objectContaining({
         id,
         latest_decision: 'rejected',
+        latest_decision_is_correction: true,
       }),
     ])
   })

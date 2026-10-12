@@ -510,8 +510,13 @@ Query parameters:
 
 Success: `200 OK`, returning `{"items": [...]}`. Each item includes
 `id`, `site_name`, `country_code`, `verification_status`,
-`latest_decision`, and `updated_at`. The latest decision can come from
-a deployment review or a correction review.
+`latest_decision`, `latest_decision_is_correction`, and `updated_at`.
+The latest decision can come from a deployment review or a correction review.
+
+`latest_decision_is_correction` indicates the source of the latest decision:
+- `true`: the latest decision was made on a correction;
+- `false`: the latest decision was made on the deployment itself;
+- `null`: no review decision has been recorded.
 
 Invalid parameters return `400 Bad Request` with
 `{"error":"invalid pagination or submission ID"}`.

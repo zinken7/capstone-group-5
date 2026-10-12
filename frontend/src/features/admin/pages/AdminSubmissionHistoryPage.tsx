@@ -15,12 +15,9 @@ type PageState =
   | { status: 'error'; message: string }
   | { status: 'ready'; items: SubmissionHistoryItem[]; hasNextPage: boolean }
 
-function decisionLabel(decision: string | null, verificationStatus: string): string {
-  if (decision === 'needs_changes') return 'Needs Changes'
-  if (decision === 'approved') return 'Approved'
-  if (decision === 'rejected') return 'Rejected'
-  if (verificationStatus === 'pending_review') return 'Pending Review'
-  return verificationStatus.replaceAll('_', ' ')
+function decisionLabel(decision: string, isCorrection: boolean | null): string {
+  const label = formatEnumLabel(decision)
+  return isCorrection ? `Correction ${label.toLowerCase()}` : label
 }
 
 function AdminSubmissionHistoryPage() {
@@ -144,7 +141,7 @@ function AdminSubmissionHistoryPage() {
                       <td data-label="Country">{formatCountry(item.countryCode)}</td>
                       <td data-label="Latest decision">
                         {item.latestDecision
-                          ? decisionLabel(item.latestDecision, item.verificationStatus)
+                          ? decisionLabel(item.latestDecision, item.latestDecisionIsCorrection)
                           : 'No review recorded'}
                       </td>
                       <td data-label="Current status">{formatEnumLabel(item.verificationStatus)}</td>

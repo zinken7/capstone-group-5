@@ -315,6 +315,7 @@ export async function getSubmissionHistory(
     country_code: string
     verification_status: string
     latest_decision: ReviewDecision | null
+    latest_decision_is_correction: boolean | null
     updated_at: string
   }[] }>(`admin/submissions?${params.toString()}`)
 
@@ -324,6 +325,7 @@ export async function getSubmissionHistory(
     countryCode: item.country_code,
     verificationStatus: item.verification_status,
     latestDecision: item.latest_decision,
+    latestDecisionIsCorrection: item.latest_decision_is_correction,
     updatedAt: item.updated_at,
   }))
 }

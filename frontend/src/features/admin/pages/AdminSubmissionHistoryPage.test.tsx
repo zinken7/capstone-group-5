@@ -28,6 +28,7 @@ const sampleItems = [
     countryCode: 'AU',
     verificationStatus: 'verified',
     latestDecision: 'approved',
+    latestDecisionIsCorrection: false,
     updatedAt: '2026-10-10T10:00:00.000Z',
   },
 ]
@@ -48,6 +49,33 @@ afterEach(() => {
 })
 
 describe('AdminSubmissionHistoryPage', () => {
+  it('shows a rejected correction separately from the verified deployment status', async () => {
+    getSubmissionHistoryMock.mockResolvedValue([
+      {
+        ...sampleItems[0],
+        latestDecision: 'rejected',
+        latestDecisionIsCorrection: true,
+        verificationStatus: 'verified',
+      },
+    ])
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Correction rejected')).toBeTruthy()
+    expect(screen.getByText('Verified')).toBeTruthy()
+  })
+
   it('loads and displays submission history', async () => {
     getSubmissionHistoryMock.mockResolvedValue(sampleItems)
     useAdminSessionMock.mockReturnValue({
