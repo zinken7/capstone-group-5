@@ -21,7 +21,6 @@ function initialValues(record: ReviewRecord) {
     environment: record.environment ?? '',
     deploymentStatus: record.status ?? '',
     automationLevel: record.automationLevel ?? '',
-    clearAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
     validFrom: record.validFrom ?? '',
@@ -37,10 +36,7 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
-type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel' | 'clearValidFrom' | 'clearValidTo' | 'validFrom' | 'validTo'> & {
-  clearAutomationLevel?: boolean
-  clearValidFrom?: boolean
-  clearValidTo?: boolean
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'validFrom' | 'validTo'> & {
   validFrom?: string
   validTo?: string
 }
@@ -62,8 +58,7 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   }
   if (values.environment && values.environment !== before.environment) correction.environment = values.environment
   if (values.deploymentStatus && values.deploymentStatus !== before.deploymentStatus) correction.deploymentStatus = values.deploymentStatus
-  if (values.clearAutomationLevel) correction.clearAutomationLevel = true
-  else if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
+  if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
@@ -102,7 +97,7 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   const supplier = values.technologySupplier.trim()
   const product = values.technologyProduct.trim()
   if (supplier !== before.technologySupplier || product !== before.technologyProduct) {
-    if (!supplier || !product) return 'Enter both the technology supplier and the product.'
+    if (!supplier && product) return 'Enter a technology supplier before adding a product.'
     correction.technologySupplier = supplier
     correction.technologyProduct = product
   }
@@ -118,22 +113,20 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   return correction
 }
 
-function Select({ id, label, value, options, onChange, clearable, onClear }: {
+function Select({ id, label, value, options, onChange, allowEmpty = true }: {
   id: string
   label: string
   value: string
   options: readonly ReferenceOption[]
   onChange: (value: string) => void
-  clearable?: boolean
-  onClear?: () => void
+  allowEmpty?: boolean
 }) {
   return (
     <div className="form-field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(event) => event.target.value === '__clear__' ? onClear?.() : onChange(event.target.value)}>
-        {(!value || !clearable) && <option value="">Not recorded</option>}
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)}>
+        {(allowEmpty || !value) && <option value="">Not recorded</option>}
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-        {clearable && value !== '' && <option value="__clear__">Clear level</option>}
       </select>
     </div>
   )
@@ -191,11 +184,10 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         <Select
           id="correct-automation"
           label="Automation level"
-          value={values.clearAutomationLevel ? '__clear__' : values.automationLevel}
+          value={values.automationLevel}
           options={referenceData.automationLevels}
-          clearable
-          onChange={(value) => setValues((current) => ({ ...current, automationLevel: value, clearAutomationLevel: false }))}
-          onClear={() => setValues((current) => ({ ...current, automationLevel: '', clearAutomationLevel: true }))}
+          allowEmpty={false}
+          onChange={set('automationLevel')}
         />
         <Select id="correct-installation" label="Installation type" value={values.installationType} options={referenceData.installationTypes} onChange={set('installationType')} />
         <div className="form-field">
@@ -222,7 +214,11 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         </div>
         <div className="form-field">
           <label htmlFor="correct-supplier">Technology supplier</label>
-          <input id="correct-supplier" value={values.technologySupplier} onChange={(event) => set('technologySupplier')(event.target.value)} />
+          <input id="correct-supplier" value={values.technologySupplier} onChange={(event) => setValues((current) => ({
+            ...current,
+            technologySupplier: event.target.value,
+            technologyProduct: event.target.value.trim() === current.technologySupplier.trim() ? current.technologyProduct : '',
+          }))} />
         </div>
         <div className="form-field">
           <label htmlFor="correct-product">Technology product</label>

@@ -332,7 +332,7 @@ describe('record review', () => {
     const quantity = await screen.findByLabelText('Quantity')
     const automation = screen.getByLabelText('Automation level')
     expect(within(automation).queryByRole('option', { name: 'Not recorded' })).not.toBeInTheDocument()
-    expect(within(automation).getByRole('option', { name: 'Clear level' })).toBeInTheDocument()
+    expect(within(automation).queryByRole('option', { name: 'Clear level' })).not.toBeInTheDocument()
     await user.clear(quantity)
     await user.type(quantity, '9')
     await user.type(screen.getByLabelText('Change note (optional)'), 'Updated fleet count')
@@ -398,8 +398,9 @@ describe('buildCorrection', () => {
     expect(buildCorrection(record, unchanged)).toBe('Change at least one field or add evidence.')
   })
 
-  test('requires the supplier and product together', () => {
-    expect(buildCorrection(record, { ...unchanged, technologySupplier: 'RCT' })).toBe('Enter both the technology supplier and the product.')
+  test('allows a supplier without a product but not a product without a supplier', () => {
+    expect(buildCorrection(record, { ...unchanged, technologySupplier: 'RCT' })).toEqual({ technologySupplier: 'RCT', technologyProduct: '' })
+    expect(buildCorrection(record, { ...unchanged, technologyProduct: 'ControlMaster' })).toBe('Enter a technology supplier before adding a product.')
   })
 
   test('rejects an invalid quantity or evidence URL', () => {
@@ -413,10 +414,10 @@ describe('buildCorrection', () => {
     })).toEqual({ technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrls: ['https://example.com/a'] })
   })
 
-  test('can explicitly clear a recorded automation level', () => {
+  test('does not clear a recorded automation level when the empty value is selected', () => {
     const recordWithLevel = { ...record, automationLevel: 'semi_autonomous' }
-    const values = { ...unchanged, automationLevel: '', clearAutomationLevel: true }
-    expect(buildCorrection(recordWithLevel, values)).toEqual({ clearAutomationLevel: true })
+    const values = { ...unchanged, automationLevel: '' }
+    expect(buildCorrection(recordWithLevel, values)).toBe('Change at least one field or add evidence.')
   })
 
   test('updates and explicitly clears validity dates', () => {
