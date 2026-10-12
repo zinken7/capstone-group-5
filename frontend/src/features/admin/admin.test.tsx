@@ -418,6 +418,12 @@ describe('buildCorrection', () => {
     const values = { ...unchanged, automationLevel: '', clearAutomationLevel: true }
     expect(buildCorrection(recordWithLevel, values)).toEqual({ clearAutomationLevel: true })
   })
+
+  test('updates and explicitly clears validity dates', () => {
+    const datedRecord = { ...record, validFrom: '2024-01-01', validTo: '2025-01-01' }
+    expect(buildCorrection(datedRecord, { ...unchanged, validFrom: '2024-02-01', validTo: '2025-01-01' })).toEqual({ validFrom: '2024-02-01' })
+    expect(buildCorrection(datedRecord, { ...unchanged, validFrom: '2024-01-01', validTo: '2025-01-01', clearValidTo: true })).toEqual({ clearValidTo: true })
+  })
 })
 
 describe('public navigation', () => {

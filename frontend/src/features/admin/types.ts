@@ -114,6 +114,11 @@ export interface AdminCorrection {
   automationLevel?: string
   /** Requests the backend to remove an existing automation level. */
   clearAutomationLevel?: boolean
+  /** Administrator-only validity-window changes; omitted fields remain unchanged. */
+  validFrom?: string
+  validTo?: string
+  clearValidFrom?: boolean
+  clearValidTo?: boolean
   installationType?: string
   commissioningDate?: string
   latitude?: number

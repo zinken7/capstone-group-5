@@ -24,6 +24,10 @@ function initialValues(record: ReviewRecord) {
     clearAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
+    validFrom: record.validFrom ?? '',
+    validTo: record.validTo ?? '',
+    clearValidFrom: false,
+    clearValidTo: false,
     latitude: record.latitude === null ? '' : String(record.latitude),
     longitude: record.longitude === null ? '' : String(record.longitude),
     technologySupplier: record.technologySupplier ?? '',
@@ -33,7 +37,19 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
-type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel'> & { clearAutomationLevel?: boolean }
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel' | 'clearValidFrom' | 'clearValidTo' | 'validFrom' | 'validTo'> & {
+  clearAutomationLevel?: boolean
+  clearValidFrom?: boolean
+  clearValidTo?: boolean
+  validFrom?: string
+  validTo?: string
+}
+
+function isFullDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
 
 /** Builds a correction holding only the fields that differ from the record. */
 export function buildCorrection(record: ReviewRecord, values: CorrectionFormValues): AdminCorrection | string {
@@ -51,6 +67,22 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
+  }
+  const validFrom = values.validFrom?.trim() ?? ''
+  if (values.clearValidFrom) {
+    if (before.validFrom) correction.clearValidFrom = true
+  } else if (validFrom !== before.validFrom) {
+    if (!validFrom) return 'Clear the valid-from date explicitly when removing it.'
+    if (!isFullDate(validFrom)) return 'Valid from must be a real date in YYYY-MM-DD format.'
+    correction.validFrom = validFrom
+  }
+  const validTo = values.validTo?.trim() ?? ''
+  if (values.clearValidTo) {
+    if (before.validTo) correction.clearValidTo = true
+  } else if (validTo !== before.validTo) {
+    if (!validTo) return 'Clear the valid-to date explicitly when removing it.'
+    if (!isFullDate(validTo)) return 'Valid to must be a real date in YYYY-MM-DD format.'
+    correction.validTo = validTo
   }
 
   const latitudeText = values.latitude.trim()
@@ -169,6 +201,16 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         <div className="form-field">
           <label htmlFor="correct-commissioning">Commissioning date or year</label>
           <input id="correct-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={(event) => set('commissioningDate')(event.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-valid-from">Valid from</label>
+          <input id="correct-valid-from" type="date" value={values.validFrom} disabled={values.clearValidFrom} onChange={(event) => set('validFrom')(event.target.value)} />
+          {values.validFrom && <label className="choice-chip" htmlFor="clear-valid-from"><input id="clear-valid-from" type="checkbox" checked={values.clearValidFrom} onChange={(event) => setValues((current) => ({ ...current, clearValidFrom: event.target.checked }))} /> Clear date</label>}
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-valid-to">Valid to</label>
+          <input id="correct-valid-to" type="date" value={values.validTo} disabled={values.clearValidTo} onChange={(event) => set('validTo')(event.target.value)} />
+          {values.validTo && <label className="choice-chip" htmlFor="clear-valid-to"><input id="clear-valid-to" type="checkbox" checked={values.clearValidTo} onChange={(event) => setValues((current) => ({ ...current, clearValidTo: event.target.checked }))} /> Clear date</label>}
         </div>
         <div className="form-field">
           <label htmlFor="correct-latitude">Site latitude</label>
