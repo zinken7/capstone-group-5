@@ -37,9 +37,17 @@ function runMigrations(connectionString: string): void {
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     stdio: 'inherit',
+    shell: process.platform === 'win32',
   })
+
+  if (result.error) {
+    throw new Error(`Could not start the migration process: ${result.error.message}`)
+  }
+
   if (result.status !== 0) {
-    throw new Error('Applying migrations to the test database failed')
+    throw new Error(
+      `Applying migrations to the test database failed (status: ${result.status}, signal: ${result.signal ?? 'none'})`,
+    )
   }
 }
 

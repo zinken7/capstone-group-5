@@ -1,0 +1,314 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+
+import AdminSubmissionHistoryPage from './AdminSubmissionHistoryPage'
+
+const { getSubmissionHistoryMock, useAdminSessionMock } = vi.hoisted(() => ({
+  getSubmissionHistoryMock: vi.fn(),
+  useAdminSessionMock: vi.fn(),
+}))
+
+vi.mock('../../../lib/api/admin', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../lib/api/admin')>()
+  return {
+    ...actual,
+    getSubmissionHistory: getSubmissionHistoryMock,
+  }
+})
+
+vi.mock('../session', () => ({
+  useAdminSession: useAdminSessionMock,
+}))
+
+const sampleItems = [
+  {
+    id: 12,
+    siteName: 'Example Mine',
+    countryCode: 'AU',
+    verificationStatus: 'verified',
+    latestDecision: 'approved',
+    latestDecisionIsCorrection: false,
+    updatedAt: '2026-10-10T10:00:00.000Z',
+  },
+]
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/admin/submissions']}>
+      <Routes>
+        <Route path="/admin/submissions" element={<AdminSubmissionHistoryPage />} />
+        <Route path="/admin/deployments/:id" element={<div>Deployment details</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+afterEach(() => {
+  vi.clearAllMocks()
+})
+
+describe('AdminSubmissionHistoryPage', () => {
+  it('shows a rejected correction separately from the verified deployment status', async () => {
+    getSubmissionHistoryMock.mockResolvedValue([
+      {
+        ...sampleItems[0],
+        latestDecision: 'rejected',
+        latestDecisionIsCorrection: true,
+        verificationStatus: 'verified',
+      },
+    ])
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Correction rejected')).toBeTruthy()
+    expect(screen.getByText('Verified')).toBeTruthy()
+  })
+
+  it('loads and displays submission history', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Example Mine')).toBeTruthy()
+    expect(screen.getByText('Approved')).toBeTruthy()
+    expect(screen.getByText('Verified')).toBeTruthy()
+    expect(screen.getByText('Australia')).toBeTruthy()
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+  })
+
+  it('searches by submission ID', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: '12' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
+    })
+  })
+
+  it('shows an empty state when no submissions are found', async () => {
+    getSubmissionHistoryMock.mockResolvedValue([])
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('No submissions found')).toBeTruthy()
+  })
+
+  it('shows an error when the API request fails', async () => {
+    getSubmissionHistoryMock.mockRejectedValue(new Error('Request failed'))
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Request failed')).toBeTruthy()
+  })
+
+  it('links each submission to its details page', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'View details' })).toHaveAttribute(
+      'href',
+      '/admin/deployments/12',
+    )
+  })
+
+  it('disables Next on a full final page', async () => {
+    const items = Array.from({ length: 50 }, (_, index) => ({
+      ...sampleItems[0],
+      id: 200 - index,
+    }))
+
+    getSubmissionHistoryMock.mockResolvedValue(items)
+
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    expect((await screen.findAllByText('Example Mine')).length).toBe(50)
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+  })
+  it('keeps submission history visible after invalid search', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter a valid positive Submission ID.',
+    )
+    expect(screen.getByText('Example Mine')).toBeTruthy()
+    expect(getSubmissionHistoryMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears validation error when Show all is clicked', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Example Mine')).toBeTruthy()
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+  })
+
+  it('allows a valid search after an invalid search', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue({
+      state: {
+        status: 'signed-in',
+        profile: {
+          email: 'admin@example.com',
+          role: 'admin',
+          mustChangePassword: false,
+        },
+      },
+      signOut: vi.fn().mockResolvedValue(undefined),
+    })
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Submission ID'), {
+      target: { value: '12' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
+    })
+
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})

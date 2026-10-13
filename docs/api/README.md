@@ -20,6 +20,7 @@
 | `DELETE` | `/api/admin/session` | Signs out |
 | `POST` | `/api/admin/password` | Changes the signed-in administrator's password |
 | `GET` | `/api/admin/reviews` | Lists records pending review (FR-45) |
+| `GET` | `/api/admin/submissions` | Lists submission history with pagination and optional ID filtering |
 | `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
 | `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
 | `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
@@ -493,6 +494,35 @@ every deployment with `verification_status = pending_review` (`kind:
 - `contributor_email`, `contributor_organisation`: whoever submitted it, when
   they said;
 - `submitted_at`: when the record last changed, or when the correction was sent.
+
+### `GET /api/admin/submissions`
+
+Lists submission history across verification statuses. Requires an
+authenticated administrator with moderation access.
+
+Query parameters:
+
+| Parameter | Default | Validation |
+|---|---|---|
+| `limit` | `50` | Safe integer from 1 to 100 |
+| `offset` | `0` | Non-negative safe integer |
+| `id` | Omitted | Positive safe integer; exact deployment ID |
+
+Success: `200 OK`, returning `{"items": [...]}`. Each item includes
+`id`, `site_name`, `country_code`, `verification_status`,
+`latest_decision`, `latest_decision_is_correction`, and `updated_at`.
+The latest decision can come from a deployment review or a correction review.
+
+`latest_decision_is_correction` indicates the source of the latest decision:
+- `true`: the latest decision was made on a correction;
+- `false`: the latest decision was made on the deployment itself;
+- `null`: no review decision has been recorded.
+
+Invalid parameters return `400 Bad Request` with
+`{"error":"invalid pagination or submission ID"}`.
+Examples: `limit=0`, `limit=101`, `offset=-1`, `id=0`, `id=abc`.
+
+Unauthenticated requests return `401 Unauthorized`.
 
 ### `GET /api/admin/deployments/{id}`
 

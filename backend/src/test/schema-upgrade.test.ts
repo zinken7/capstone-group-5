@@ -64,8 +64,15 @@ function runMigrations(connectionString: string): { status: number | null; outpu
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     encoding: 'utf8',
+    shell: process.platform === 'win32',
   })
-  return { status: result.status, output: `${result.stdout}${result.stderr}` }
+
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}${result.error ? `\n${result.error.message}` : ''}`
+
+  return {
+    status: result.status,
+    output,
+  }
 }
 
 async function appliedMigrations(client: Client): Promise<string[]> {

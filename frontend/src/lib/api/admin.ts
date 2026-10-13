@@ -9,6 +9,7 @@ import type {
   ReviewDecision,
   ReviewQueueItem,
   ReviewRecord,
+  SubmissionHistoryItem,
 } from '../../features/admin/types'
 
 // The backend refuses modifying admin requests without this header (CSRF protection).
@@ -291,4 +292,39 @@ export async function setAdministratorActive(id: number, active: boolean): Promi
     headers: MODIFYING_HEADERS,
     body: JSON.stringify({ active }),
   })
+}
+
+
+/** Retrieves submission history, optionally filtered by an exact deployment ID. */
+export async function getSubmissionHistory(
+  limit = 50,
+  offset = 0,
+  id?: number,
+): Promise<SubmissionHistoryItem[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  if (id !== undefined) params.set('id', String(id))
+
+  const response = await requestJson<{ items: {
+    id: number
+    site_name: string
+    country_code: string
+    verification_status: string
+    latest_decision: ReviewDecision | null
+    latest_decision_is_correction: boolean | null
+    updated_at: string
+  }[] }>(`admin/submissions?${params.toString()}`)
+
+  return response.items.map((item) => ({
+    id: item.id,
+    siteName: item.site_name,
+    countryCode: item.country_code,
+    verificationStatus: item.verification_status,
+    latestDecision: item.latest_decision,
+    latestDecisionIsCorrection: item.latest_decision_is_correction,
+    updatedAt: item.updated_at,
+  }))
 }

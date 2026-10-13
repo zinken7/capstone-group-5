@@ -32,6 +32,7 @@ function AdminBar() {
                 Review queue
               </NavLink>
             )}
+            {!mustChange && <NavLink to="/admin/submissions">Submission history</NavLink>}
             {!mustChange && profile.role === 'root' && <NavLink to="/admin/users">Administrators</NavLink>}
             <NavLink to="/admin/password">Change password</NavLink>
           </nav>
