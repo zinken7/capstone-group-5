@@ -7,7 +7,10 @@ const minimal = {
   country_code: 'au',
   machine_type: 'haul_truck',
   machine_manufacturer: 'Caterpillar',
+  machine_model: '793F',
   quantity: 12,
+  technology_supplier: 'Caterpillar',
+  automation_level: 'autonomous',
   disclosure_accepted: true,
 }
 
@@ -18,18 +21,19 @@ describe('validateContribution', () => {
       value: {
         siteName: 'Roy Hill',
         countryCode: 'AU',
+        coordinates: null,
         region: null,
         commodity: null,
         machineType: 'haul_truck',
         machineManufacturer: 'Caterpillar',
-        machineModel: null,
+        machineModel: '793F',
         machineModelVariant: null,
         quantity: 12,
         environment: null,
         deploymentStatus: null,
-        automationLevel: null,
+        automationLevel: 'autonomous',
         installationType: 'unknown',
-        technologySupplier: null,
+        technologySupplier: 'Caterpillar',
         technologyProduct: null,
         commissioning: null,
         evidenceUrls: [],
@@ -40,9 +44,9 @@ describe('validateContribution', () => {
   })
 
   it('treats null and blank strings as absent', () => {
-    const result = validateContribution({ ...minimal, region: '  ', machine_model: null, contributor_email: '' })
+    const result = validateContribution({ ...minimal, region: '  ', technology_product: null, contributor_email: '' })
     expect(result.ok && result.value.region).toBeNull()
-    expect(result.ok && result.value.machineModel).toBeNull()
+    expect(result.ok && result.value.technologyProduct).toBeNull()
     expect(result.ok && result.value.contributorEmail).toBeNull()
   })
 
@@ -90,7 +94,9 @@ describe('validateContribution', () => {
         country_code: 'must be at most 2 characters',
         machine_type: expect.stringContaining('must be one of'),
         machine_manufacturer: 'is required',
+        machine_model: 'is required',
         quantity: 'must be a whole number between 1 and 100000',
+        technology_supplier: 'is required',
         environment: 'must be one of: surface, underground, both',
         automation_level: 'must be one of: operator_assistance, teleremote, semi_autonomous, autonomous',
         commissioning_date: 'must be a year (YYYY) or a date (YYYY-MM-DD)',
@@ -108,9 +114,18 @@ describe('validateContribution', () => {
     }
   })
 
-  it('requires a supplier when a technology product is named', () => {
-    const result = validateContribution({ ...minimal, technology_product: 'AutoMine' })
-    expect(result.ok ? null : result.errors).toEqual({ technology_supplier: 'is required when technology_product is given' })
+  it('requires the machine model, technology supplier and automation level (FR-07)', () => {
+    const result = validateContribution({ ...minimal, machine_model: ' ', technology_supplier: null, automation_level: undefined })
+    expect(result.ok ? null : result.errors).toEqual({
+      machine_model: 'is required',
+      technology_supplier: 'is required',
+      automation_level: 'is required',
+    })
+  })
+
+  it('accepts a supplier without a technology product', () => {
+    const result = validateContribution({ ...minimal, technology_product: undefined })
+    expect(result.ok && [result.value.technologySupplier, result.value.technologyProduct]).toEqual(['Caterpillar', null])
   })
 
   it('limits the number of evidence URLs', () => {

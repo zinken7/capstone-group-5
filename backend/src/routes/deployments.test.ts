@@ -48,7 +48,7 @@ describe('PATCH /api/deployments/:id', () => {
       base_values: { quantity: 96 },
       evidence_urls: [],
       change_note: 'Fleet expanded in 2025',
-      contributor_id: null,
+      contributor_id: expect.any(Number),
       status: 'pending',
     }])
   })
@@ -100,7 +100,7 @@ describe('PATCH /api/deployments/:id', () => {
       action: 'update',
       previous_values: { quantity: 8, verification_status: 'pending_review' },
       change_note: 'One more LHD',
-      contributor_id: null,
+      contributor_id: expect.any(Number),
     }])
     expect(await corrections(12)).toEqual([])
   })
@@ -134,6 +134,29 @@ describe('PATCH /api/deployments/:id', () => {
       error: 'invalid correction',
       fields: { quantity: 'must be a whole number between 1 and 100000', disclosure_accepted: 'must be true' },
     })
+  })
+
+  it('rejects a correction with the hidden website field filled, without saying why or storing it', async () => {
+    for (const id of [10, 12]) {
+      const response = await request(app)
+        .patch(`/api/deployments/${id}`)
+        .send({ quantity: 5, website: 'https://spam.example', disclosure_accepted: true })
+
+      expect(response.status, String(id)).toBe(400)
+      expect(response.body, String(id)).toEqual({ error: 'invalid correction' })
+      expect(await corrections(id), String(id)).toEqual([])
+      expect(await revisions(id), String(id)).toEqual([])
+    }
+    expect(await query('SELECT id::int, quantity FROM deployment WHERE id IN (10, 12) ORDER BY id')).toEqual([
+      { id: 10, quantity: 96 },
+      { id: 12, quantity: 8 },
+    ])
+  })
+
+  it('accepts a correction with the hidden website field left empty', async () => {
+    const response = await request(app).patch('/api/deployments/10').send({ quantity: 100, website: '', disclosure_accepted: true })
+
+    expect(response.status).toBe(202)
   })
 
   it('returns 404 for an unknown or malformed id', async () => {

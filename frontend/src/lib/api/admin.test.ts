@@ -66,4 +66,28 @@ describe('admin API client', () => {
       technology_product: 'ControlMaster',
     })
   })
+
+  it('does not send a removed automation clear flag', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 12, verification_status: 'pending_review' }))
+
+    await correctRecord(12, { automationLevel: 'autonomous' })
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ automation_level: 'autonomous' })
+  })
+
+  it('sends administrator validity dates and explicit clear flags', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 12, verification_status: 'verified' }))
+
+    await correctRecord(12, { validFrom: '2024-01-01', validTo: '2025-01-01' })
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      valid_from: '2024-01-01',
+      valid_to: '2025-01-01',
+    })
+
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue(Response.json({ id: 12, verification_status: 'verified' }))
+    await correctRecord(12, { clearValidFrom: true, clearValidTo: true })
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ clear_valid_from: true, clear_valid_to: true })
+  })
 })

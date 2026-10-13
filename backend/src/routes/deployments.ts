@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { validateCorrection } from '../lib/correction-validation.js'
+import { honeypotFilled } from '../lib/honeypot.js'
 import { parseId } from '../lib/ids.js'
 import { correctDeployment } from '../services/corrections.js'
 
@@ -10,6 +11,11 @@ router.patch('/deployments/:id', async (req, res, next) => {
   const id = parseId(req.params.id)
   if (id === null) {
     res.status(404).json({ error: 'deployment not found' })
+    return
+  }
+
+  if (honeypotFilled(req.body)) {
+    res.status(400).json({ error: 'invalid correction' })
     return
   }
 
@@ -27,6 +33,10 @@ router.patch('/deployments/:id', async (req, res, next) => {
     }
     if (outcome.kind === 'unchanged') {
       res.status(400).json({ error: 'correction does not change the record' })
+      return
+    }
+    if (outcome.kind === 'invalid_window') {
+      res.status(400).json({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } })
       return
     }
     if (outcome.kind === 'proposed') {

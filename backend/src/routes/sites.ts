@@ -26,6 +26,11 @@ router.get('/sites/:id', async (req, res, next) => {
 
     // FR-43: public views default to verified records only.
     const deployments = await findVerifiedDeploymentsBySite(site.id)
+    // A site without verified records is not public, so it looks the same as a missing one (#161)
+    if (deployments.length === 0) {
+      res.status(404).json({ error: 'site not found' })
+      return
+    }
 
     res.status(200).json({
       id: site.id,

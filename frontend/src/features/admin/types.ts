@@ -79,6 +79,8 @@ export interface ReviewRecord {
   verificationStatus: string
   siteName: string
   countryCode: string
+  latitude: number | null
+  longitude: number | null
   region: string | null
   commodity: string | null
   machineManufacturer: string
@@ -110,8 +112,15 @@ export interface AdminCorrection {
   environment?: string
   deploymentStatus?: string
   automationLevel?: string
+  /** Administrator-only validity-window changes; omitted fields remain unchanged. */
+  validFrom?: string
+  validTo?: string
+  clearValidFrom?: boolean
+  clearValidTo?: boolean
   installationType?: string
   commissioningDate?: string
+  latitude?: number
+  longitude?: number
   technologySupplier?: string
   technologyProduct?: string
   evidenceUrls?: string[]

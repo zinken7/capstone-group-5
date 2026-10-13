@@ -32,10 +32,10 @@ export const ENVIRONMENTS = [
 ] as const
 
 export const AUTOMATION_LEVELS = [
-  ['operator_assistance', 'Operator assistance'],
+  ['operator_assistance', 'Operator Assistance'],
   ['teleremote', 'Teleremote'],
-  ['semi_autonomous', 'Semi-autonomous'],
-  ['autonomous', 'Autonomous'],
+  ['semi_autonomous', 'Semi Autonomous'],
+  ['autonomous', 'Highly Autonomous'],
 ] as const
 
 export const INSTALLATION_TYPES = [
@@ -82,6 +82,8 @@ export const DEFAULT_CONTRIBUTION_REFERENCE_DATA: ContributionReferenceData = {
 export interface ContributionFormValues {
   siteName: string
   countryCode: string
+  latitude: string
+  longitude: string
   region: string
   commodity: string
   machineType: string
@@ -109,6 +111,8 @@ export type ContributionErrors = Partial<Record<ContributionField, string>>
 export type ContributionVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
 
 export interface ContributionSubmissionResult {
+  /** The record id returned by the API, used as the follow-up reference. */
+  id?: number
   verificationStatus: ContributionVerificationStatus
 }
 
@@ -117,6 +121,8 @@ export type ContributionSubmitter = (values: ContributionFormValues) => Promise<
 export const EMPTY_CONTRIBUTION_FORM: ContributionFormValues = {
   siteName: '',
   countryCode: '',
+  latitude: '',
+  longitude: '',
   region: '',
   commodity: '',
   machineType: '',

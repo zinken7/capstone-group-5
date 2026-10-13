@@ -17,18 +17,19 @@ export interface Commissioning {
 export interface ContributionInput {
   siteName: string
   countryCode: string
+  coordinates: { latitude: number; longitude: number } | null
   region: string | null
   commodity: string | null
   machineType: string
   machineManufacturer: string
-  machineModel: string | null
+  machineModel: string
   machineModelVariant: string | null
   quantity: number
   environment: string | null
   deploymentStatus: string | null
-  automationLevel: string | null
+  automationLevel: string
   installationType: string
-  technologySupplier: string | null
+  technologySupplier: string
   technologyProduct: string | null
   commissioning: Commissioning | null
   evidenceUrls: string[]
@@ -70,6 +71,16 @@ export class FieldReader {
     return trimmed
   }
 
+  coordinate(field: string, minimum: number, maximum: number): number | null {
+    const value = this.body[field]
+    if (!this.has(field)) return null
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+      this.errors[field] = `must be a number between ${minimum} and ${maximum}`
+      return null
+    }
+    return value
+  }
+
   choice(field: string, allowed: readonly string[], required = false): string | null {
     const value = this.text(field, 100, required)
     if (value !== null && !allowed.includes(value)) {
@@ -90,6 +101,16 @@ export class FieldReader {
       return null
     }
     return value
+  }
+
+  /** A real calendar date in YYYY-MM-DD form. */
+  fullDate(field: string): string | null {
+    const value = this.text(field, 10)
+    if (value === null) return null
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
+    if (parsed && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value) return value
+    this.errors[field] = 'must be a date (YYYY-MM-DD)'
+    return null
   }
 
   commissioning(field: string): Commissioning | null {
@@ -175,22 +196,29 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
   if (countryCode !== null && !/^[A-Za-z]{2}$/.test(countryCode)) {
     read.errors.country_code = 'must be a two-letter country code'
   }
+  const latitude = read.coordinate('latitude', -90, 90)
+  const longitude = read.coordinate('longitude', -180, 180)
+  if ((latitude === null) !== (longitude === null)) {
+    if (latitude === null && !read.errors.latitude) read.errors.latitude = 'must be given with longitude'
+    if (longitude === null && !read.errors.longitude) read.errors.longitude = 'must be given with latitude'
+  }
 
   const input: ContributionInput = {
     siteName: read.text('site_name', 200, true) ?? '',
     countryCode: countryCode?.toUpperCase() ?? '',
+    coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
     region: read.text('region', 100),
     commodity: read.text('commodity', 100),
     machineType: read.choice('machine_type', MACHINE_TYPES, true) ?? '',
     machineManufacturer: read.text('machine_manufacturer', 200, true) ?? '',
-    machineModel: read.text('machine_model', 200),
+    machineModel: read.text('machine_model', 200, true) ?? '',
     machineModelVariant: read.text('machine_model_variant', 100),
     quantity: read.quantity('quantity', true) ?? 0,
     environment: read.choice('environment', MINING_ENVIRONMENTS),
     deploymentStatus: read.choice('deployment_status', DEPLOYMENT_STATUSES),
-    automationLevel: read.choice('automation_level', AUTOMATION_LEVELS),
+    automationLevel: read.choice('automation_level', AUTOMATION_LEVELS, true) ?? '',
     installationType: read.choice('installation_type', INSTALLATION_TYPES) ?? 'unknown',
-    technologySupplier: read.text('technology_supplier', 200),
+    technologySupplier: read.text('technology_supplier', 200, true) ?? '',
     technologyProduct: read.text('technology_product', 200),
     commissioning: read.commissioning('commissioning_date'),
     evidenceUrls: read.urls('evidence_urls'),
@@ -198,10 +226,6 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
     organisation: read.text('organisation', 200),
   }
   read.disclosure('disclosure_accepted')
-
-  if (input.technologyProduct !== null && input.technologySupplier === null && !read.errors.technology_supplier) {
-    read.errors.technology_supplier = 'is required when technology_product is given'
-  }
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
 }

@@ -27,6 +27,8 @@ async function contribute(overrides: Record<string, unknown> = {}): Promise<numb
     country_code: 'au',
     region: 'Pilbara',
     commodity: 'iron_ore',
+    latitude: -22.3,
+    longitude: 118.7,
     machine_type: 'haul_truck',
     machine_manufacturer: 'Komatsu',
     machine_model: '930E',
@@ -127,6 +129,16 @@ describe('GET /api/admin/reviews', () => {
 })
 
 describe('GET /api/admin/deployments/:id', () => {
+  it('shows the supplier of a submission that names no product, in the queue and on the record', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const queue = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(queue.body.items).toContainEqual(expect.objectContaining({ id, technology_supplier: 'Komatsu' }))
+
+    const record = await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)
+    expect(record.body).toMatchObject({ technology_supplier: 'Komatsu', technology_product: null })
+  })
+
   it('returns a record in any status with its evidence and history', async () => {
     const response = await request(app).get('/api/admin/deployments/10').set('Cookie', cookie)
 
@@ -158,6 +170,17 @@ describe('GET /api/admin/deployments/:id', () => {
 })
 
 describe('POST /api/admin/deployments/:id/reviews', () => {
+  it('requires coordinates before a contribution can be approved', async () => {
+    const id = await contribute({ latitude: undefined, longitude: undefined })
+
+    const refused = await review(id, { decision: 'approved' })
+    expect(refused.status).toBe(409)
+    expect(refused.body.error).toBe('site coordinates are required before the record can be verified')
+
+    expect((await correct(id, { latitude: -22.3, longitude: 118.7 })).status).toBe(200)
+    expect((await review(id, { decision: 'approved' })).status).toBe(201)
+  })
+
   it('approves a record: review, status and revision change together, and it becomes public', async () => {
     const id = await contribute()
 
@@ -189,16 +212,20 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
     expect((await review(12, { decision: 'approved' })).status).toBe(201)
   })
 
-  it('refuses to approve a record without a technology product until an administrator sets one', async () => {
-    const id = await contribute({ technology_supplier: null, technology_product: null })
+  it('approves a record that names a supplier but no technology product (FR-08)', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const approved = await review(id, { decision: 'approved' })
+    expect(approved.status).toBe(201)
+    expect(approved.body.verification_status).toBe('verified')
+  })
+
+  it('still refuses to approve a record without evidence', async () => {
+    const id = await contribute({ technology_product: null, evidence_urls: [] })
 
     const refused = await review(id, { decision: 'approved' })
     expect(refused.status).toBe(409)
-    expect(refused.body.error).toBe('a technology product is required before the record can be verified')
-
-    const set = await correct(id, { technology_supplier: 'Komatsu', technology_product: 'FrontRunner' })
-    expect(set.status).toBe(200)
-    expect((await review(id, { decision: 'approved' })).status).toBe(201)
+    expect(refused.body.error).toBe('at least one evidence URL is required before the record can be verified')
   })
 
   it('rejects with a note and takes the record out of the queue for good', async () => {
@@ -247,6 +274,36 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
 })
 
 describe('PATCH /api/admin/deployments/:id', () => {
+  it('adds coordinates to a contributed site so it can appear on the map', async () => {
+    const id = await contribute({ site_name: 'Unlocated Site', latitude: undefined, longitude: undefined })
+    const response = await correct(id, { latitude: -22.3, longitude: 118.7 })
+
+    expect(response.status).toBe(200)
+    expect((await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)).body).toMatchObject({
+      latitude: -22.3,
+      longitude: 118.7,
+    })
+  })
+
+  it('refuses to clear the automation level, which every deployment must carry (FR-57)', async () => {
+    const response = await correct(12, { clear_automation_level: true })
+
+    expect(response.status).toBe(400)
+    expect(response.body.fields).toEqual({ clear_automation_level: 'cannot clear a required automation level' })
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'semi_autonomous' }])
+    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
+  })
+
+  it('still corrects the level, and rejects a clear flag that is not a boolean', async () => {
+    const corrected = await correct(12, { automation_level: 'teleremote' })
+    expect(corrected.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'teleremote' }])
+
+    const notBoolean = await correct(12, { clear_automation_level: 'yes' })
+    expect(notBoolean.status).toBe(400)
+    expect(notBoolean.body.fields).toEqual({ clear_automation_level: 'must be true or false' })
+  })
+
   it('corrects a verified record, keeps it verified and records the administrator', async () => {
     const response = await correct(10, { quantity: 90, change_note: 'Fleet count from the 2024 report' })
 
@@ -272,6 +329,24 @@ describe('PATCH /api/admin/deployments/:id', () => {
     expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
   })
 
+  it('changes the supplier on its own, dropping a product that belongs to the old supplier', async () => {
+    const response = await correct(12, { technology_supplier: 'RCT' })
+    expect(response.status).toBe(200)
+
+    expect(await query(
+      'SELECT c.name AS supplier, d.technology_product_id FROM deployment d JOIN company c ON c.id = d.technology_supplier_id WHERE d.id = 12',
+    )).toEqual([{ supplier: 'RCT', technology_product_id: null }])
+    const [revision] = await query<{ previous_values: Record<string, unknown> }>('SELECT previous_values FROM revision')
+    expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
+  })
+
+  it('keeps the product when the same supplier is given without one', async () => {
+    const response = await correct(12, { technology_supplier: 'sandvik' })
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('correction does not change the record')
+    expect(await query('SELECT technology_product_id::int AS id FROM deployment WHERE id = 12')).toEqual([{ id: 3 }])
+  })
+
   it.each([
     [{ quantity: 8 }, 'correction does not change the record'],
     [{ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' }, 'correction does not change the record'],
@@ -282,7 +357,7 @@ describe('PATCH /api/admin/deployments/:id', () => {
   })
 
   it.each([
-    [{ technology_supplier: 'RCT' }, 'technology_product'],
+    [{ technology_product: 'AutoMine' }, 'technology_supplier'],
     [{ quantity: -1 }, 'quantity'],
     [{}, 'body'],
   ])('returns 400 with field errors for %j', async (body, field) => {

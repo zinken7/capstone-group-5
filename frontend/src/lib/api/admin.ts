@@ -104,6 +104,8 @@ interface RecordDto {
   verification_status: string
   site_name: string
   country_code: string
+  latitude?: number | null
+  longitude?: number | null
   region: string | null
   commodity: string | null
   machine_manufacturer: string
@@ -151,6 +153,8 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     verificationStatus: dto.verification_status,
     siteName: dto.site_name,
     countryCode: dto.country_code,
+    latitude: dto.latitude ?? null,
+    longitude: dto.longitude ?? null,
     region: dto.region,
     commodity: dto.commodity,
     machineManufacturer: dto.machine_manufacturer,
@@ -228,8 +232,14 @@ export async function correctRecord(id: number, correction: AdminCorrection): Pr
     environment: correction.environment,
     deployment_status: correction.deploymentStatus,
     automation_level: correction.automationLevel,
+    valid_from: correction.validFrom,
+    valid_to: correction.validTo,
+    clear_valid_from: correction.clearValidFrom,
+    clear_valid_to: correction.clearValidTo,
     installation_type: correction.installationType,
     commissioning_date: correction.commissioningDate,
+    latitude: correction.latitude,
+    longitude: correction.longitude,
     technology_supplier: correction.technologySupplier,
     technology_product: correction.technologyProduct,
     evidence_urls: correction.evidenceUrls,

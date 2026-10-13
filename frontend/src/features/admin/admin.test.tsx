@@ -330,6 +330,9 @@ describe('record review', () => {
     expect(screen.queryByLabelText('Quantity')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Edit record' }))
     const quantity = await screen.findByLabelText('Quantity')
+    const automation = screen.getByLabelText('Automation level')
+    expect(within(automation).queryByRole('option', { name: 'Not recorded' })).not.toBeInTheDocument()
+    expect(within(automation).queryByRole('option', { name: 'Clear level' })).not.toBeInTheDocument()
     await user.clear(quantity)
     await user.type(quantity, '9')
     await user.type(screen.getByLabelText('Change note (optional)'), 'Updated fleet count')
@@ -380,7 +383,7 @@ describe('record review', () => {
 
 describe('buildCorrection', () => {
   const record = {
-    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', region: null, commodity: null,
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
@@ -388,15 +391,16 @@ describe('buildCorrection', () => {
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',
-    commissioningDate: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
+    commissioningDate: '', latitude: '', longitude: '', technologySupplier: '', technologyProduct: '', evidenceUrl: '', changeNote: '',
   }
 
   test('asks for a change when nothing differs', () => {
     expect(buildCorrection(record, unchanged)).toBe('Change at least one field or add evidence.')
   })
 
-  test('requires the supplier and product together', () => {
-    expect(buildCorrection(record, { ...unchanged, technologySupplier: 'RCT' })).toBe('Enter both the technology supplier and the product.')
+  test('allows a supplier without a product but not a product without a supplier', () => {
+    expect(buildCorrection(record, { ...unchanged, technologySupplier: 'RCT' })).toEqual({ technologySupplier: 'RCT', technologyProduct: '' })
+    expect(buildCorrection(record, { ...unchanged, technologyProduct: 'ControlMaster' })).toBe('Enter a technology supplier before adding a product.')
   })
 
   test('rejects an invalid quantity or evidence URL', () => {
@@ -408,6 +412,18 @@ describe('buildCorrection', () => {
     expect(buildCorrection(record, {
       ...unchanged, technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrl: 'https://example.com/a',
     })).toEqual({ technologySupplier: 'RCT', technologyProduct: 'ControlMaster', evidenceUrls: ['https://example.com/a'] })
+  })
+
+  test('does not clear a recorded automation level when the empty value is selected', () => {
+    const recordWithLevel = { ...record, automationLevel: 'semi_autonomous' }
+    const values = { ...unchanged, automationLevel: '' }
+    expect(buildCorrection(recordWithLevel, values)).toBe('Change at least one field or add evidence.')
+  })
+
+  test('updates and explicitly clears validity dates', () => {
+    const datedRecord = { ...record, validFrom: '2024-01-01', validTo: '2025-01-01' }
+    expect(buildCorrection(datedRecord, { ...unchanged, validFrom: '2024-02-01', validTo: '2025-01-01' })).toEqual({ validFrom: '2024-02-01' })
+    expect(buildCorrection(datedRecord, { ...unchanged, validFrom: '2024-01-01', validTo: '2025-01-01', clearValidTo: true })).toEqual({ clearValidTo: true })
   })
 })
 

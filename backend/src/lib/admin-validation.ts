@@ -30,15 +30,16 @@ export function validateReview(body: unknown): ValidationResult<ReviewInput> {
 
 export interface AdminCorrectionInput {
   changes: DeploymentChanges
-  technology: { supplier: string; product: string } | null
+  coordinates: { latitude: number; longitude: number } | null
+  technology: { supplier: string; product: string | null } | null
   evidenceUrls: string[]
   changeNote: string | null
 }
 
 /**
  * Validates a PATCH /api/admin/deployments/:id body: the public correction
- * fields, plus the technology supplier and product, which a record needs
- * before it can be verified. No contributor details or disclosure.
+ * fields, plus the technology supplier and, optionally, a product of that
+ * supplier. No contributor details or disclosure.
  */
 export function validateAdminCorrection(body: unknown): ValidationResult<AdminCorrectionInput> {
   const object = asObject(body)
@@ -52,35 +53,73 @@ export function validateAdminCorrection(body: unknown): ValidationResult<AdminCo
   const automationLevel = read.choice('automation_level', AUTOMATION_LEVELS)
   const installationType = read.choice('installation_type', INSTALLATION_TYPES)
   const commissioning = read.commissioning('commissioning_date')
+  const latitude = read.coordinate('latitude', -90, 90)
+  const longitude = read.coordinate('longitude', -180, 180)
+  if ((latitude === null) !== (longitude === null)) {
+    if (latitude === null && !read.errors.latitude) read.errors.latitude = 'must be given with longitude'
+    if (longitude === null && !read.errors.longitude) read.errors.longitude = 'must be given with latitude'
+  }
+  const validFrom = read.fullDate('valid_from')
+  const validTo = read.fullDate('valid_to')
   if (quantity !== null) changes.quantity = quantity
   if (environment !== null) changes.environment = environment
   if (status !== null) changes.status = status
   if (automationLevel !== null) changes.automationLevel = automationLevel
+  const clearLevel = object.clear_automation_level
+  if (clearLevel !== undefined && typeof clearLevel !== 'boolean') {
+    read.errors.clear_automation_level = 'must be true or false'
+  } else if (clearLevel === true) {
+    // Migration 005 makes the level required on every deployment, so it can be corrected but not cleared
+    read.errors.clear_automation_level = 'cannot clear a required automation level'
+  }
   if (installationType !== null) changes.installationType = installationType
   if (commissioning !== null) changes.commissioning = commissioning
+  if (validFrom !== null) changes.validFrom = validFrom
+  if (validTo !== null) changes.validTo = validTo
+  if (validFrom !== null && validTo !== null && validTo < validFrom) read.errors.valid_to = 'must not be before valid_from'
+  const clearFrom = readClearFlag(object, read, 'clear_valid_from', 'valid_from')
+  const clearTo = readClearFlag(object, read, 'clear_valid_to', 'valid_to')
+  if (clearFrom) changes.validFrom = null
+  if (clearTo) changes.validTo = null
 
   const supplier = read.text('technology_supplier', 200)
   const product = read.text('technology_product', 200)
-  if ((supplier === null) !== (product === null)) {
-    read.errors.technology_product = 'technology_supplier and technology_product must be given together'
+  if (product !== null && supplier === null) {
+    read.errors.technology_supplier = 'is required when technology_product is given'
   }
 
   const input: AdminCorrectionInput = {
     changes,
-    technology: supplier !== null && product !== null ? { supplier, product } : null,
+    coordinates: latitude !== null && longitude !== null ? { latitude, longitude } : null,
+    technology: supplier !== null ? { supplier, product } : null,
     evidenceUrls: read.urls('evidence_urls'),
     changeNote: read.text('change_note', 1000),
   }
 
   const fieldsGiven = [
     'quantity', 'environment', 'deployment_status', 'automation_level', 'installation_type',
-    'commissioning_date', 'technology_supplier', 'technology_product', 'evidence_urls',
-  ].some((field) => read.has(field))
+    'commissioning_date', 'valid_from', 'valid_to', 'latitude', 'longitude', 'technology_supplier', 'technology_product', 'evidence_urls',
+  ].some((field) => read.has(field)) || clearFrom || clearTo
   if (!fieldsGiven && Object.keys(read.errors).length === 0) {
     read.errors.body = 'must change at least one field or add evidence'
   }
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
+}
+
+/** Reads a flag that clears a field; omitted means no change, and it cannot be sent with a value for that field. */
+function readClearFlag(object: Record<string, unknown>, read: FieldReader, flag: string, field: string): boolean {
+  const value = object[flag]
+  if (value === undefined) return false
+  if (typeof value !== 'boolean') {
+    read.errors[flag] = 'must be true or false'
+    return false
+  }
+  if (value && read.has(field)) {
+    read.errors[flag] = `cannot be combined with ${field}`
+    return false
+  }
+  return value
 }
 
 /** Validates a POST /api/admin/users body. Any role in the body is ignored: the API only creates administrators. */

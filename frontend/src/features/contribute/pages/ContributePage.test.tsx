@@ -15,6 +15,9 @@ async function fillMinimumForm() {
   await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
   await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
   await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
+  await user.type(screen.getByLabelText(/machine model/i), '793F')
+  await user.type(screen.getByLabelText(/technology supplier/i), 'ASI Mining')
+  await user.click(screen.getByLabelText('Highly Autonomous'))
   await user.type(screen.getByLabelText(/quantity/i), '10')
   await user.click(screen.getByLabelText(/authorised to disclose/i))
   return user
@@ -49,6 +52,9 @@ describe('ContributePage', () => {
     expect(screen.getByText(/two-letter country code/i)).toBeInTheDocument()
     expect(screen.getByText('Machine type is required.')).toBeInTheDocument()
     expect(screen.getByText('Machine manufacturer is required.')).toBeInTheDocument()
+    expect(screen.getByText('Machine model is required.')).toBeInTheDocument()
+    expect(screen.getByText('Technology supplier is required.')).toBeInTheDocument()
+    expect(screen.getByText('Automation level is required.')).toBeInTheDocument()
     expect(screen.getByText('Quantity must be a positive whole number.')).toBeInTheDocument()
     expect(screen.getByText('Confirm that you are authorised to disclose this information.')).toBeInTheDocument()
     expect(screen.getByLabelText(/mine site name/i)).toHaveFocus()
@@ -62,6 +68,9 @@ describe('ContributePage', () => {
     await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
     await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
     await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
+    await user.type(screen.getByLabelText(/machine model/i), '793F')
+    await user.type(screen.getByLabelText(/technology supplier/i), 'ASI Mining')
+    await user.click(screen.getByLabelText('Highly Autonomous'))
     await user.type(screen.getByLabelText(/quantity/i), '10')
     await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/contact email/i), 'not-an-email')
@@ -97,12 +106,16 @@ describe('ContributePage', () => {
     expect(page).toHaveClass('contribute-page')
     expect(form).toHaveClass('contribution-form')
     expect(screen.getByLabelText(/country/i).tagName).toBe('SELECT')
+    const coordinateRow = screen.getByLabelText(/site latitude/i).closest('.form-grid--coordinates')
+    expect(coordinateRow).not.toBeNull()
+    expect(coordinateRow).toContainElement(screen.getByLabelText(/site longitude/i))
+    expect(screen.getByText(/automation technology fitted/i)).toBeInTheDocument()
 
     const toggle = screen.getByRole('button', { name: /add more detail/i })
     await user.click(toggle)
     expect(toggle.nextElementSibling).toHaveAttribute('id', 'additional-contribution-details')
     expect(screen.getByPlaceholderText('e.g. Iron ore')).toBeInTheDocument()
-    expect(screen.getByText('No automation level recorded')).toBeInTheDocument()
+    expect(screen.queryByText('No automation level recorded')).not.toBeInTheDocument()
   })
 
   test('rejects impossible calendar dates while accepting year-only dates', async () => {
@@ -116,6 +129,9 @@ describe('ContributePage', () => {
     await user.selectOptions(screen.getByLabelText(/country/i), 'AU')
     await user.selectOptions(screen.getByLabelText(/machine type/i), 'haul_truck')
     await user.type(screen.getByLabelText(/machine manufacturer/i), 'Caterpillar')
+    await user.type(screen.getByLabelText(/machine model/i), '793F')
+    await user.type(screen.getByLabelText(/technology supplier/i), 'ASI Mining')
+    await user.click(screen.getByLabelText('Highly Autonomous'))
     await user.type(screen.getByLabelText(/quantity/i), '10')
     await user.type(screen.getByLabelText(/commissioning date or year/i), '2025-02-31')
     await user.click(screen.getByLabelText(/authorised to disclose/i))
@@ -149,19 +165,22 @@ describe('ContributePage', () => {
   test('submits through the live API adapter and communicates pending review', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ verification_status: 'pending_review' }),
+      json: async () => ({ id: 20202, verification_status: 'pending_review' }),
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
     const user = await fillMinimumForm()
+    await user.type(screen.getByLabelText(/site latitude/i), '-22.3')
+    await user.type(screen.getByLabelText(/site longitude/i), '118.7')
     await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/machine model variant/i), 'XDE')
-    await user.click(screen.getByLabelText('Autonomous'))
+    await user.click(screen.getByLabelText('Highly Autonomous'))
     await user.selectOptions(screen.getByLabelText(/installation type/i), 'retrofit')
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
     expect(await screen.findByText(/pending review/i)).toBeInTheDocument()
+    expect(screen.getByText(/submission reference is #20202/i)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST' }))
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
@@ -172,6 +191,8 @@ describe('ContributePage', () => {
       site_name: 'Roy Hill',
       country_code: 'AU',
       machine_type: 'haul_truck',
+      latitude: -22.3,
+      longitude: 118.7,
       machine_model_variant: 'XDE',
       quantity: 10,
       automation_level: 'autonomous',
@@ -202,7 +223,7 @@ describe('ContributePage', () => {
     render(<ContributePage />)
 
     expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Autonomous' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Highly Autonomous' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Australia (AU)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Anonymised (XR)' })).toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')

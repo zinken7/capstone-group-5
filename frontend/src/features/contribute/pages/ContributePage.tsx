@@ -27,17 +27,18 @@ export interface ContributePageProps {
   loadReferenceData?: () => Promise<ContributionReferenceData>
 }
 
-function submissionMessage(status: ContributionVerificationStatus): string {
+function submissionMessage(status: ContributionVerificationStatus, id?: number): string {
+  const reference = typeof id === 'number' ? ` Your submission reference is #${id}. Keep it if the team needs to follow up.` : ''
   if (status === 'verified') {
-    return 'Your contribution has been received and marked as verified. It is now eligible for the public verified views.'
+    return `Your contribution has been received and marked as verified. It is now eligible for the public verified views.${reference}`
   }
   if (status === 'rejected') {
-    return 'Your contribution was received but rejected during review, so it will not be published.'
+    return `Your contribution was received but rejected during review, so it will not be published.${reference}`
   }
   if (status === 'unverified') {
-    return 'Your contribution has been received as unverified. It remains hidden from the public verified views until review.'
+    return `Your contribution has been received as unverified. It remains hidden from the public verified views until review.${reference}`
   }
-  return 'Your contribution has been received and is pending review. It will become part of the public verified views after review.'
+  return `Your contribution has been received and is pending review. It will become part of the public verified views after review.${reference}`
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -148,9 +149,16 @@ function ContributePage({
       const firstInvalidField: Record<string, string> = {
         siteName: 'site-name',
         countryCode: 'country-code',
+        latitude: 'latitude',
+        longitude: 'longitude',
         machineType: 'machine-type',
         manufacturer: 'manufacturer',
+        machineModel: 'machine-model',
         quantity: 'quantity',
+        technologySupplier: 'technology-supplier',
+        automationLevel: referenceData.automationLevels[0]
+          ? `automation-level-${referenceData.automationLevels[0][0]}`
+          : 'automation-level',
         commissioningDate: 'commissioning-date',
         evidenceUrls: 'evidence-0',
         email: 'email',
@@ -171,7 +179,7 @@ function ContributePage({
     try {
       const result = await submitContribution(values)
       setSubmitState('success')
-      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review'))
+      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id))
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'We could not submit your contribution. Please try again.')
@@ -255,7 +263,7 @@ function ContributePage({
 
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
-        <p>Only submit information you are authorised to disclose. Contributions are checked before they become part of the public market map.</p>
+        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>
@@ -275,6 +283,18 @@ function ContributePage({
               <FieldError id="country-code-error" message={showError('countryCode')} />
             </label>
 
+            <div className="form-grid form-grid--coordinates form-field--wide">
+              <label className="form-field" htmlFor="latitude"><span className="form-label">Site latitude <span className="form-help">(optional)</span></span>
+                <input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" inputMode="decimal" placeholder="e.g. -22.3" value={values.latitude} onChange={(event) => updateTextField('latitude', event.target.value)} aria-invalid={Boolean(showError('latitude'))} aria-describedby={showError('latitude') ? 'latitude-error' : undefined} />
+                <FieldError id="latitude-error" message={showError('latitude')} />
+              </label>
+
+              <label className="form-field" htmlFor="longitude"><span className="form-label">Site longitude <span className="form-help">(optional)</span></span>
+                <input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" inputMode="decimal" placeholder="e.g. 118.7" value={values.longitude} onChange={(event) => updateTextField('longitude', event.target.value)} aria-invalid={Boolean(showError('longitude'))} aria-describedby={showError('longitude') ? 'longitude-error' : undefined} />
+                <FieldError id="longitude-error" message={showError('longitude')} />
+              </label>
+            </div>
+
             <label className="form-field" htmlFor="machine-type"><span className="form-label">Machine type <span aria-hidden="true">*</span></span>
               <select id="machine-type" name="machineType" value={values.machineType} onChange={(event) => updateTextField('machineType', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineType'))} aria-describedby={showError('machineType') ? 'machine-type-error' : undefined}><option value="">Select a machine type</option>{referenceData.machineTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <FieldError id="machine-type-error" message={showError('machineType')} />
@@ -283,8 +303,9 @@ function ContributePage({
               <input id="manufacturer" name="manufacturer" placeholder="e.g. Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
               <FieldError id="manufacturer-error" message={showError('manufacturer')} />
             </label>
-            <label className="form-field" htmlFor="machine-model">Machine model
-              <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
+            <label className="form-field" htmlFor="machine-model"><span className="form-label">Machine model <span aria-hidden="true">*</span></span>
+              <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineModel'))} aria-describedby={showError('machineModel') ? 'machine-model-error' : undefined} />
+              <FieldError id="machine-model-error" message={showError('machineModel')} />
             </label>
             <label className="form-field" htmlFor="quantity"><span className="form-label">Quantity <span aria-hidden="true">*</span></span>
               <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" placeholder="e.g. 10" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
@@ -334,26 +355,24 @@ function ContributePage({
         <fieldset>
           <legend>Technology details</legend>
           <div className="form-grid">
-            <label className="form-field" htmlFor="technology-supplier">Technology supplier
-              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} />
+            <label className="form-field" htmlFor="technology-supplier"><span className="form-label">Technology supplier <span aria-hidden="true">*</span></span>
+              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('technologySupplier'))} aria-describedby={showError('technologySupplier') ? 'technology-supplier-error' : undefined} />
+              <FieldError id="technology-supplier-error" message={showError('technologySupplier')} />
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
               <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
-            <fieldset className="chip-field form-field form-field--wide">
-              <legend>Automation level</legend>
-              <div className="chip-group" role="radiogroup" aria-label="Automation level">
-                <label className="choice-chip">
-                  <input type="radio" name="automationLevel" value="" checked={values.automationLevel === ''} onChange={() => updateTextField('automationLevel', '')} />
-                  <span>No automation level recorded</span>
-                </label>
+            <fieldset className="chip-field form-field form-field--wide" id="automation-level" aria-invalid={Boolean(showError('automationLevel'))} aria-describedby={showError('automationLevel') ? 'automation-level-error' : undefined}>
+              <legend>Automation level <span aria-hidden="true">*</span></legend>
+              <div className="chip-group" role="radiogroup" aria-label="Automation level" aria-required="true" aria-invalid={Boolean(showError('automationLevel'))} aria-describedby={showError('automationLevel') ? 'automation-level-error' : undefined}>
                 {referenceData.automationLevels.map(([value, label]) => (
                   <label className="choice-chip" key={value}>
-                    <input type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
+                    <input id={`automation-level-${value}`} type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
                     <span>{label}</span>
                   </label>
                 ))}
               </div>
+              <FieldError id="automation-level-error" message={showError('automationLevel')} />
             </fieldset>
           </div>
         </fieldset>
@@ -380,6 +399,7 @@ function ContributePage({
               <label className="form-field" htmlFor="organisation">Organisation <span className="form-help">(optional)</span>
                 <input id="organisation" name="organisation" value={values.organisation} onChange={(event) => updateTextField('organisation', event.target.value)} />
               </label>
+              <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
             </div>}
             <label className={`disclosure-check ${showError('disclosureAccepted') ? 'disclosure-check--error' : ''}`} htmlFor="disclosure-accepted">
               <input id="disclosure-accepted" name="disclosureAccepted" type="checkbox" checked={values.disclosureAccepted} onChange={(event) => updateDisclosure(event.target.checked)} required aria-required="true" aria-invalid={Boolean(showError('disclosureAccepted'))} aria-describedby={showError('disclosureAccepted') ? 'disclosure-error' : undefined} />
@@ -391,7 +411,7 @@ function ContributePage({
 
         <aside className="contribution-notice contribution-notice--next" aria-labelledby="contribution-next-heading">
           <h2 id="contribution-next-heading">What happens next</h2>
-          <p>We review the submission and its sources before publishing it. You can provide contact details in the additional fields if the team needs clarification.</p>
+          <p>We review the submission and its sources before publishing it. Your submission reference appears on the confirmation screen. Contact details are used only for clarification and are not published.</p>
         </aside>
 
         {submitMessage && submitState === 'idle' && <p className="form-summary-error" role="alert">{submitMessage}</p>}

@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 -- Synthetic development/test seed; no client data or real evidence.
 -- Verification fixture distribution is configured in this SQL (133/67).
--- Requires PostgreSQL/PostGIS and the NEW ERD columns/enums to exist.
+-- Requires PostgreSQL/PostGIS and migrations 001-005 (SRS v0.6).
 -- installation_type is unknown: the workbook supplies no installation value.
 -- commissioning_year is derived from the supplied full commissioning date.
 -- Verification states are TEST FIXTURES, not real-world validation.
@@ -388,7 +388,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- deployment: 200 records
 CREATE TEMP TABLE seed_deployment ON COMMIT DROP AS
-SELECT id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year FROM public.deployment WITH NO DATA;
+SELECT id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year, technology_supplier_id FROM public.deployment WITH NO DATA;
 INSERT INTO seed_deployment (id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year) VALUES
   (20001, 10001, 1001, 3001, 2, 'surface', '2018-01-01', 'operational', 'verified', '2018-01-01', NULL, '2026-01-01 00:00:00+00', '2026-09-01 00:00:00+00', 'operator_assistance', 'unknown', 2018),
   (20002, 10001, 1002, 3002, 9, 'underground', '2019-04-08', 'operational', 'verified', '2019-04-08', NULL, '2026-01-01 00:00:00+00', '2026-09-01 00:00:00+00', 'teleremote', 'unknown', 2019),
@@ -590,17 +590,23 @@ INSERT INTO seed_deployment (id, site_id, machine_model_id, technology_product_i
   (20198, 10040, 1098, 3023, 4, 'both', '2023-04-03', 'operational', 'unverified', '2023-04-03', NULL, '2026-01-01 00:00:00+00', '2026-09-01 00:00:00+00', 'teleremote', 'unknown', 2023),
   (20199, 10040, 1099, 3024, 11, 'surface', '2026-07-10', 'commissioning', 'unverified', '2026-07-10', NULL, '2026-01-01 00:00:00+00', '2026-09-01 00:00:00+00', 'semi_autonomous', 'unknown', 2026),
   (20200, 10040, 1100, 3010, 18, 'underground', '2015-10-17', 'decommissioned', 'unverified', '2015-10-17', '2020-10-17', '2026-01-01 00:00:00+00', '2026-09-01 00:00:00+00', 'autonomous', 'unknown', 2015);
+-- Recover each fixture supplier from its existing named product.
+-- Keep the deployment fixture values and business timestamps unchanged.
+UPDATE seed_deployment AS d
+  SET technology_supplier_id = p.supplier_id
+  FROM seed_technology_product AS p
+  WHERE p.id = d.technology_product_id;
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM public.deployment actual JOIN seed_deployment expected USING (id)
-    WHERE ROW(actual.id, actual.site_id, actual.machine_model_id, actual.technology_product_id, actual.quantity, actual.environment, actual.commissioning_date, actual.status, actual.verification_status, actual.valid_from, actual.valid_to, actual.created_at, actual.updated_at, actual.automation_level, actual.installation_type, actual.commissioning_year) IS DISTINCT FROM ROW(expected.id, expected.site_id, expected.machine_model_id, expected.technology_product_id, expected.quantity, expected.environment, expected.commissioning_date, expected.status, expected.verification_status, expected.valid_from, expected.valid_to, expected.created_at, expected.updated_at, expected.automation_level, expected.installation_type, expected.commissioning_year)
+    WHERE ROW(actual.id, actual.site_id, actual.machine_model_id, actual.technology_product_id, actual.quantity, actual.environment, actual.commissioning_date, actual.status, actual.verification_status, actual.valid_from, actual.valid_to, actual.created_at, actual.updated_at, actual.automation_level, actual.installation_type, actual.commissioning_year, actual.technology_supplier_id) IS DISTINCT FROM ROW(expected.id, expected.site_id, expected.machine_model_id, expected.technology_product_id, expected.quantity, expected.environment, expected.commissioning_date, expected.status, expected.verification_status, expected.valid_from, expected.valid_to, expected.created_at, expected.updated_at, expected.automation_level, expected.installation_type, expected.commissioning_year, expected.technology_supplier_id)
   ) THEN
     RAISE EXCEPTION 'Seed conflict in deployment: existing ID has different content. Transaction aborted.';
   END IF;
 END $$;
-INSERT INTO public.deployment (id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year)
-SELECT id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year FROM seed_deployment
+INSERT INTO public.deployment (id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year, technology_supplier_id)
+SELECT id, site_id, machine_model_id, technology_product_id, quantity, environment, commissioning_date, status, verification_status, valid_from, valid_to, created_at, updated_at, automation_level, installation_type, commissioning_year, technology_supplier_id FROM seed_deployment
 ON CONFLICT (id) DO NOTHING;
 
 

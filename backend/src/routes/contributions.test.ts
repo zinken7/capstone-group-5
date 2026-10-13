@@ -20,6 +20,8 @@ const formBody = {
   country_code: 'au',
   region: 'Pilbara',
   commodity: 'iron_ore',
+  latitude: -22.3,
+  longitude: 118.7,
   machine_type: 'haul_truck',
   machine_manufacturer: 'Komatsu',
   machine_model: '930E',
@@ -78,6 +80,21 @@ describe('POST /api/contributions', () => {
       },
     })
     expect(await query('SELECT id FROM deployment WHERE verification_status = $1', ['pending_review'])).toHaveLength(1)
+  })
+
+  it('rejects a submission with the hidden website field filled, without saying why or storing it', async () => {
+    const before = await query<{ count: number }>('SELECT COUNT(*)::int AS count FROM deployment')
+    const response = await request(app).post('/api/contributions').send({ ...formBody, website: 'https://spam.example' })
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid contribution' })
+    expect(await query('SELECT COUNT(*)::int AS count FROM deployment')).toEqual(before)
+  })
+
+  it('accepts a submission with the hidden website field left empty', async () => {
+    const response = await request(app).post('/api/contributions').send({ ...formBody, website: '' })
+
+    expect(response.status).toBe(201)
   })
 
   it('rejects a body that is not a JSON object', async () => {

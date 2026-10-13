@@ -7,9 +7,13 @@ export interface DeploymentChanges {
   quantity?: number
   environment?: string
   status?: string
-  automationLevel?: string
+  /** null clears the level; only an administrator's correction can ask for that (FR-57) */
+  automationLevel?: string | null
   installationType?: string
   commissioning?: Commissioning
+  /** Administrators only (FR-11); the public correction form never sets these, and null clears the date */
+  validFrom?: string | null
+  validTo?: string | null
 }
 
 export interface CorrectionInput {

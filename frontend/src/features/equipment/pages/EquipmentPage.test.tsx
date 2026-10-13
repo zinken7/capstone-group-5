@@ -252,7 +252,7 @@ describe('EquipmentPage', () => {
     render(<EquipmentPage />)
 
     expect((await screen.findAllByText('LHD')).length).toBeGreaterThan(0)
-    expect((await screen.findAllByText('Semi-autonomous')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Semi Autonomous')).length).toBeGreaterThan(0)
     const correctButton = screen.getByRole('button', { name: /correct raw enum site/i })
     await userEvent.setup().click(correctButton)
     const environmentSelect = screen.getByRole('combobox', { name: /mining environment/i })
@@ -316,6 +316,8 @@ describe('EquipmentPage', () => {
     expect(screen.getByRole('textbox', { name: /quantity/i })).toHaveFocus()
     await user.clear(screen.getByRole('textbox', { name: /quantity/i }))
     await user.type(screen.getByRole('textbox', { name: /quantity/i }), '2')
+    await user.type(screen.getByRole('textbox', { name: /contact email/i }), 'field@example.com')
+    await user.type(screen.getByRole('textbox', { name: /organisation/i }), 'Example Mining')
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: /submit correction/i }))
 
@@ -323,7 +325,12 @@ describe('EquipmentPage', () => {
     expect(screen.getByRole('button', { name: /correct correction site/i })).toBeInTheDocument()
     const patchCall = fetchMock.mock.calls.find(([url, init]) => String(url).endsWith('/deployments/20202') && init?.method === 'PATCH')
     expect(patchCall?.[1]?.headers).toEqual(expect.objectContaining({ 'X-Requested-With': 'fetch' }))
-    expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual(expect.objectContaining({ quantity: 2, disclosure_accepted: true }))
+    expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual(expect.objectContaining({
+      quantity: 2,
+      contributor_email: 'field@example.com',
+      organisation: 'Example Mining',
+      disclosure_accepted: true,
+    }))
     expect(document.body.style.overflow).toBe('')
     expect(correctButton).toHaveFocus()
   })
