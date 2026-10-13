@@ -123,6 +123,8 @@ interface RecordDto {
     machine_type: string
     technology_product: string | null
     quantity: number
+    commissioning_date: string | null
+    status: string
   }[]
   automation_level: string | null
   environment: string | null
@@ -181,6 +183,8 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
       machineType: item.machine_type,
       technologyProduct: item.technology_product,
       quantity: item.quantity,
+      commissioningDate: item.commissioning_date,
+      status: item.status,
     })),
     automationLevel: dto.automation_level,
     environment: dto.environment,

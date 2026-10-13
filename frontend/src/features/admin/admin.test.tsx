@@ -303,6 +303,8 @@ describe('record review', () => {
           machine_type: 'haul_truck',
           technology_product: 'AutoMine',
           quantity: 15,
+          commissioning_date: '2024-05-10',
+          status: 'operational',
         }],
       })),
       'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
@@ -323,6 +325,8 @@ describe('record review', () => {
     })
     expect(duplicateLink).toHaveAttribute('href', '/admin/deployments/13')
     expect(screen.getByText(/Quantity: 15/)).toBeInTheDocument()
+    expect(screen.getByText(/Deployment status: Operational/)).toBeInTheDocument()
+    expect(screen.getByText(/Commissioning: 2024-05-10/)).toBeInTheDocument()
   })
 
   test('does not show a duplicate warning when there are no possible duplicates', async () => {

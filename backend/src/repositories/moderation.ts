@@ -174,6 +174,8 @@ export interface ReviewRecord {
     machine_type: string
     technology_product: string | null
     quantity: number
+    commissioning_date: string | null
+    status: string | null
   }[]
   automation_level: string | null
   environment: string | null
@@ -234,6 +236,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       verification_status: tables.deployment.verificationStatus,
       machine_model_id: tables.deployment.machineModelId,
       technology_product_id: tables.deployment.technologyProductId,
+      technology_supplier_id: tables.deployment.technologySupplierId,
       site_id: tables.site.id,
       site_name: tables.site.name,
       country_code: tables.site.countryCode,
@@ -270,9 +273,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
   const record = rows[0]
   if (!record) return null
 
-  const possible_duplicates = record.technology_product_id === null
-    ? []
-    : await db
+  const possible_duplicates = await db
       .select({
         id: tables.deployment.id,
         verification_status: tables.deployment.verificationStatus,
@@ -281,16 +282,18 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
         machine_type: tables.machineModel.machineType,
         technology_product: tables.technologyProduct.productName,
         quantity: tables.deployment.quantity,
+        commissioning_date: tables.deployment.commissioningDate,
+        status: tables.deployment.status,
       })
       .from(tables.deployment)
       .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
       .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
       .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
-      .innerJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+      .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
       .where(and(
         ne(tables.deployment.id, id),
         eq(tables.deployment.siteId, record.site_id),
-        eq(tables.deployment.technologyProductId, record.technology_product_id),
+        eq(tables.deployment.technologySupplierId, record.technology_supplier_id),
         inArray(tables.deployment.verificationStatus, ['pending_review', 'verified']),
         or(
           eq(tables.deployment.machineModelId, record.machine_model_id),
@@ -357,9 +360,9 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
   ])
   const publicRecord = Object.fromEntries(
     Object.entries(record).filter(
-      ([key]) => key !== 'machine_model_id' && key !== 'technology_product_id',
+      ([key]) => key !== 'machine_model_id' && key !== 'technology_product_id' && key !== 'technology_supplier_id',
     ),
-  ) as Omit<typeof record, 'machine_model_id' | 'technology_product_id'>
+  ) as Omit<typeof record, 'machine_model_id' | 'technology_product_id' | 'technology_supplier_id'>
   return {
     ...publicRecord,
     possible_duplicates,

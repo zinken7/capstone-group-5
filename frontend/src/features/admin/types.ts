@@ -98,6 +98,8 @@ export interface ReviewRecord {
     machineType: string
     technologyProduct: string | null
     quantity: number
+    commissioningDate: string | null
+    status: string
   }[]
   automationLevel: string | null
   environment: string | null

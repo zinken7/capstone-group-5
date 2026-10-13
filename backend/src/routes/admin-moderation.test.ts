@@ -173,6 +173,8 @@ describe('GET /api/admin/deployments/:id', () => {
         machine_type: 'haul_truck',
         technology_product: 'FrontRunner',
         quantity: 15,
+        commissioning_date: '2022-07-01',
+        status: 'operational',
       }),
     ])
     expect(response.body.possible_duplicates).not.toEqual(
@@ -180,9 +182,44 @@ describe('GET /api/admin/deployments/:id', () => {
     )
   })
 
-  it('does not identify deployments with a different technology product as duplicates', async () => {
+  it('identifies deployments with the same supplier but different products', async () => {
     const firstId = await contribute()
-    await contribute({ technology_product: 'Different Automation Product' })
+    const secondId = await contribute({ technology_product: 'Different Automation Product' })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({ id: secondId }),
+    ])
+  })
+
+  it('identifies duplicate deployments when both products are null', async () => {
+    const firstId = await contribute({ technology_product: null })
+    const secondId = await contribute({ technology_product: null })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({
+        id: secondId,
+        technology_product: null,
+        verification_status: 'pending_review',
+      }),
+    ])
+  })
+
+  it('does not identify deployments with a different technology supplier as duplicates', async () => {
+    const firstId = await contribute()
+    await contribute({
+      technology_supplier: 'Different Automation Supplier',
+      technology_product: null,
+    })
 
     const response = await request(app)
       .get(`/api/admin/deployments/${firstId}`)

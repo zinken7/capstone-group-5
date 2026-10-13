@@ -185,7 +185,11 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
                     </p>
                     <p>
                       Technology: {duplicate.technologyProduct ?? 'Not recorded'}
-                      {' | '}Status: {formatEnumLabel(duplicate.verificationStatus)}
+                      {' | '}Verification: {formatEnumLabel(duplicate.verificationStatus)}
+                    </p>
+                    <p>
+                      Deployment status: {formatEnumLabel(duplicate.status)}
+                      {' | '}Commissioning: {duplicate.commissioningDate ?? 'Not recorded'}
                     </p>
                   </li>
                 ))}

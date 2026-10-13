@@ -515,6 +515,18 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
   correction was sent and `current` the value now, so they differ when the
   record has changed since. Commissioning values are a date or a year
   (`"2021-01-01"`, `"2020"`).
+- `possible_duplicates`: an array of other deployments that may match this
+  record. Each entry contains `id`, `verification_status`,
+  `machine_manufacturer`, `machine_model`, `machine_type`,
+  `technology_product`, `quantity`, `commissioning_date`, and `status`.
+  `commissioning_date` may be `null`. The array is empty when no potential
+  matches are found.
+
+  A possible duplicate must belong to the same site, have the same
+  deployment-level technology supplier, and match either the machine model
+  or machine type. Only deployments with verification status `pending_review`
+  or `verified` are considered. The current deployment is excluded.
+  Technology products do not need to match and may be `null`.
 
 `404` for an unknown or malformed id.
 
