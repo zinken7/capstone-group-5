@@ -32,10 +32,10 @@ export const ENVIRONMENTS = [
 ] as const
 
 export const AUTOMATION_LEVELS = [
-  ['operator_assistance', 'Operator assistance'],
+  ['operator_assistance', 'Operator Assistance'],
   ['teleremote', 'Teleremote'],
-  ['semi_autonomous', 'Semi-autonomous'],
-  ['autonomous', 'Autonomous'],
+  ['semi_autonomous', 'Semi Autonomous'],
+  ['autonomous', 'Highly Autonomous'],
 ] as const
 
 export const INSTALLATION_TYPES = [
