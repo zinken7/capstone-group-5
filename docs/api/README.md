@@ -45,8 +45,8 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | `bbox` | `minLon,minLat,maxLon,maxLat` | No | Restrict to sites within the given rectangular range |
 | `supplier` | string | No | Filter by technology supplier |
 | `date` | `YYYY-MM-DD` | No | Only return deployments still in service on this date |
-| `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them. Use either `date` or `year`, not both |
-| `include_decommissioned` | `true`\|`false` | No | With `date` or `year`, also keep sites whose deployments had ended by then (announced deployments never count as ended). Default `false` |
+| `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them except for commissioning deployments. Use either `date` or `year`, not both |
+| `include_decommissioned` | `true`\|`false` | No | Without `date` or `year`, also count deployments currently marked decommissioned. With `date` or `year`, also keep sites whose deployments had ended by then (announced and commissioning deployments never count as ended). Default `false` |
 | `country` | string | No | Filter by country code |
 | `region` | string | No | Filter by region |
 | `machine_type` | string | No | Filter by machine type |
@@ -83,14 +83,14 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | Field | Description |
 |---|---|
 | `geometry.coordinates` | `[longitude, latitude]` |
-| `excluded_count` | Number of deployments that cannot be placed in time (FR-19): with `date`, those without a commissioning date; with `year`, those without a commissioning year, other than announced ones |
+| `excluded_count` | Number of deployments that cannot be placed in time (FR-19): with `date`, those without a commissioning date; with `year`, those without a commissioning year. Announced and commissioning deployments are never counted |
 | `properties.id`/`name` | Site identifier and name |
 | `properties.country_code`/`region`/`commodity` | Site attributes, for headline counts and the site card without a request per site |
 | `properties.status` | Highest-precedence deployment status for the site (FR-16). A site kept only by `include_decommissioned` reads `decommissioned` |
 | `properties.technology_suppliers` | Array because a site may have multiple suppliers (FR-18) |
-| `properties.machine_count`/`deployment_count` | Machines and deployments in view: every matching verified deployment, or only those in service on the `date` or `year`. Ended deployments kept by `include_decommissioned` never count |
+| `properties.machine_count`/`deployment_count` | Machines and deployments in view (FR-16). Without `date` or `year`: matching verified deployments currently marked operational, plus decommissioned ones with `include_decommissioned`. With `date` or `year`: those in service on that day, whatever their current status. Announced and commissioning deployments never count, and ended deployments kept by `include_decommissioned` never count |
 
-**`year` rule.** On 31 December of the year, a deployment is in service when it is not announced, its commissioning year (or the year of its commissioning date) is no later, and the day falls inside `valid_from`..`valid_to`. This is the rule `GET /api/analytics/timeline` uses, so the machine counts on the map add up to that year's `in_service`. Unlike `date`, it places records known only by their year.
+**`year` rule.** On 31 December of the year, a deployment is in service when it is neither announced nor commissioning, its commissioning year (or the year of its commissioning date) is no later, and the day falls inside `valid_from`..`valid_to`. A deployment decommissioned since then still counts for the years it was in service. `GET /api/analytics/timeline` uses the same rule but also counts commissioning deployments, so the machine counts on the map add up to that year's `in_service` less its commissioning machines. Unlike `date`, it places records known only by their year.
 
 Malformed `bbox`, `date`, `year` or `include_decommissioned` parameters return `400` rather than being silently ignored, as does giving both `date` and `year`. Sites without coordinates cannot be placed on the map and are omitted. Filtering runs in SQL, so `excluded_count` remains accurate.
 

@@ -94,21 +94,21 @@ type TimedDeployment = Pick<SiteDeployment, 'status' | 'commissioningYear' | 'co
 
 /**
  * In service on 31 December of the year, by the rule /api/map?year= and the
- * analytics timeline use: not announced, commissioned by then, and inside its
+ * map use: operational or historically decommissioned, commissioned by then, and inside its
  * validity window.
  */
 export function inServiceAt(deployment: TimedDeployment, year: number): boolean {
   const day = `${year}-12-31`
   const start = startYearOf(deployment)
-  return deployment.status !== 'announced'
+  return deployment.status !== 'announced' && deployment.status !== 'commissioning'
     && start !== null && start <= year
     && (!deployment.validFrom || deployment.validFrom <= day)
     && (!deployment.validTo || deployment.validTo >= day)
 }
 
-/** Commissioned by the year but closed before its last day: what include_decommissioned adds back. Announced deployments never ran, so never ended. */
+/** Commissioned by the year but closed before its last day: what include_decommissioned adds back. Announced and commissioning deployments are excluded. */
 export function endedBy(deployment: TimedDeployment, year: number): boolean {
   const start = startYearOf(deployment)
-  return deployment.status !== 'announced'
+  return deployment.status !== 'announced' && deployment.status !== 'commissioning'
     && start !== null && start <= year && Boolean(deployment.validTo) && (deployment.validTo ?? '') < `${year}-12-31`
 }
