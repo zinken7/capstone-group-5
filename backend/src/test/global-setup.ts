@@ -33,7 +33,6 @@ async function ensureDatabaseExists(connectionString: string): Promise<void> {
 function runMigrations(connectionString: string): void {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   const result = spawnSync(npm, ['run', '--silent', 'db:migrate'], {
-    shell: process.platform === 'win32',
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     stdio: 'inherit',

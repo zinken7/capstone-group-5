@@ -125,7 +125,7 @@ describe('findMapSites', () => {
   })
 
   it('answers a historical date from the validity period and counts undated deployments', async () => {
-    const result = await findMapSites({ ...noFilters, date: '2018-01-01', includeDecommissioned: true })
+    const result = await findMapSites({ ...noFilters, date: '2018-01-01' })
 
     // Deployment 14 is decommissioned now but was in service in 2018
     expect(result.sites.map((site) => site.id)).toEqual([1])

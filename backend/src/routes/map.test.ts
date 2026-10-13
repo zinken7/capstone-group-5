@@ -20,7 +20,8 @@ function siteIds(features: Array<{ properties: { id: number } }>): number[] {
 
 describe('GET /api/map', () => {
   it('shows and filters by the supplier of a deployment that names no product', async () => {
-    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+    // Deployment 11 is commissioning, which the map leaves out (FR-16), so mark it operational here
+    await query("UPDATE deployment SET technology_product_id = NULL, status = 'operational' WHERE id = 11")
 
     const response = await request(app).get('/api/map?supplier=RCT')
     expect(response.status).toBe(200)
@@ -37,7 +38,7 @@ describe('GET /api/map', () => {
   })
 
   it('answers a historical date from the deployment validity period, not current status', async () => {
-    const response = await request(app).get('/api/map?date=2018-01-01&include_decommissioned=true')
+    const response = await request(app).get('/api/map?date=2018-01-01')
 
     expect(response.status).toBe(200)
     // Site 1 is included via deployment 14, which is decommissioned *today*
@@ -61,7 +62,7 @@ describe('GET /api/map', () => {
   })
 
   it('states how many deployments were excluded for lacking a commissioning date', async () => {
-    const response = await request(app).get('/api/map?date=2018-01-01&include_decommissioned=true')
+    const response = await request(app).get('/api/map?date=2018-01-01')
 
     expect(response.status).toBe(200)
     // Deployment 11 (Mount Whaleback) has no commissioning date.
@@ -117,7 +118,7 @@ describe('GET /api/map site properties', () => {
 
 describe('GET /api/map?year=', () => {
   it('shows what was in service on 31 December of the year', async () => {
-    const in2020 = await request(app).get('/api/map?year=2020&include_decommissioned=true')
+    const in2020 = await request(app).get('/api/map?year=2020')
     const in2022 = await request(app).get('/api/map?year=2022')
 
     // Deployment 14 ran until 2020-12-31 inclusive; deployment 10 started in 2021

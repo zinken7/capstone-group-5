@@ -60,7 +60,6 @@ async function createSprint2Database(suffix: string, data: string): Promise<stri
 function runMigrations(connectionString: string): { status: number | null; output: string } {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   const result = spawnSync(npm, ['run', '--silent', 'db:migrate'], {
-    shell: process.platform === 'win32',
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     encoding: 'utf8',
