@@ -69,6 +69,18 @@ describe('GET /api/register', () => {
     expect(response.body.items.every((item: { site_id: number }) => item.site_id === 1)).toBe(true)
   })
 
+  it('shows and filters by the supplier of a deployment that names no product', async () => {
+    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+
+    const response = await request(app).get('/api/register?supplier=RCT')
+    expect(response.status).toBe(200)
+    expect(itemIds(response.body)).toEqual([11])
+    expect(response.body.items[0]).toMatchObject({ technology_supplier: 'RCT', technology_product: null })
+
+    const exported = await request(app).get('/api/register/export?supplier=RCT')
+    expect(exported.text).toContain(',5,RCT,,teleremote,')
+  })
+
   it('pages with limit and offset while total covers every match', async () => {
     const response = await request(app).get('/api/register?limit=1&offset=1')
 

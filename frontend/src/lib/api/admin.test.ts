@@ -67,12 +67,12 @@ describe('admin API client', () => {
     })
   })
 
-  it('sends the explicit automation clear flag', async () => {
+  it('does not send a removed automation clear flag', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 12, verification_status: 'pending_review' }))
 
-    await correctRecord(12, { clearAutomationLevel: true })
+    await correctRecord(12, { automationLevel: 'autonomous' })
 
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ clear_automation_level: true })
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ automation_level: 'autonomous' })
   })
 
   it('sends administrator validity dates and explicit clear flags', async () => {

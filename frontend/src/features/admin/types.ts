@@ -121,8 +121,6 @@ export interface AdminCorrection {
   environment?: string
   deploymentStatus?: string
   automationLevel?: string
-  /** Requests the backend to remove an existing automation level. */
-  clearAutomationLevel?: boolean
   /** Administrator-only validity-window changes; omitted fields remain unchanged. */
   validFrom?: string
   validTo?: string

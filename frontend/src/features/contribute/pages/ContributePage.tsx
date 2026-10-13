@@ -153,7 +153,12 @@ function ContributePage({
         longitude: 'longitude',
         machineType: 'machine-type',
         manufacturer: 'manufacturer',
+        machineModel: 'machine-model',
         quantity: 'quantity',
+        technologySupplier: 'technology-supplier',
+        automationLevel: referenceData.automationLevels[0]
+          ? `automation-level-${referenceData.automationLevels[0][0]}`
+          : 'automation-level',
         commissioningDate: 'commissioning-date',
         evidenceUrls: 'evidence-0',
         email: 'email',
@@ -298,8 +303,9 @@ function ContributePage({
               <input id="manufacturer" name="manufacturer" placeholder="e.g. Caterpillar" value={values.manufacturer} onChange={(event) => updateTextField('manufacturer', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('manufacturer'))} aria-describedby={showError('manufacturer') ? 'manufacturer-error' : undefined} />
               <FieldError id="manufacturer-error" message={showError('manufacturer')} />
             </label>
-            <label className="form-field" htmlFor="machine-model">Machine model
-              <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} />
+            <label className="form-field" htmlFor="machine-model"><span className="form-label">Machine model <span aria-hidden="true">*</span></span>
+              <input id="machine-model" name="machineModel" placeholder="e.g. 793F" value={values.machineModel} onChange={(event) => updateTextField('machineModel', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('machineModel'))} aria-describedby={showError('machineModel') ? 'machine-model-error' : undefined} />
+              <FieldError id="machine-model-error" message={showError('machineModel')} />
             </label>
             <label className="form-field" htmlFor="quantity"><span className="form-label">Quantity <span aria-hidden="true">*</span></span>
               <input id="quantity" name="quantity" type="number" min="1" step="1" inputMode="numeric" placeholder="e.g. 10" value={values.quantity} onChange={(event) => updateTextField('quantity', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('quantity'))} aria-describedby={showError('quantity') ? 'quantity-error' : undefined} />
@@ -349,26 +355,24 @@ function ContributePage({
         <fieldset>
           <legend>Technology details</legend>
           <div className="form-grid">
-            <label className="form-field" htmlFor="technology-supplier">Technology supplier
-              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} />
+            <label className="form-field" htmlFor="technology-supplier"><span className="form-label">Technology supplier <span aria-hidden="true">*</span></span>
+              <input id="technology-supplier" name="technologySupplier" placeholder="e.g. ASI Mining" value={values.technologySupplier} onChange={(event) => updateTextField('technologySupplier', event.target.value)} required aria-required="true" aria-invalid={Boolean(showError('technologySupplier'))} aria-describedby={showError('technologySupplier') ? 'technology-supplier-error' : undefined} />
+              <FieldError id="technology-supplier-error" message={showError('technologySupplier')} />
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
               <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
-            <fieldset className="chip-field form-field form-field--wide">
-              <legend>Automation level</legend>
-              <div className="chip-group" role="radiogroup" aria-label="Automation level">
-                <label className="choice-chip">
-                  <input type="radio" name="automationLevel" value="" checked={values.automationLevel === ''} onChange={() => updateTextField('automationLevel', '')} />
-                  <span>No automation level recorded</span>
-                </label>
+            <fieldset className="chip-field form-field form-field--wide" id="automation-level" aria-invalid={Boolean(showError('automationLevel'))} aria-describedby={showError('automationLevel') ? 'automation-level-error' : undefined}>
+              <legend>Automation level <span aria-hidden="true">*</span></legend>
+              <div className="chip-group" role="radiogroup" aria-label="Automation level" aria-required="true" aria-invalid={Boolean(showError('automationLevel'))} aria-describedby={showError('automationLevel') ? 'automation-level-error' : undefined}>
                 {referenceData.automationLevels.map(([value, label]) => (
                   <label className="choice-chip" key={value}>
-                    <input type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
+                    <input id={`automation-level-${value}`} type="radio" name="automationLevel" value={value} checked={values.automationLevel === value} onChange={() => updateTextField('automationLevel', value)} />
                     <span>{label}</span>
                   </label>
                 ))}
               </div>
+              <FieldError id="automation-level-error" message={showError('automationLevel')} />
             </fieldset>
           </div>
         </fieldset>

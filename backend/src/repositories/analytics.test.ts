@@ -39,16 +39,16 @@ describe('findBreakdowns', () => {
     ])
   })
 
-  it('lists every automation level in order and keeps unclassified machines separate', async () => {
+  it('lists every automation level in order, with nothing unclassified now that each deployment carries one', async () => {
     const result = await findBreakdowns({})
 
-    // Deployment 14's product has no level, so its 20 machines are unclassified
+    // Deployment 14's product has no level, but the deployment's own level counts
     expect(result.byAutomationLevel).toEqual([
-      { key: 'operator_assistance', machineCount: 0, share: 0 },
+      { key: 'operator_assistance', machineCount: 20, share: 20 / 121 },
       { key: 'teleremote', machineCount: 5, share: 5 / 121 },
       { key: 'semi_autonomous', machineCount: 0, share: 0 },
       { key: 'autonomous', machineCount: 96, share: 96 / 121 },
-      { key: null, machineCount: 20, share: 20 / 121 },
+      { key: null, machineCount: 0, share: 0 },
     ])
   })
 
@@ -137,8 +137,8 @@ describe('findTimeline', () => {
   it('leaves announced deployments out of both measures and the excluded count', async () => {
     await query(`
       BEGIN;
-      INSERT INTO deployment (id, site_id, machine_model_id, technology_product_id, quantity, status, verification_status, commissioning_year)
-      VALUES (15, 2, 1, 1, 7, 'announced', 'verified', 2022), (16, 2, 1, 1, 3, 'announced', 'verified', NULL);
+      INSERT INTO deployment (id, site_id, machine_model_id, technology_supplier_id, technology_product_id, quantity, status, verification_status, commissioning_year, automation_level)
+      VALUES (15, 2, 1, 1, 1, 7, 'announced', 'verified', 2022, 'autonomous'), (16, 2, 1, 1, 1, 3, 'announced', 'verified', NULL, 'autonomous');
       INSERT INTO evidence (deployment_id, url, source_type) VALUES
         (15, 'https://example.com/evidence/15', 'news'),
         (16, 'https://example.com/evidence/16', 'news');
