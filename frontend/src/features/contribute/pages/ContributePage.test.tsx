@@ -163,7 +163,7 @@ describe('ContributePage', () => {
     await user.type(screen.getByLabelText(/site longitude/i), '118.7')
     await user.click(screen.getByRole('button', { name: /add more detail/i }))
     await user.type(screen.getByLabelText(/machine model variant/i), 'XDE')
-    await user.click(screen.getByLabelText('Autonomous'))
+    await user.click(screen.getByLabelText('Highly Autonomous'))
     await user.selectOptions(screen.getByLabelText(/installation type/i), 'retrofit')
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
@@ -211,7 +211,7 @@ describe('ContributePage', () => {
     render(<ContributePage />)
 
     expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Autonomous' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Highly Autonomous' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Australia (AU)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Anonymised (XR)' })).toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')
