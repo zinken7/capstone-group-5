@@ -118,7 +118,8 @@ describe('findVerifiedDeploymentsBySite', () => {
       validFrom: '2021-01-01',
       validTo: null,
     })
-    expect(deployments[1]?.automationLevel).toBeNull()
+    // The product is unclassified, so the deployment's own level is shown
+    expect(deployments[1]?.automationLevel).toBe('operator_assistance')
     expect(deployments[1]?.validTo).toBe('2020-12-31')
   })
 

@@ -129,6 +129,16 @@ describe('GET /api/admin/reviews', () => {
 })
 
 describe('GET /api/admin/deployments/:id', () => {
+  it('shows the supplier of a submission that names no product, in the queue and on the record', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const queue = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(queue.body.items).toContainEqual(expect.objectContaining({ id, technology_supplier: 'Komatsu' }))
+
+    const record = await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)
+    expect(record.body).toMatchObject({ technology_supplier: 'Komatsu', technology_product: null })
+  })
+
   it('returns a record in any status with its evidence and history', async () => {
     const response = await request(app).get('/api/admin/deployments/10').set('Cookie', cookie)
 
@@ -202,16 +212,20 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
     expect((await review(12, { decision: 'approved' })).status).toBe(201)
   })
 
-  it('refuses to approve a record without a technology product until an administrator sets one', async () => {
-    const id = await contribute({ technology_supplier: null, technology_product: null })
+  it('approves a record that names a supplier but no technology product (FR-08)', async () => {
+    const id = await contribute({ technology_product: null })
+
+    const approved = await review(id, { decision: 'approved' })
+    expect(approved.status).toBe(201)
+    expect(approved.body.verification_status).toBe('verified')
+  })
+
+  it('still refuses to approve a record without evidence', async () => {
+    const id = await contribute({ technology_product: null, evidence_urls: [] })
 
     const refused = await review(id, { decision: 'approved' })
     expect(refused.status).toBe(409)
-    expect(refused.body.error).toBe('a technology product is required before the record can be verified')
-
-    const set = await correct(id, { technology_supplier: 'Komatsu', technology_product: 'FrontRunner' })
-    expect(set.status).toBe(200)
-    expect((await review(id, { decision: 'approved' })).status).toBe(201)
+    expect(refused.body.error).toBe('at least one evidence URL is required before the record can be verified')
   })
 
   it('rejects with a note and takes the record out of the queue for good', async () => {
@@ -271,30 +285,19 @@ describe('PATCH /api/admin/deployments/:id', () => {
     })
   })
 
-  it('clears a proposed automation level when asked explicitly, keeping the previous value (FR-57)', async () => {
-    await correct(12, { automation_level: 'teleremote' })
-
-    const response = await correct(12, { clear_automation_level: true })
-    expect(response.status).toBe(200)
-    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: null }])
-
-    const [latest] = await query<{ previous_values: Record<string, unknown> }>(
-      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id DESC LIMIT 1',
-    )
-    expect(latest?.previous_values).toEqual({ automation_level: 'teleremote' })
-  })
-
-  it('treats clearing a level that is already empty as no change', async () => {
+  it('refuses to clear the automation level, which every deployment must carry (FR-57)', async () => {
     const response = await correct(12, { clear_automation_level: true })
 
     expect(response.status).toBe(400)
-    expect(response.body).toEqual({ error: 'correction does not change the record' })
+    expect(response.body.fields).toEqual({ clear_automation_level: 'cannot clear a required automation level' })
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'semi_autonomous' }])
+    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
   })
 
-  it('rejects clearing together with a new level, or a flag that is not a boolean', async () => {
-    const both = await correct(12, { automation_level: 'autonomous', clear_automation_level: true })
-    expect(both.status).toBe(400)
-    expect(both.body.fields).toEqual({ clear_automation_level: 'cannot be combined with automation_level' })
+  it('still corrects the level, and rejects a clear flag that is not a boolean', async () => {
+    const corrected = await correct(12, { automation_level: 'teleremote' })
+    expect(corrected.status).toBe(200)
+    expect(await query('SELECT automation_level::text FROM deployment WHERE id = 12')).toEqual([{ automation_level: 'teleremote' }])
 
     const notBoolean = await correct(12, { clear_automation_level: 'yes' })
     expect(notBoolean.status).toBe(400)
@@ -326,6 +329,24 @@ describe('PATCH /api/admin/deployments/:id', () => {
     expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
   })
 
+  it('changes the supplier on its own, dropping a product that belongs to the old supplier', async () => {
+    const response = await correct(12, { technology_supplier: 'RCT' })
+    expect(response.status).toBe(200)
+
+    expect(await query(
+      'SELECT c.name AS supplier, d.technology_product_id FROM deployment d JOIN company c ON c.id = d.technology_supplier_id WHERE d.id = 12',
+    )).toEqual([{ supplier: 'RCT', technology_product_id: null }])
+    const [revision] = await query<{ previous_values: Record<string, unknown> }>('SELECT previous_values FROM revision')
+    expect(revision?.previous_values).toEqual({ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' })
+  })
+
+  it('keeps the product when the same supplier is given without one', async () => {
+    const response = await correct(12, { technology_supplier: 'sandvik' })
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('correction does not change the record')
+    expect(await query('SELECT technology_product_id::int AS id FROM deployment WHERE id = 12')).toEqual([{ id: 3 }])
+  })
+
   it.each([
     [{ quantity: 8 }, 'correction does not change the record'],
     [{ technology_supplier: 'Sandvik', technology_product: 'Sandvik AutoMine' }, 'correction does not change the record'],
@@ -336,7 +357,7 @@ describe('PATCH /api/admin/deployments/:id', () => {
   })
 
   it.each([
-    [{ technology_supplier: 'RCT' }, 'technology_product'],
+    [{ technology_product: 'AutoMine' }, 'technology_supplier'],
     [{ quantity: -1 }, 'quantity'],
     [{}, 'body'],
   ])('returns 400 with field errors for %j', async (body, field) => {
