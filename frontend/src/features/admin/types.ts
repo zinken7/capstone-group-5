@@ -143,6 +143,9 @@ export interface NewAdministrator {
 }
 
 
+/** Columns the submission history can be sorted by. */
+export type SubmissionHistorySort = 'id' | 'site' | 'decision' | 'status' | 'updated'
+
 export interface SubmissionHistoryItem {
   id: number
   siteName: string
