@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
@@ -158,11 +159,12 @@ export async function insertContributor(tx: Tx, contributor: { email: string | n
 export interface NewDeployment {
   siteId: number
   machineModelId: number
+  technologySupplierId: number
   technologyProductId: number | null
   quantity: number
   environment: string | null
   status: string | null
-  automationLevel: string | null
+  automationLevel: string
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
@@ -175,6 +177,7 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
     .values({
       siteId: deployment.siteId,
       machineModelId: deployment.machineModelId,
+      technologySupplierId: deployment.technologySupplierId,
       technologyProductId: deployment.technologyProductId,
       quantity: deployment.quantity,
       // Validated against the controlled values upstream; the database enums still reject anything else
@@ -185,6 +188,8 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
       commissioningDate: deployment.commissioningDate,
       commissioningYear: deployment.commissioningYear,
       validFrom: deployment.commissioningDate,
+      // Submitted as already decommissioned: the window closes today, as for a correction (#156)
+      validTo: deployment.status === 'decommissioned' ? closeValidityToday(deployment.commissioningDate) : null,
       verificationStatus: 'pending_review',
     })
     .returning({ id: tables.deployment.id, verificationStatus: tables.deployment.verificationStatus })
@@ -236,6 +241,9 @@ export interface CurrentDeployment {
   installationType: string
   commissioningDate: string | null
   commissioningYear: number | null
+  technologySupplierId: number
+  validFrom: string | null
+  validTo: string | null
   technologyProductId: number | null
   verificationStatus: string
 }
@@ -255,6 +263,9 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       installationType: tables.deployment.installationType,
       commissioningDate: tables.deployment.commissioningDate,
       commissioningYear: tables.deployment.commissioningYear,
+      technologySupplierId: tables.deployment.technologySupplierId,
+      validFrom: tables.deployment.validFrom,
+      validTo: tables.deployment.validTo,
       technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
     })
@@ -297,10 +308,18 @@ const CORRECTABLE_COLUMNS = {
   installation_type: 'installationType',
   commissioning_date: 'commissioningDate',
   commissioning_year: 'commissioningYear',
+  valid_from: 'validFrom',
+  valid_to: 'validTo',
+  technology_supplier_id: 'technologySupplierId',
   technology_product_id: 'technologyProductId',
 } as const satisfies Record<string, keyof DeploymentInsert>
 
 export type CorrectableColumn = keyof typeof CORRECTABLE_COLUMNS
+
+/** End date for a deployment decommissioned without one: today, but never before its window opens. */
+export function closeValidityToday(validFrom: string | null): SQL {
+  return sql`GREATEST(CURRENT_DATE, ${validFrom}::date)`
+}
 
 /**
  * Applies the corrected columns. A contributor's correction returns the record

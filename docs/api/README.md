@@ -129,7 +129,7 @@ Returns one site's base attributes and its verified deployments. An unknown id, 
 }
 ```
 
-`machine_model` may be `null`; the frontend should fall back to `machine_type`. `automation_level` uses the deployment's own value when present, otherwise the technology product's level, and may be `null`. `technology_supplier` is derived through the technology-product relationship. Latitude/longitude are `null` for sites without coordinates.
+`machine_model` may be `null` for imported records; the frontend should fall back to `machine_type`. `automation_level` is the deployment's own level, which every deployment carries (migration 005). `technology_supplier` is the deployment's supplier, named whether or not a technology product is. Latitude/longitude are `null` for sites without coordinates.
 
 ---
 
@@ -244,19 +244,19 @@ Accepts the shared filters and returns machine counts over matching verified dep
   "by_commodity": [{ "key": "iron_ore", "machine_count": 121, "share": 1 }],
   "by_region": [{ "key": "Pilbara", "machine_count": 121, "share": 1 }],
   "by_automation_level": [
-    { "key": "operator_assistance", "machine_count": 0, "share": 0 },
+    { "key": "operator_assistance", "machine_count": 20, "share": 0.1653 },
     { "key": "teleremote", "machine_count": 5, "share": 0.0413 },
     { "key": "semi_autonomous", "machine_count": 0, "share": 0 },
     { "key": "autonomous", "machine_count": 96, "share": 0.7934 },
-    { "key": null, "machine_count": 20, "share": 0.1653 }
+    { "key": null, "machine_count": 0, "share": 0 }
   ]
 }
 ```
 
-- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for the current operating fleet, which matches the map's default view.
+- Like `GET /api/analytics/summary`, breakdowns count every verified deployment whatever its status, including announced and decommissioned ones. Pass `status=operational` for records currently marked operational. This is not the same set as the map's default view, which follows the validity window (`valid_from`..`valid_to`) for the year rather than the status field.
 - `share` is the group's `machine_count` divided by the filtered `machine_count` (unrounded; shares above are rounded for display). It is `0` when nothing matches.
 - `by_country`, `by_machine_type`, `by_manufacturer`, `by_supplier`, `by_status`, `by_commodity` and `by_region` list groups with machines, largest first and ties by name. With `machine_type` set, `by_manufacturer` and `by_supplier` rank the companies active in that type (FR-31); with `country` set, `by_automation_level` is that country's breakdown (FR-29).
-- `by_automation_level` always lists the four levels in order, then `key: null` for machines whose level is unknown on both the deployment and its technology product. Unclassified machines are never assigned to a known level.
+- `by_automation_level` always lists the four levels in order, then `key: null` for unclassified machines. Since migration 005 every deployment carries its own level, so that group is `0`; it is kept so the response shape does not change.
 - Repeated filter parameters return `400`.
 
 ---
@@ -343,15 +343,15 @@ Submits one deployment record. No account is required.
 | `commodity` | string | No | ≤ 100 characters |
 | `machine_type` | string | Yes | One of `machine_types` |
 | `machine_manufacturer` | string | Yes | ≤ 200 characters |
-| `machine_model` | string | No | ≤ 200 characters |
+| `machine_model` | string | Yes | ≤ 200 characters (FR-07) |
 | `machine_model_variant` | string or null | No | ≤ 100 characters; omitted, null or blank becomes `null`. Explicit `base` remains distinct; comparison is case-insensitive |
 | `quantity` | number | Yes | Whole number 1–100000 |
 | `environment` | string | No | One of `environments` |
 | `deployment_status` | string | No | One of `deployment_statuses` |
-| `automation_level` | string | No | One of `automation_levels`; stored even without a product |
+| `automation_level` | string | Yes | One of `automation_levels`; stored on the deployment, with or without a product (FR-07, FR-57) |
 | `installation_type` | string | No | One of `installation_types`; defaults to `unknown` |
-| `technology_supplier` | string | No | ≤ 200 characters |
-| `technology_product` | string | No | ≤ 200 characters; requires `technology_supplier` |
+| `technology_supplier` | string | Yes | ≤ 200 characters; stored on the deployment (FR-07) |
+| `technology_product` | string | No | ≤ 200 characters; filed under `technology_supplier` |
 | `commissioning_date` | string | No | `YYYY` or a real `YYYY-MM-DD` date |
 | `evidence_urls` | string[] | No | Up to 10 `http`/`https` URLs; blanks and duplicates are dropped |
 | `contributor_email` | string | No | Valid email address |
@@ -380,10 +380,11 @@ The record stays out of public map, site detail, register and analytics response
 
 - All writes occur in one transaction; any failure rolls everything back.
 - Companies, regions, sites, machine models and technology products are reused case-insensitively when they match; otherwise they are created.
-- A supplier without a product does not create a placeholder product.
+- The supplier is stored on the deployment. Without a product name no placeholder product is created; a named product is filed under the supplier.
 - When supplied together, contribution coordinates are stored as the site's PostGIS point. An existing same-name site without a point is filled in by a later contribution or administrator correction.
 - `commissioning_date: "YYYY"` stores only `commissioning_year`; a full date stores both and sets `valid_from`.
-- A contributor row is created only when email or organisation is supplied.
+- A submission with `deployment_status: "decommissioned"` gets `valid_to` set to the submission date (never before `valid_from`), so it is not shown as in service once verified (#156).
+- Every submission creates a contributor row, with `email` and `organisation` left empty when none were given, because each revision names exactly one actor (migration 005).
 - A `create` revision stores the submission snapshot without contact details.
 
 ---
@@ -396,7 +397,7 @@ Corrects an existing deployment. Site, company and model details remain administ
 |---|---|
 | `quantity`, `environment`, `deployment_status`, `automation_level`, `installation_type`, `commissioning_date` | Same rules as contribution submission; omitted or `null` leaves the value unchanged |
 | `evidence_urls` | URLs to add; existing ones are ignored |
-| `contributor_email`, `organisation` | Optional contact details |
+| `contributor_email`, `organisation` | Optional contact details; a contributor row is recorded either way, empty when none are given |
 | `change_note` | Optional, ≤ 1000 characters |
 | `disclosure_accepted` | Must be `true` |
 | `website` | Honeypot, as for contributions: must be absent or blank |
@@ -530,6 +531,9 @@ The note (up to 2,000 characters) is required unless approving.
 
 The review row, the new status and a `verification_change` revision holding the
 previous status are written in one transaction.
+Approval needs at least one evidence URL and site coordinates. A technology
+product is not required (FR-08); the supplier and automation level are always
+present, since every deployment carries them.
 
 | Status | Body |
 |---|---|
@@ -537,7 +541,6 @@ previous status are written in one transaction.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "deployment not found"}` |
 | `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
-| `409` | `{"error": "a technology product is required before the record can be verified"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
 | `409` | `{"error": "site coordinates are required before the record can be verified"}` |
 
@@ -562,21 +565,55 @@ database refuses any later change to it.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "correction not found"}` |
 | `409` | `{"error": "only pending corrections can be decided", "correction_status": "…"}` |
+| `409` | `{"error": "the proposed commissioning date is after the record's valid_to; correct the record or reject the proposal"}`: approving would end the validity window before it starts, so nothing changes and the proposal stays pending |
 
 ### `PATCH /api/admin/deployments/{id}`
 
 Takes the fields of the public correction (`quantity`, `environment`,
 `deployment_status`, `automation_level`, `installation_type`,
 `commissioning_date`, `evidence_urls`, `change_note`) plus
-`technology_supplier` and `technology_product`, which must be given together,
-`latitude` and `longitude` together for a contributed site, and
-`clear_automation_level: true`, which removes the deployment's automation
-level (FR-57); it cannot be combined with `automation_level`.
+`technology_supplier`, on its own or with a `technology_product` of that
+supplier (a product needs its supplier), `latitude` and `longitude` together
+for a contributed site, and `valid_from` and `valid_to` as `YYYY-MM-DD` dates
+(FR-11). Changing the supplier without naming a product drops a product that
+belonged to the old supplier. An end before the start, given together or
+against the record, returns `400` with
+`{"fields": {"valid_to": "must not be before valid_from"}}`.
+`clear_valid_from: true` and `clear_valid_to: true` remove a date, for example
+the end date of a record that is back in service; omitted or `false` changes
+nothing, and a flag sent with a value for the same date returns `400`. With no
+`valid_from` the window has no lower bound, and with no `valid_to` no end.
+The automation level can be corrected but not cleared:
+`clear_automation_level: true` returns `400`, since every deployment carries a
+level (FR-57).
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
 status does not change. Responses match the public correction: `200 {"id",
 "verification_status"}`, `400` for invalid input or a correction that changes
 nothing, `404` for an unknown record.
+
+### Validity window on corrections (#156)
+
+Every path that changes a record (a direct public correction, an approved
+proposal and an administrator's correction) keeps `valid_from`..`valid_to` in
+step, because the map and the timeline decide what is in service from it:
+
+- When `deployment_status` becomes `decommissioned` and no `valid_to` is
+  recorded, `valid_to` is set to today, never before `valid_from`. An explicit
+  `valid_to` from an administrator, or one already recorded, is kept. A proposal
+  sets nothing until it is approved.
+- When `commissioning_date` changes and `valid_from` was the old commissioning
+  date, `valid_from` moves with it. A `valid_from` set separately, as after a
+  relocation, is left alone, and a year-only date never invents a start.
+- If that would put `valid_from` after the recorded `valid_to`, nothing is
+  stored: a correction returns `400` with
+  `{"fields": {"commissioning_date": "must not be after valid_to"}}`, and
+  approving a proposal returns `409` and leaves it pending. An administrator can
+  send the new end date, or `clear_valid_to`, in the same correction.
+- The status is not reopened automatically: a record changed back from
+  `decommissioned` keeps its `valid_to` until an administrator clears or moves it.
+
+The previous values go into the `update` revision with the other changed fields.
 
 ## Administrator accounts (root only)
 

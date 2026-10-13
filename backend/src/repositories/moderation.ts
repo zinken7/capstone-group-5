@@ -64,7 +64,7 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(eq(tables.deployment.verificationStatus, 'pending_review'))
     .orderBy(asc(tables.deployment.updatedAt), asc(tables.deployment.id))
 
@@ -138,7 +138,7 @@ export async function listPendingCorrections(): Promise<QueueItem[]> {
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .leftJoin(tables.contributor, eq(tables.contributor.id, tables.deploymentCorrection.contributorId))
     .where(eq(tables.deploymentCorrection.status, 'pending'))
     .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id))
@@ -254,7 +254,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
@@ -334,14 +334,12 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
 /** Locks the record for a decision and returns what the decision rules need. */
 export async function lockDecisionState(tx: Tx, id: number): Promise<{
   verificationStatus: string
-  technologyProductId: number | null
   evidenceCount: number
   hasCoordinates: boolean
 } | null> {
   const rows = await tx.db
     .select({
       verificationStatus: tables.deployment.verificationStatus,
-      technologyProductId: tables.deployment.technologyProductId,
       evidenceCount,
       hasCoordinates: sql<boolean>`${tables.site.point4326} IS NOT NULL`,
     })
@@ -385,12 +383,16 @@ export async function setVerificationStatus(tx: Tx, id: number, status: string):
 }
 
 /** Supplier and product names of a technology product, for revision history. */
-export async function findTechnologyNames(tx: Tx, productId: number | null): Promise<{ supplier: string; product: string } | null> {
-  if (productId === null) return null
+export async function findTechnologyNames(tx: Tx, supplierId: number, productId: number | null): Promise<{ supplier: string; product: string | null }> {
   const rows = await tx.db
     .select({ supplier: tables.company.name, product: tables.technologyProduct.productName })
-    .from(tables.technologyProduct)
-    .innerJoin(tables.company, eq(tables.company.id, tables.technologyProduct.supplierId))
-    .where(eq(tables.technologyProduct.id, productId))
-  return rows[0] ?? null
+    .from(tables.company)
+    .leftJoin(tables.technologyProduct, and(
+      eq(tables.technologyProduct.supplierId, tables.company.id),
+      productId === null ? sql`false` : eq(tables.technologyProduct.id, productId),
+    ))
+    .where(eq(tables.company.id, supplierId))
+  const row = rows[0]
+  if (!row) throw new Error(`Supplier ${supplierId} not found`)
+  return row
 }

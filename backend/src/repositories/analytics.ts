@@ -56,7 +56,7 @@ async function machinesBy(dimension: Dimension, filters: DeploymentFilters): Pro
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(buildWhere(filters))
     .groupBy(key)
 }
@@ -152,7 +152,7 @@ export async function findCrosstab(rows: CrosstabDimension, columns: CrosstabDim
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(where)
     .groupBy(rowKey, columnKey)
 
@@ -190,7 +190,7 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
       .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
       .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
       .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-      .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+      .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
       .where(and(buildWhere(filters), notAnnounced, sql`${startYear} IS NOT NULL`))
       .groupBy(startYear, firstYearInService, lastYearInService),
     db.select({
@@ -203,7 +203,7 @@ export async function findTimeline(filters: DeploymentFilters): Promise<Timeline
       .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
       .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
       .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-      .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+      .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
       .where(and(buildWhere(filters), notAnnounced, sql`${startYear} IS NULL`)),
     db.execute<{ year: number }>(sql`SELECT EXTRACT(YEAR FROM CURRENT_DATE)::int AS year`).then((result) => result.rows),
   ])

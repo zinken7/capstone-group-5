@@ -21,9 +21,12 @@ function initialValues(record: ReviewRecord) {
     environment: record.environment ?? '',
     deploymentStatus: record.status ?? '',
     automationLevel: record.automationLevel ?? '',
-    clearAutomationLevel: false,
     installationType: record.installationType,
     commissioningDate: record.commissioningDate ?? (record.commissioningYear === null ? '' : String(record.commissioningYear)),
+    validFrom: record.validFrom ?? '',
+    validTo: record.validTo ?? '',
+    clearValidFrom: false,
+    clearValidTo: false,
     latitude: record.latitude === null ? '' : String(record.latitude),
     longitude: record.longitude === null ? '' : String(record.longitude),
     technologySupplier: record.technologySupplier ?? '',
@@ -33,7 +36,18 @@ function initialValues(record: ReviewRecord) {
   }
 }
 
-type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'clearAutomationLevel'> & { clearAutomationLevel?: boolean }
+type CorrectionFormValues = Omit<ReturnType<typeof initialValues>, 'validFrom' | 'validTo' | 'clearValidFrom' | 'clearValidTo'> & {
+  validFrom?: string
+  validTo?: string
+  clearValidFrom?: boolean
+  clearValidTo?: boolean
+}
+
+function isFullDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
 
 /** Builds a correction holding only the fields that differ from the record. */
 export function buildCorrection(record: ReviewRecord, values: CorrectionFormValues): AdminCorrection | string {
@@ -46,11 +60,26 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   }
   if (values.environment && values.environment !== before.environment) correction.environment = values.environment
   if (values.deploymentStatus && values.deploymentStatus !== before.deploymentStatus) correction.deploymentStatus = values.deploymentStatus
-  if (values.clearAutomationLevel) correction.clearAutomationLevel = true
-  else if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
+  if (values.automationLevel && values.automationLevel !== before.automationLevel) correction.automationLevel = values.automationLevel
   if (values.installationType && values.installationType !== before.installationType) correction.installationType = values.installationType
   if (values.commissioningDate.trim() && values.commissioningDate.trim() !== before.commissioningDate) {
     correction.commissioningDate = values.commissioningDate.trim()
+  }
+  const validFrom = values.validFrom?.trim() ?? ''
+  if (values.clearValidFrom) {
+    if (before.validFrom) correction.clearValidFrom = true
+  } else if (validFrom !== before.validFrom) {
+    if (!validFrom) return 'Clear the valid-from date explicitly when removing it.'
+    if (!isFullDate(validFrom)) return 'Valid from must be a real date in YYYY-MM-DD format.'
+    correction.validFrom = validFrom
+  }
+  const validTo = values.validTo?.trim() ?? ''
+  if (values.clearValidTo) {
+    if (before.validTo) correction.clearValidTo = true
+  } else if (validTo !== before.validTo) {
+    if (!validTo) return 'Clear the valid-to date explicitly when removing it.'
+    if (!isFullDate(validTo)) return 'Valid to must be a real date in YYYY-MM-DD format.'
+    correction.validTo = validTo
   }
 
   const latitudeText = values.latitude.trim()
@@ -70,7 +99,7 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   const supplier = values.technologySupplier.trim()
   const product = values.technologyProduct.trim()
   if (supplier !== before.technologySupplier || product !== before.technologyProduct) {
-    if (!supplier || !product) return 'Enter both the technology supplier and the product.'
+    if (!supplier && product) return 'Enter a technology supplier before adding a product.'
     correction.technologySupplier = supplier
     correction.technologyProduct = product
   }
@@ -86,22 +115,20 @@ export function buildCorrection(record: ReviewRecord, values: CorrectionFormValu
   return correction
 }
 
-function Select({ id, label, value, options, onChange, clearable, onClear }: {
+function Select({ id, label, value, options, onChange, allowEmpty = true }: {
   id: string
   label: string
   value: string
   options: readonly ReferenceOption[]
   onChange: (value: string) => void
-  clearable?: boolean
-  onClear?: () => void
+  allowEmpty?: boolean
 }) {
   return (
     <div className="form-field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(event) => event.target.value === '__clear__' ? onClear?.() : onChange(event.target.value)}>
-        {(!value || !clearable) && <option value="">Not recorded</option>}
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)}>
+        {(allowEmpty || !value) && <option value="">Not recorded</option>}
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-        {clearable && value !== '' && <option value="__clear__">Clear level</option>}
       </select>
     </div>
   )
@@ -159,16 +186,25 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         <Select
           id="correct-automation"
           label="Automation level"
-          value={values.clearAutomationLevel ? '__clear__' : values.automationLevel}
+          value={values.automationLevel}
           options={referenceData.automationLevels}
-          clearable
-          onChange={(value) => setValues((current) => ({ ...current, automationLevel: value, clearAutomationLevel: false }))}
-          onClear={() => setValues((current) => ({ ...current, automationLevel: '', clearAutomationLevel: true }))}
+          allowEmpty={false}
+          onChange={set('automationLevel')}
         />
         <Select id="correct-installation" label="Installation type" value={values.installationType} options={referenceData.installationTypes} onChange={set('installationType')} />
         <div className="form-field">
           <label htmlFor="correct-commissioning">Commissioning date or year</label>
           <input id="correct-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={(event) => set('commissioningDate')(event.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-valid-from">Valid from</label>
+          <input id="correct-valid-from" type="date" value={values.validFrom} disabled={values.clearValidFrom} onChange={(event) => set('validFrom')(event.target.value)} />
+          {values.validFrom && <label className="choice-chip" htmlFor="clear-valid-from"><input id="clear-valid-from" type="checkbox" checked={values.clearValidFrom} onChange={(event) => setValues((current) => ({ ...current, clearValidFrom: event.target.checked }))} /> Clear date</label>}
+        </div>
+        <div className="form-field">
+          <label htmlFor="correct-valid-to">Valid to</label>
+          <input id="correct-valid-to" type="date" value={values.validTo} disabled={values.clearValidTo} onChange={(event) => set('validTo')(event.target.value)} />
+          {values.validTo && <label className="choice-chip" htmlFor="clear-valid-to"><input id="clear-valid-to" type="checkbox" checked={values.clearValidTo} onChange={(event) => setValues((current) => ({ ...current, clearValidTo: event.target.checked }))} /> Clear date</label>}
         </div>
         <div className="form-field">
           <label htmlFor="correct-latitude">Site latitude</label>
@@ -180,7 +216,11 @@ function CorrectionForm({ record, onCorrected, onCancel }: CorrectionFormProps) 
         </div>
         <div className="form-field">
           <label htmlFor="correct-supplier">Technology supplier</label>
-          <input id="correct-supplier" value={values.technologySupplier} onChange={(event) => set('technologySupplier')(event.target.value)} />
+          <input id="correct-supplier" value={values.technologySupplier} onChange={(event) => setValues((current) => ({
+            ...current,
+            technologySupplier: event.target.value,
+            technologyProduct: event.target.value.trim() === current.technologySupplier.trim() ? current.technologyProduct : '',
+          }))} />
         </div>
         <div className="form-field">
           <label htmlFor="correct-product">Technology product</label>

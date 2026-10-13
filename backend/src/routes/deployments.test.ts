@@ -48,7 +48,7 @@ describe('PATCH /api/deployments/:id', () => {
       base_values: { quantity: 96 },
       evidence_urls: [],
       change_note: 'Fleet expanded in 2025',
-      contributor_id: null,
+      contributor_id: expect.any(Number),
       status: 'pending',
     }])
   })
@@ -100,7 +100,7 @@ describe('PATCH /api/deployments/:id', () => {
       action: 'update',
       previous_values: { quantity: 8, verification_status: 'pending_review' },
       change_note: 'One more LHD',
-      contributor_id: null,
+      contributor_id: expect.any(Number),
     }])
     expect(await corrections(12)).toEqual([])
   })

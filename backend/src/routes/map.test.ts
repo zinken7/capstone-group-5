@@ -19,6 +19,15 @@ function siteIds(features: Array<{ properties: { id: number } }>): number[] {
 }
 
 describe('GET /api/map', () => {
+  it('shows and filters by the supplier of a deployment that names no product', async () => {
+    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+
+    const response = await request(app).get('/api/map?supplier=RCT')
+    expect(response.status).toBe(200)
+    expect(response.body.features.map((feature: { properties: { id: number; technology_suppliers: string[] } }) => feature.properties))
+      .toEqual([expect.objectContaining({ id: 2, technology_suppliers: ['RCT'] })])
+  })
+
   it('only returns deployments that are verified', async () => {
     const response = await request(app).get('/api/map')
 

@@ -9,7 +9,9 @@ export function formatEnumLabel(value: string | null | undefined): string {
   const specialCases: Record<string, string> = {
     lhd: 'LHD',
     LHD: 'LHD',
-    semi_autonomous: 'Semi-autonomous',
+    operator_assistance: 'Operator Assistance',
+    semi_autonomous: 'Semi Autonomous',
+    autonomous: 'Highly Autonomous',
     both: 'Surface and underground',
   }
   if (specialCases[value]) return specialCases[value]
