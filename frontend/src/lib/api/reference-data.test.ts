@@ -21,6 +21,8 @@ describe('getContributionReferenceData', () => {
       machine_types: ['haul_truck', 'loader'],
       automation_levels: [
         'operator_assistance',
+        'teleremote',
+        'semi_autonomous',
         'autonomous',
       ],
       environments: ['surface', 'underground', 'both'],
@@ -32,8 +34,10 @@ describe('getContributionReferenceData', () => {
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reference-data')
     expect(result.automationLevels).toEqual([
-      ['operator_assistance', 'Operator assistance'],
-      ['autonomous', 'Autonomous'],
+      ['operator_assistance', 'Operator Assistance'],
+      ['teleremote', 'Teleremote'],
+      ['semi_autonomous', 'Semi Autonomous'],
+      ['autonomous', 'Highly Autonomous'],
     ])
     expect(result.machineTypes).toEqual([
       ['haul_truck', 'Haul truck'],

@@ -148,7 +148,7 @@ export async function findMapSites(filters: MapFilters): Promise<MapResult> {
     LEFT JOIN region r ON r.id = s.region_id
     JOIN machine_model m ON m.id = d.machine_model_id
     LEFT JOIN technology_product p ON p.id = d.technology_product_id
-    LEFT JOIN company sc ON sc.id = p.supplier_id
+    LEFT JOIN company sc ON sc.id = d.technology_supplier_id
     WHERE d.verification_status = 'verified'
       AND s.point_4326 IS NOT NULL
       AND (${bbox?.minLon ?? null}::float8 IS NULL OR s.point_4326 && ST_MakeEnvelope(${bbox?.minLon ?? null}, ${bbox?.minLat ?? null}, ${bbox?.maxLon ?? null}, ${bbox?.maxLat ?? null}, 4326))
@@ -265,7 +265,7 @@ export async function findSiteById(id: number): Promise<SiteDetail | null> {
 }
 
 /**
- * Verified deployments for a site (FR-17 / FR-43); supplier resolved via technology_product → company.
+ * Verified deployments for a site (FR-17 / FR-43); supplier read from the deployment, product optional.
  */
 export async function findVerifiedDeploymentsBySite(siteId: number): Promise<SiteDeployment[]> {
   return await db
@@ -289,7 +289,7 @@ export async function findVerifiedDeploymentsBySite(siteId: number): Promise<Sit
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
     .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
-    .leftJoin(supplier, eq(supplier.id, tables.technologyProduct.supplierId))
+    .leftJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
     .where(and(eq(tables.deployment.siteId, siteId), eq(tables.deployment.verificationStatus, 'verified')))
     .orderBy(asc(tables.deployment.id))
 }

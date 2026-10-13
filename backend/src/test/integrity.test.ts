@@ -46,18 +46,40 @@ describe('append-only history', () => {
     ).rejects.toThrow('Verification review requires an active administrator')
   })
 
-  it('refuses a revision attributed to both a contributor and an administrator', async () => {
+  it('refuses a revision attributed to both a contributor and an administrator, or to neither', async () => {
     await expect(
       query("INSERT INTO revision (deployment_id, contributor_id, admin_user_id, action) VALUES (12, 1, 1, 'update')"),
-    ).rejects.toMatchObject({ code: '23514', constraint: 'revision_at_most_one_actor' })
+    ).rejects.toMatchObject({ code: '23514', constraint: 'revision_exactly_one_actor' })
+    await expect(
+      query("INSERT INTO revision (deployment_id, action) VALUES (12, 'update')"),
+    ).rejects.toMatchObject({ code: '23514', constraint: 'revision_exactly_one_actor' })
   })
 })
 
 describe('verified records', () => {
-  it('cannot be verified without a technology product', async () => {
-    await expect(
-      query("UPDATE deployment SET technology_product_id = NULL, verification_status = 'verified' WHERE id = 12"),
-    ).rejects.toMatchObject({ code: '23514', constraint: 'deployment_verified_requires_technology_product' })
+  it('can be verified without a technology product, the supplier and level being required anyway (FR-08)', async () => {
+    await query(`
+      BEGIN;
+      UPDATE deployment SET technology_product_id = NULL, verification_status = 'verified' WHERE id = 12;
+      INSERT INTO evidence (deployment_id, url, source_type) VALUES (12, 'https://example.com/evidence/12', 'news');
+      COMMIT;
+    `)
+    expect(await query('SELECT technology_product_id, verification_status::text AS status FROM deployment WHERE id = 12')).toEqual([
+      { technology_product_id: null, status: 'verified' },
+    ])
+  })
+
+  it('refuses a deployment without a supplier or a level', async () => {
+    await expect(query('UPDATE deployment SET technology_supplier_id = NULL WHERE id = 12')).rejects.toMatchObject({ code: '23502' })
+    await expect(query('UPDATE deployment SET automation_level = NULL WHERE id = 12')).rejects.toMatchObject({ code: '23502' })
+  })
+
+  it("refuses a product that belongs to another supplier than the deployment's", async () => {
+    // Product 1 belongs to company 1; deployment 12's supplier is company 2
+    await expect(query('UPDATE deployment SET technology_product_id = 1 WHERE id = 12')).rejects.toMatchObject({
+      code: '23503',
+      constraint: 'deployment_product_same_supplier_fkey',
+    })
   })
 
   it('cannot be verified without evidence when the transaction commits', async () => {

@@ -252,7 +252,7 @@ describe('EquipmentPage', () => {
     render(<EquipmentPage />)
 
     expect((await screen.findAllByText('LHD')).length).toBeGreaterThan(0)
-    expect((await screen.findAllByText('Semi-autonomous')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Semi Autonomous')).length).toBeGreaterThan(0)
     const correctButton = screen.getByRole('button', { name: /correct raw enum site/i })
     await userEvent.setup().click(correctButton)
     const environmentSelect = screen.getByRole('combobox', { name: /mining environment/i })
