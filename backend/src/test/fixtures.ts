@@ -32,7 +32,7 @@ export async function resetDatabase(): Promise<void> {
 /**
  * Map fixtures: 3 sites, 4 deployments, ids match the former in-memory data for easy assertions.
  *
- * Deployment 12 is pending_review (for FR-43 filtering); deployment 14 is decommissioned but was in service 2015-03-01..2020-12-31 (for FR-11 date filtering).
+ * Deployment 12 is pending_review (for FR-43 filtering); deployment 14 is decommissioned but was in service 2015-03-01..2020-12-31 (for FR-11 date filtering). Each deployment carries its supplier and level (migration 005); 14's product is unclassified.
  */
 export async function seedMapFixtures(): Promise<void> {
   await query(`
@@ -70,13 +70,13 @@ export async function seedMapFixtures(): Promise<void> {
   await query(`
     BEGIN;
     INSERT INTO deployment (
-      id, site_id, machine_model_id, technology_product_id, quantity, environment,
-      commissioning_date, commissioning_year, status, verification_status, valid_from, valid_to
+      id, site_id, machine_model_id, technology_supplier_id, technology_product_id, quantity, environment,
+      commissioning_date, commissioning_year, status, verification_status, valid_from, valid_to, automation_level
     ) VALUES
-      (10, 1, 1, 1, 96, 'surface', '2021-01-01', 2021, 'operational', 'verified', '2021-01-01', NULL),
-      (11, 2, 2, 2, 5, 'surface', NULL, NULL, 'commissioning', 'verified', '2023-06-01', NULL),
-      (12, 3, 3, 3, 8, 'underground', NULL, NULL, 'announced', 'pending_review', '2024-01-01', NULL),
-      (14, 1, 4, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31');
+      (10, 1, 1, 1, 1, 96, 'surface', '2021-01-01', 2021, 'operational', 'verified', '2021-01-01', NULL, 'autonomous'),
+      (11, 2, 2, 3, 2, 5, 'surface', NULL, NULL, 'commissioning', 'verified', '2023-06-01', NULL, 'teleremote'),
+      (12, 3, 3, 2, 3, 8, 'underground', NULL, NULL, 'announced', 'pending_review', '2024-01-01', NULL, 'semi_autonomous'),
+      (14, 1, 4, 1, 4, 20, 'surface', '2015-03-01', 2015, 'decommissioned', 'verified', '2015-03-01', '2020-12-31', 'operator_assistance');
     INSERT INTO evidence (deployment_id, url, source_type) VALUES
       (10, 'https://example.com/evidence/10', 'company_release'),
       (11, 'https://example.com/evidence/11', 'news'),

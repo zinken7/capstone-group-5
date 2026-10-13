@@ -2,7 +2,7 @@ import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 const { default: app } = await import('../app.js')
-const { closeDatabase } = await import('../database.js')
+const { closeDatabase, query } = await import('../database.js')
 const { resetDatabase, seedMapFixtures } = await import('../test/fixtures.js')
 
 beforeEach(async () => {
@@ -79,7 +79,7 @@ describe('GET /api/analytics/breakdowns', () => {
     expect(response.body.by_supplier[0]).toEqual({ key: 'Caterpillar', machine_count: 116, share: 116 / 121 })
     expect(response.body.by_manufacturer.map((item: { key: string }) => item.key)).toEqual(['Caterpillar', 'Sandvik'])
     expect(response.body.by_machine_type.map((item: { key: string }) => item.key)).toEqual(['haul_truck', 'drill'])
-    expect(response.body.by_automation_level.at(-1)).toEqual({ key: null, machine_count: 20, share: 20 / 121 })
+    expect(response.body.by_automation_level.at(-1)).toEqual({ key: null, machine_count: 0, share: 0 })
     expect(response.body.by_status).toEqual([
       { key: 'operational', machine_count: 96, share: 96 / 121 },
       { key: 'decommissioned', machine_count: 20, share: 20 / 121 },
@@ -150,6 +150,19 @@ describe('GET /api/analytics/crosstab', () => {
     })
   })
 
+  it('counts a deployment with no product under its own supplier', async () => {
+    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+
+    const breakdowns = await request(app).get('/api/analytics/breakdowns')
+    expect(breakdowns.body.by_supplier).toContainEqual({ key: 'RCT', machine_count: 5, share: 5 / 121 })
+
+    const summary = await request(app).get('/api/analytics/summary?supplier=RCT')
+    expect(summary.body).toMatchObject({ machine_count: 5, site_count: 1 })
+
+    const crosstab = await request(app).get('/api/analytics/crosstab?rows=supplier&columns=automation_level')
+    expect(crosstab.body.cells).toContainEqual({ row: 'RCT', column: 'teleremote', machine_count: 5 })
+  })
+
   it('groups by commissioning year as the timeline does, keeping undated machines under a null year', async () => {
     const response = await request(app).get('/api/analytics/crosstab?rows=commissioning_year&columns=automation_level')
 
@@ -157,7 +170,7 @@ describe('GET /api/analytics/crosstab', () => {
     expect(response.body.machine_count).toBe(121)
     expect(response.body.cells).toEqual([
       { row: '2021', column: 'autonomous', machine_count: 96 },
-      { row: '2015', column: null, machine_count: 20 },
+      { row: '2015', column: 'operator_assistance', machine_count: 20 },
       { row: null, column: 'teleremote', machine_count: 5 },
     ])
   })

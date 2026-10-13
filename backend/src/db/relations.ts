@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm/relations";
-import { region, site, siteCompanyRole, company, technologyProduct, deployment, verificationReview, adminUser, deploymentCorrection, machineModel, revision, contributor, evidence } from "./schema.js";
+import { region, site, siteCompanyRole, company, deployment, machineModel, technologyProduct, verificationReview, adminUser, deploymentCorrection, revision, contributor, evidence } from "./schema.js";
 
 export const siteRelations = relations(site, ({one, many}) => ({
 	region: one(region, {
 		fields: [site.countryCode],
-		references: [region.id]
+		references: [region.countryCode]
 	}),
 	siteCompanyRoles: many(siteCompanyRole),
 	deployments: many(deployment),
@@ -27,16 +27,51 @@ export const siteCompanyRoleRelations = relations(siteCompanyRole, ({one}) => ({
 
 export const companyRelations = relations(company, ({many}) => ({
 	siteCompanyRoles: many(siteCompanyRole),
+	deployments: many(deployment),
 	technologyProducts: many(technologyProduct),
 	machineModels: many(machineModel),
 }));
 
+export const deploymentRelations = relations(deployment, ({one, many}) => ({
+	site: one(site, {
+		fields: [deployment.siteId],
+		references: [site.id]
+	}),
+	machineModel: one(machineModel, {
+		fields: [deployment.machineModelId],
+		references: [machineModel.id]
+	}),
+	technologyProduct_technologyProductId: one(technologyProduct, {
+		fields: [deployment.technologyProductId],
+		references: [technologyProduct.id],
+		relationName: "deployment_technologyProductId_technologyProduct_id"
+	}),
+	company: one(company, {
+		fields: [deployment.technologySupplierId],
+		references: [company.id]
+	}),
+	verificationReviews: many(verificationReview),
+	revisions: many(revision),
+	evidences: many(evidence),
+	deploymentCorrections: many(deploymentCorrection),
+}));
+
+export const machineModelRelations = relations(machineModel, ({one, many}) => ({
+	deployments: many(deployment),
+	company: one(company, {
+		fields: [machineModel.manufacturerId],
+		references: [company.id]
+	}),
+}));
+
 export const technologyProductRelations = relations(technologyProduct, ({one, many}) => ({
+	deployments_technologyProductId: many(deployment, {
+		relationName: "deployment_technologyProductId_technologyProduct_id"
+	}),
 	company: one(company, {
 		fields: [technologyProduct.supplierId],
 		references: [company.id]
 	}),
-	deployments: many(deployment),
 }));
 
 export const verificationReviewRelations = relations(verificationReview, ({one}) => ({
@@ -50,27 +85,8 @@ export const verificationReviewRelations = relations(verificationReview, ({one})
 	}),
 	deploymentCorrection: one(deploymentCorrection, {
 		fields: [verificationReview.deploymentId],
-		references: [deploymentCorrection.id]
+		references: [deploymentCorrection.deploymentId]
 	}),
-}));
-
-export const deploymentRelations = relations(deployment, ({one, many}) => ({
-	verificationReviews: many(verificationReview),
-	site: one(site, {
-		fields: [deployment.siteId],
-		references: [site.id]
-	}),
-	machineModel: one(machineModel, {
-		fields: [deployment.machineModelId],
-		references: [machineModel.id]
-	}),
-	technologyProduct: one(technologyProduct, {
-		fields: [deployment.technologyProductId],
-		references: [technologyProduct.id]
-	}),
-	revisions: many(revision),
-	evidences: many(evidence),
-	deploymentCorrections: many(deploymentCorrection),
 }));
 
 export const adminUserRelations = relations(adminUser, ({many}) => ({
@@ -87,14 +103,6 @@ export const deploymentCorrectionRelations = relations(deploymentCorrection, ({o
 	contributor: one(contributor, {
 		fields: [deploymentCorrection.contributorId],
 		references: [contributor.id]
-	}),
-}));
-
-export const machineModelRelations = relations(machineModel, ({one, many}) => ({
-	deployments: many(deployment),
-	company: one(company, {
-		fields: [machineModel.manufacturerId],
-		references: [company.id]
 	}),
 }));
 

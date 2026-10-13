@@ -22,14 +22,14 @@ export interface ContributionInput {
   commodity: string | null
   machineType: string
   machineManufacturer: string
-  machineModel: string | null
+  machineModel: string
   machineModelVariant: string | null
   quantity: number
   environment: string | null
   deploymentStatus: string | null
-  automationLevel: string | null
+  automationLevel: string
   installationType: string
-  technologySupplier: string | null
+  technologySupplier: string
   technologyProduct: string | null
   commissioning: Commissioning | null
   evidenceUrls: string[]
@@ -211,14 +211,14 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
     commodity: read.text('commodity', 100),
     machineType: read.choice('machine_type', MACHINE_TYPES, true) ?? '',
     machineManufacturer: read.text('machine_manufacturer', 200, true) ?? '',
-    machineModel: read.text('machine_model', 200),
+    machineModel: read.text('machine_model', 200, true) ?? '',
     machineModelVariant: read.text('machine_model_variant', 100),
     quantity: read.quantity('quantity', true) ?? 0,
     environment: read.choice('environment', MINING_ENVIRONMENTS),
     deploymentStatus: read.choice('deployment_status', DEPLOYMENT_STATUSES),
-    automationLevel: read.choice('automation_level', AUTOMATION_LEVELS),
+    automationLevel: read.choice('automation_level', AUTOMATION_LEVELS, true) ?? '',
     installationType: read.choice('installation_type', INSTALLATION_TYPES) ?? 'unknown',
-    technologySupplier: read.text('technology_supplier', 200),
+    technologySupplier: read.text('technology_supplier', 200, true) ?? '',
     technologyProduct: read.text('technology_product', 200),
     commissioning: read.commissioning('commissioning_date'),
     evidenceUrls: read.urls('evidence_urls'),
@@ -226,10 +226,6 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
     organisation: read.text('organisation', 200),
   }
   read.disclosure('disclosure_accepted')
-
-  if (input.technologyProduct !== null && input.technologySupplier === null && !read.errors.technology_supplier) {
-    read.errors.technology_supplier = 'is required when technology_product is given'
-  }
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
 }

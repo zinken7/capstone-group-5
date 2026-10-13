@@ -21,7 +21,7 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: Readonl
   )
 }
 
-/** Share of machines at each automation level, ordered from operator assistance to fully autonomous. */
+/** Share of machines at each automation level, ordered from Operator Assistance to Highly Autonomous. */
 function AutomationDonut({ items, onFilter }: { items: AnalyticsBreakdownItemDto[]; onFilter: (key: string) => void }) {
   const rank = (key: string | null) => key === null ? AUTOMATION_LEVELS.length : AUTOMATION_LEVELS.indexOf(key as typeof AUTOMATION_LEVELS[number])
   const rows: ChartRow[] = items
@@ -30,7 +30,7 @@ function AutomationDonut({ items, onFilter }: { items: AnalyticsBreakdownItemDto
     .sort((a, b) => rank(a.key) - rank(b.key))
   const total = rows.reduce((sum, row) => sum + row.value, 0)
   const advanced = rows.filter((row) => row.key === 'semi_autonomous' || row.key === 'autonomous').reduce((sum, row) => sum + row.value, 0)
-  const summary = total ? `${formatShare(advanced / total)} are semi-autonomous or fully autonomous.` : undefined
+  const summary = total ? `${formatShare(advanced / total)} are Semi Autonomous or Highly Autonomous.` : undefined
 
   return (
     <ChartCard

@@ -141,9 +141,8 @@ export async function correctDeployment(id: number, input: CorrectionInput): Pro
       if (!windowOrdered(current, updates)) return { kind: 'invalid_window' }
     }
 
-    const contributorId = input.contributorEmail === null && input.organisation === null
-      ? null
-      : await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
+    // Each revision names exactly one actor, so an anonymous correction still gets a contributor row
+    const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
 
     if (current.verificationStatus === 'verified') {
       const correctionId = await insertCorrection(tx, {

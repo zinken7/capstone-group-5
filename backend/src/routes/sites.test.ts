@@ -15,6 +15,13 @@ afterAll(async () => {
 })
 
 describe('GET /api/sites/:id', () => {
+  it('names the supplier of a deployment that has no product', async () => {
+    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+
+    const response = await request(app).get('/api/sites/2')
+    expect(response.body.deployments).toEqual([expect.objectContaining({ id: 11, technology_supplier: 'RCT' })])
+  })
+
   it('returns full detail for an existing site, with only verified deployments', async () => {
     const response = await request(app).get('/api/sites/1')
 
