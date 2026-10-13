@@ -84,6 +84,93 @@ describe('access control', () => {
   })
 })
 
+describe('GET /api/admin/submissions', () => {
+  it('requires an administrator session', async () => {
+    const response = await request(app).get('/api/admin/submissions')
+    expect(response.status).toBe(401)
+  })
+
+  it('returns submission history with the default pagination', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(Number),
+          site_name: expect.any(String),
+          country_code: expect.any(String),
+          verification_status: expect.any(String),
+          updated_at: expect.any(String),
+        }),
+      ]),
+    )
+  })
+
+  it('uses the latest correction review as the submission history decision', async () => {
+    const id = await contribute()
+
+    const initialReview = await review(id, { decision: 'approved' })
+    expect(initialReview.status).toBe(201)
+
+    const proposal = await request(app)
+      .patch(`/api/deployments/${id}`)
+      .send({
+        quantity: 20,
+        disclosure_accepted: true,
+      })
+    expect(proposal.status).toBe(202)
+
+    const correctionId = proposal.body.correction_id as number
+
+    const correctionReview = await request(app)
+      .post(`/api/admin/corrections/${correctionId}/reviews`)
+      .set('Cookie', cookie)
+      .set('X-Requested-With', 'fetch')
+      .send({ decision: 'rejected', note: 'Insufficient supporting evidence' })
+    expect(correctionReview.status).toBe(201)
+
+    const response = await request(app)
+      .get(`/api/admin/submissions?id=${id}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual([
+      expect.objectContaining({
+        id,
+        latest_decision: 'rejected',
+        latest_decision_is_correction: true,
+      }),
+    ])
+  })
+  it('filters history by deployment ID', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions?id=12')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items.map((item: { id: number }) => item.id)).toEqual([12])
+  })
+
+  it.each([
+    'limit=0',
+    'limit=101',
+    'limit=abc',
+    'offset=-1',
+    'offset=abc',
+    'id=0',
+    'id=abc',
+  ])('rejects invalid query parameters: %s', async (query) => {
+    const response = await request(app)
+      .get(`/api/admin/submissions?${query}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('invalid pagination or submission ID')
+  })
+})
 describe('GET /api/admin/reviews', () => {
   it('lists records pending review, least recently changed first', async () => {
     const contributed = await contribute()

@@ -20,7 +20,8 @@ function siteIds(features: Array<{ properties: { id: number } }>): number[] {
 
 describe('GET /api/map', () => {
   it('shows and filters by the supplier of a deployment that names no product', async () => {
-    await query('UPDATE deployment SET technology_product_id = NULL WHERE id = 11')
+    // Deployment 11 is commissioning, which the map leaves out (FR-16), so mark it operational here
+    await query("UPDATE deployment SET technology_product_id = NULL, status = 'operational' WHERE id = 11")
 
     const response = await request(app).get('/api/map?supplier=RCT')
     expect(response.status).toBe(200)
@@ -33,7 +34,7 @@ describe('GET /api/map', () => {
 
     expect(response.status).toBe(200)
     // Site 3 (Kalgoorlie Super Pit) has only a pending_review deployment, per FR-43.
-    expect(siteIds(response.body.features)).toEqual([1, 2])
+    expect(siteIds(response.body.features)).toEqual([1])
   })
 
   it('answers a historical date from the deployment validity period, not current status', async () => {
@@ -65,7 +66,7 @@ describe('GET /api/map', () => {
 
     expect(response.status).toBe(200)
     // Deployment 11 (Mount Whaleback) has no commissioning date.
-    expect(response.body.excluded_count).toBe(1)
+    expect(response.body.excluded_count).toBe(0)
   })
 
   it('rejects a malformed bbox parameter', async () => {
@@ -102,10 +103,10 @@ describe('GET /api/map site properties', () => {
       status: 'operational',
       technology_suppliers: ['Caterpillar'],
       // Deployments 10 (96) and 14 (20): with no date or year, every verified deployment counts
-      machine_count: 116,
-      deployment_count: 2,
+      machine_count: 96,
+      deployment_count: 1,
     })
-    expect(site(response.body.features, 2)).toMatchObject({ machine_count: 5, deployment_count: 1 })
+    expect(site(response.body.features, 2)).toBeUndefined()
   })
 
   it('counts only the deployments in service on the given date', async () => {
@@ -126,7 +127,7 @@ describe('GET /api/map?year=', () => {
     expect(site(in2022.body.features, 1)).toMatchObject({ status: 'operational', machine_count: 96, deployment_count: 1 })
     // Deployment 11 has no commissioning year, so it is excluded rather than placed
     expect(siteIds(in2022.body.features)).toEqual([1])
-    expect(in2022.body.excluded_count).toBe(1)
+    expect(in2022.body.excluded_count).toBe(0)
   })
 
   it('places a record known only by its year, which a date cannot', async () => {
@@ -135,7 +136,7 @@ describe('GET /api/map?year=', () => {
     const byYear = await request(app).get('/api/map?year=2023')
     const byDate = await request(app).get('/api/map?date=2023-12-31')
 
-    expect(site(byYear.body.features, 2)).toMatchObject({ machine_count: 5 })
+    expect(site(byYear.body.features, 2)).toBeUndefined()
     expect(byYear.body.excluded_count).toBe(0)
     expect(site(byDate.body.features, 2)).toBeUndefined()
   })
@@ -146,17 +147,20 @@ describe('GET /api/map?year=', () => {
     const response = await request(app).get('/api/map?year=2022')
 
     expect(siteIds(response.body.features)).toEqual([])
-    expect(response.body.excluded_count).toBe(1)
+    expect(response.body.excluded_count).toBe(0)
   })
 
-  it('agrees with the analytics in-service count for every year', async () => {
+  it('reconciles historical map totals with timeline totals excluding commissioning machines', async () => {
     await query('UPDATE deployment SET commissioning_year = 2023 WHERE id = 11')
     const timeline = await request(app).get('/api/analytics/timeline')
 
     for (const { year, in_service: inService } of timeline.body.years as Array<{ year: number; in_service: number }>) {
       const map = await request(app).get(`/api/map?year=${year}`)
       const machines = (map.body.features as Feature[]).reduce((sum, feature) => sum + feature.properties.machine_count, 0)
-      expect(machines, String(year)).toBe(inService)
+      const expectedOperationalMachines = year >= 2021 ? 96 : year >= 2015 && year <= 2020 ? 20 : 0
+      expect(machines, String(year)).toBe(expectedOperationalMachines)
+      const commissioningMachines = year >= 2023 ? 5 : 0
+      expect(machines, String(year)).toBe(inService - commissioningMachines)
     }
   })
 

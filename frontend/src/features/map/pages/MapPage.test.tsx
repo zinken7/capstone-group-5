@@ -235,6 +235,11 @@ describe('MapPage', () => {
 
     renderMap()
     await screen.findByRole('button', { name: /roy hill/i })
+
+    await waitFor(() => {
+      expect(fitBounds).toHaveBeenCalled()
+    })
+
     const overviewFits = fitBounds.mock.calls.length
 
     await userEvent.setup().click(await screen.findByRole('button', { name: /roy hill/i }))
