@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process'
-import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client } from 'pg'
 
@@ -32,21 +31,22 @@ async function ensureDatabaseExists(connectionString: string): Promise<void> {
 }
 
 function runMigrations(connectionString: string): void {
-  const tsxCli = resolve(backendRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
-  const result = spawnSync(process.execPath, [tsxCli, 'src/migrate.ts'], {
+  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+  const result = spawnSync(npm, ['run', '--silent', 'db:migrate'], {
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: connectionString },
     stdio: 'inherit',
+    shell: process.platform === 'win32',
   })
+
+  if (result.error) {
+    throw new Error(`Could not start the migration process: ${result.error.message}`)
+  }
+
   if (result.status !== 0) {
-    console.error('Test database migration diagnostics:', {
-      status: result.status,
-      signal: result.signal,
-      error: result.error?.message,
-      command: process.execPath,
-      cwd: backendRoot,
-    })
-    throw new Error('Applying migrations to the test database failed')
+    throw new Error(
+      `Applying migrations to the test database failed (status: ${result.status}, signal: ${result.signal ?? 'none'})`,
+    )
   }
 }
 
