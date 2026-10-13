@@ -44,6 +44,14 @@ function renderPage() {
   )
 }
 
+const signedIn = {
+  state: {
+    status: 'signed-in',
+    profile: { email: 'admin@example.com', role: 'admin', mustChangePassword: false },
+  },
+  signOut: vi.fn().mockResolvedValue(undefined),
+}
+
 afterEach(() => {
   vi.clearAllMocks()
 })
@@ -96,35 +104,43 @@ describe('AdminSubmissionHistoryPage', () => {
     expect(screen.getByText('Approved')).toBeTruthy()
     expect(screen.getByText('Verified')).toBeTruthy()
     expect(screen.getByText('Australia')).toBeTruthy()
-    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'updated', order: 'desc' })
   })
 
-  it('searches by submission ID', async () => {
+  it('searches by ID or site name as you type, once typing pauses', async () => {
     getSubmissionHistoryMock.mockResolvedValue(sampleItems)
-    useAdminSessionMock.mockReturnValue({
-      state: {
-        status: 'signed-in',
-        profile: {
-          email: 'admin@example.com',
-          role: 'admin',
-          mustChangePassword: false,
-        },
-      },
-      signOut: vi.fn().mockResolvedValue(undefined),
-    })
+    useAdminSessionMock.mockReturnValue(signedIn)
 
     renderPage()
 
     await screen.findByText('Example Mine')
+    const calls = getSubmissionHistoryMock.mock.calls.length
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: '202' } })
+    // Nothing is sent until typing pauses
+    expect(getSubmissionHistoryMock.mock.calls.length).toBe(calls)
 
-    fireEvent.change(screen.getByLabelText('Submission ID'), {
-      target: { value: '12' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: '202', sort: 'updated', order: 'desc' }))
+    expect(getSubmissionHistoryMock.mock.calls.length).toBe(calls + 1)
 
-    await waitFor(() => {
-      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
-    })
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: '  Roy  ' } })
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: 'Roy', sort: 'updated', order: 'desc' }))
+  })
+
+  it('searches at once on Enter and shows everything again when the search is emptied', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue(signedIn)
+
+    renderPage()
+
+    await screen.findByText('Example Mine')
+    const input = screen.getByLabelText('Search')
+    fireEvent.change(input, { target: { value: 'Example' } })
+    fireEvent.submit(input)
+    expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: 'Example', sort: 'updated', order: 'desc' })
+
+    fireEvent.change(input, { target: { value: '' } })
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'updated', order: 'desc' }))
   })
 
   it('shows an empty state when no submissions are found', async () => {
@@ -210,105 +226,53 @@ describe('AdminSubmissionHistoryPage', () => {
     renderPage()
 
     expect((await screen.findAllByText('Example Mine')).length).toBe(50)
-    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+    expect(getSubmissionHistoryMock).toHaveBeenCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'updated', order: 'desc' })
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
-  it('keeps submission history visible after invalid search', async () => {
-    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
-    useAdminSessionMock.mockReturnValue({
-      state: {
-        status: 'signed-in',
-        profile: {
-          email: 'admin@example.com',
-          role: 'admin',
-          mustChangePassword: false,
-        },
-      },
-      signOut: vi.fn().mockResolvedValue(undefined),
-    })
+  it('colours each status and decision by the state it leads to', async () => {
+    getSubmissionHistoryMock.mockResolvedValue([
+      { ...sampleItems[0], id: 1, latestDecision: 'approved', latestDecisionIsCorrection: false, verificationStatus: 'verified' },
+      { ...sampleItems[0], id: 2, latestDecision: 'rejected', latestDecisionIsCorrection: true, verificationStatus: 'verified' },
+      { ...sampleItems[0], id: 3, latestDecision: 'needs_changes', latestDecisionIsCorrection: false, verificationStatus: 'unverified' },
+      { ...sampleItems[0], id: 4, latestDecision: null, latestDecisionIsCorrection: null, verificationStatus: 'pending_review' },
+    ])
+    useAdminSessionMock.mockReturnValue(signedIn)
 
     renderPage()
 
-    await screen.findByText('Example Mine')
-
-    fireEvent.change(screen.getByLabelText('Submission ID'), {
-      target: { value: 'abc' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter a valid positive Submission ID.',
-    )
-    expect(screen.getByText('Example Mine')).toBeTruthy()
-    expect(getSubmissionHistoryMock).toHaveBeenCalledTimes(1)
+    expect((await screen.findByText('Approved')).className).toContain('status-badge--verified')
+    expect(screen.getByText('Correction rejected').className).toContain('status-badge--rejected')
+    expect(screen.getByText('Needs changes').className).toContain('status-badge--unverified')
+    expect(screen.getByText('Pending review').className).toContain('status-badge--pending-review')
+    expect(screen.getByText('No review recorded').className).not.toContain('status-badge')
+    expect(screen.getAllByText('Verified').every((badge) => badge.className.includes('status-badge--verified'))).toBe(true)
   })
 
-  it('clears validation error when Show all is clicked', async () => {
+  it('sorts by a column on the server and toggles the order', async () => {
     getSubmissionHistoryMock.mockResolvedValue(sampleItems)
-    useAdminSessionMock.mockReturnValue({
-      state: {
-        status: 'signed-in',
-        profile: {
-          email: 'admin@example.com',
-          role: 'admin',
-          mustChangePassword: false,
-        },
-      },
-      signOut: vi.fn().mockResolvedValue(undefined),
-    })
+    useAdminSessionMock.mockReturnValue(signedIn)
 
     renderPage()
 
-    await screen.findByText('Example Mine')
+    const siteButton = await screen.findByRole('button', { name: 'Sort by Site' })
+    expect(screen.getByRole('columnheader', { name: /last updated/i }).getAttribute('aria-sort')).toBe('descending')
 
-    fireEvent.change(screen.getByLabelText('Submission ID'), {
-      target: { value: 'abc' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(siteButton)
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'site', order: 'asc' }))
+    expect((await screen.findByRole('columnheader', { name: /site/i })).getAttribute('aria-sort')).toBe('ascending')
 
-    expect(screen.getByRole('alert')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
-
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.getByText('Example Mine')).toBeTruthy()
-    expect(getSubmissionHistoryMock).toHaveBeenCalledWith(51, 0, undefined)
+    fireEvent.click(await screen.findByRole('button', { name: 'Sort by Site, ascending' }))
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'site', order: 'desc' }))
   })
 
-  it('allows a valid search after an invalid search', async () => {
+  it('sorts from the small-screen sort menu', async () => {
     getSubmissionHistoryMock.mockResolvedValue(sampleItems)
-    useAdminSessionMock.mockReturnValue({
-      state: {
-        status: 'signed-in',
-        profile: {
-          email: 'admin@example.com',
-          role: 'admin',
-          mustChangePassword: false,
-        },
-      },
-      signOut: vi.fn().mockResolvedValue(undefined),
-    })
+    useAdminSessionMock.mockReturnValue(signedIn)
 
     renderPage()
 
-    await screen.findByText('Example Mine')
-
-    fireEvent.change(screen.getByLabelText('Submission ID'), {
-      target: { value: 'abc' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-
-    expect(screen.getByRole('alert')).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText('Submission ID'), {
-      target: { value: '12' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-
-    await waitFor(() => {
-      expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith(51, 0, 12)
-    })
-
-    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.change(await screen.findByLabelText('Sort by'), { target: { value: 'site:desc' } })
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'site', order: 'desc' }))
+    expect((screen.getByLabelText('Sort by') as HTMLSelectElement).value).toBe('site:desc')
   })
 })
