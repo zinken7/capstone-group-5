@@ -63,7 +63,7 @@ beforeEach(() => {
     machineTypes: [['haul_truck', 'Haul truck']],
     environments: [['surface', 'Surface']],
     deploymentStatuses: [['operational', 'Operational']],
-    automationLevels: [['autonomous', 'Autonomous']],
+    automationLevels: [['autonomous', 'Highly Autonomous']],
     installationTypes: [['unknown', 'Unknown']],
   })
 })
@@ -159,7 +159,7 @@ describe('AnalyticsPage live API behaviour', () => {
     await user.click(await screen.findByRole('button', { name: /^Filter by Maker/ }))
     await waitFor(() => expect(summaryMock.mock.calls.some(([filters]) => filters?.manufacturer === 'Maker')).toBe(true))
 
-    await user.click(await screen.findByRole('button', { name: /^Filter by Autonomous/ }))
+    await user.click(await screen.findByRole('button', { name: /^Filter by Highly Autonomous/ }))
     await waitFor(() => expect(summaryMock.mock.calls.some(([filters]) => filters?.automationLevel === 'autonomous')).toBe(true))
   })
 
@@ -176,7 +176,7 @@ describe('AnalyticsPage live API behaviour', () => {
     const user = userEvent.setup()
     render(<AnalyticsPage />)
 
-    expect(await screen.findByRole('button', { name: 'Filter by Supplier: 42 machines, 100%; 100% autonomous' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Filter by Supplier: 42 machines, 100%; 100% highly autonomous' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filter by Australia: 42 machines, 100%' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filter by Haul truck, 42 machines: 71% underground, 29% surface' })).toBeInTheDocument()
     expect(screen.getByRole('table', { name: /machines by manufacturer \(rows\) and machine type/i })).toBeInTheDocument()

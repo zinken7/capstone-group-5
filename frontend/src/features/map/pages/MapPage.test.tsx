@@ -113,7 +113,7 @@ describe('MapPage', () => {
     await waitFor(() => expect(within(machineType).getByRole('option', { name: 'Shovel' })).toBeInTheDocument())
 
     await user.selectOptions(machineType, 'shovel')
-    await user.click(screen.getByRole('radio', { name: 'Autonomous' }))
+    await user.click(screen.getByRole('radio', { name: 'Highly Autonomous' }))
     await user.selectOptions(screen.getByLabelText('Country'), 'SE')
     await user.click(screen.getByRole('checkbox', { name: /include decommissioned deployments/i }))
 
