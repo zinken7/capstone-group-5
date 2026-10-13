@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+
+import { getSubmissionHistory } from '../../../lib/api/admin'
+import { formatCountry, formatDateTime, formatEnumLabel } from '../../../lib/format'
+import StateMessage from '../../../shared/components/StateMessage'
+import AdminBar from '../components/AdminBar'
+import type { SubmissionHistoryItem } from '../types'
+import '../admin.css'
+
+const PAGE_SIZE = 50
+
+type PageState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; items: SubmissionHistoryItem[]; hasNextPage: boolean }
+
+function decisionLabel(decision: string, isCorrection: boolean | null): string {
+  const label = formatEnumLabel(decision)
+  return isCorrection ? `Correction ${label.toLowerCase()}` : label
+}
+
+function AdminSubmissionHistoryPage() {
+  const [page, setPage] = useState<PageState>({ status: 'loading' })
+  const [search, setSearch] = useState('')
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<number | undefined>()
+  const [offset, setOffset] = useState(0)
+
+  useEffect(() => {
+    let active = true
+
+
+    getSubmissionHistory(PAGE_SIZE + 1, offset, activeId)
+      .then((items) => {
+        if (active) {
+          setPage({
+            status: 'ready',
+            items: items.slice(0, PAGE_SIZE),
+            hasNextPage: items.length > PAGE_SIZE,
+          })
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setPage({
+            status: 'error',
+            message: error instanceof Error ? error.message : 'Unable to load submission history.',
+          })
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeId, offset])
+
+  function handleSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const value = search.trim()
+
+    if (value && (!/^\d+$/.test(value) || Number(value) < 1 || !Number.isSafeInteger(Number(value)))) {
+      setValidationError('Enter a valid positive Submission ID.')
+      return
+    }
+
+    setValidationError(null)
+
+    setOffset(0)
+    setActiveId(value ? Number(value) : undefined)
+  }
+
+  return (
+    <>
+      <AdminBar />
+      <main className="admin-page" id="main-content" tabIndex={-1}>
+        <header className="admin-heading">
+          <div>
+            <h1>Submission history</h1>
+            <p>Find submissions across verification statuses and review their latest decisions.</p>
+          </div>
+        </header>
+
+        <form onSubmit={handleSearch} className="admin-search">
+          <label htmlFor="submission-id">Submission ID</label>
+          <input
+            id="submission-id"
+            type="search"
+            inputMode="numeric"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Enter a Submission ID"
+          />
+          <button type="submit" className="button button--primary">Search</button>
+          <button type="button" className="button button--secondary" onClick={() => {
+            setSearch('')
+            setValidationError(null)
+            setOffset(0)
+            setActiveId(undefined)
+          }}>
+            Show all
+          </button>
+        </form>
+
+        {validationError && (
+          <p role="alert" className="admin-search-error">
+            {validationError}
+          </p>
+        )}
+
+        {page.status === 'loading' && (
+          <StateMessage variant="loading" title="Loading submission history" message="Fetching historical submissions." />
+        )}
+        {page.status === 'error' && (
+          <StateMessage variant="error" title="History unavailable" message={page.message} />
+        )}
+        {page.status === 'ready' && page.items.length === 0 && (
+          <StateMessage title="No submissions found" message="Try another Submission ID or show all submissions." />
+        )}
+        {page.status === 'ready' && page.items.length > 0 && (
+          <>
+            <div className="admin-table-wrap">
+              <table className="admin-table admin-table--stack">
+                <caption className="visually-hidden">Submission history</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Submission ID</th>
+                    <th scope="col">Site</th>
+                    <th scope="col">Country</th>
+                    <th scope="col">Latest decision</th>
+                    <th scope="col">Current status</th>
+                    <th scope="col">Last updated</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {page.items.map((item) => (
+                    <tr key={item.id}>
+                      <td data-label="Submission ID">{item.id}</td>
+                      <td data-label="Site">{item.siteName}</td>
+                      <td data-label="Country">{formatCountry(item.countryCode)}</td>
+                      <td data-label="Latest decision">
+                        {item.latestDecision
+                          ? decisionLabel(item.latestDecision, item.latestDecisionIsCorrection)
+                          : 'No review recorded'}
+                      </td>
+                      <td data-label="Current status">{formatEnumLabel(item.verificationStatus)}</td>
+                      <td data-label="Last updated">
+                        {formatDateTime(item.updatedAt)}
+                      </td>
+                      <td data-label="Action">
+                        <Link className="admin-review-link" to={`/admin/deployments/${item.id}`}>
+                          View details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {!activeId && (
+              <div className="admin-pagination">
+                <button className="button button--secondary"
+                  type="button"
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                >
+                  Previous
+                </button>
+                <span>Showing {offset + 1}–{offset + page.items.length}</span>
+                <button className="button button--secondary"
+                  type="button"
+                  disabled={!page.hasNextPage}
+                  onClick={() => setOffset(offset + PAGE_SIZE)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </>
+  )
+}
+
+export default AdminSubmissionHistoryPage

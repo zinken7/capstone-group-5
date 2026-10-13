@@ -109,6 +109,62 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
   })
 }
 
+export interface SubmissionHistoryItem {
+  id: number
+  site_name: string
+  country_code: string
+  verification_status: string
+  latest_decision: string | null
+  latest_decision_is_correction: boolean | null
+  updated_at: string
+}
+
+/** Admin history of submissions across all verification statuses. */
+export async function listSubmissionHistory(
+  limit = 50,
+  offset = 0,
+  deploymentId?: number,
+): Promise<SubmissionHistoryItem[]> {
+  const latestDecision = sql<string | null>`(
+    SELECT vr.decision::text
+    FROM ${tables.verificationReview} vr
+    WHERE vr.deployment_id = ${tables.deployment.id}
+    ORDER BY vr.reviewed_at DESC, vr.id DESC
+    LIMIT 1
+  )`
+
+  const latestDecisionIsCorrection = sql<boolean | null>`(
+    SELECT vr.correction_id IS NOT NULL
+    FROM ${tables.verificationReview} vr
+    WHERE vr.deployment_id = ${tables.deployment.id}
+    ORDER BY vr.reviewed_at DESC, vr.id DESC
+    LIMIT 1
+  )`
+
+  return db
+    .select({
+      id: tables.deployment.id,
+      site_name: tables.site.name,
+      country_code: tables.site.countryCode,
+      verification_status: tables.deployment.verificationStatus,
+      latest_decision: latestDecision,
+      latest_decision_is_correction: latestDecisionIsCorrection,
+      updated_at: isoTimestamp(tables.deployment.updatedAt),
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .where(
+      deploymentId === undefined
+        ? undefined
+        : eq(tables.deployment.id, deploymentId),
+    )
+    .orderBy(
+      sql`${tables.deployment.updatedAt} DESC`,
+      sql`${tables.deployment.id} DESC`,
+    )
+    .limit(limit)
+    .offset(offset)
+}
 /** Proposed corrections to verified records, oldest first; the record fields are its current values. */
 export async function listPendingCorrections(): Promise<QueueItem[]> {
   const rows = await db
