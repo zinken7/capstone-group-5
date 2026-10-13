@@ -55,6 +55,18 @@ export function validateContribution(values: ContributionFormValues): Contributi
     errors.manufacturer = 'Machine manufacturer is required.'
   }
 
+  if (!values.machineModel.trim()) {
+    errors.machineModel = 'Machine model is required.'
+  }
+
+  if (!values.technologySupplier.trim()) {
+    errors.technologySupplier = 'Technology supplier is required.'
+  }
+
+  if (!values.automationLevel) {
+    errors.automationLevel = 'Automation level is required.'
+  }
+
   if (!Number.isSafeInteger(quantity) || quantity <= 0) {
     errors.quantity = 'Quantity must be a positive whole number.'
   }
