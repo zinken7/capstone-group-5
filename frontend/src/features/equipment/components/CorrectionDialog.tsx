@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, KeyboardEvent } from 'react'
+import type { FormEvent, KeyboardEvent, MouseEvent } from 'react'
 
 import { submitCorrection, CorrectionApiError } from '../../../lib/api/corrections'
 import type { CorrectionResult } from '../../../lib/api/corrections'
@@ -93,6 +93,8 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
   const [submitting, setSubmitting] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const firstFieldRef = useRef<HTMLInputElement>(null)
+  // Set when a press starts on the backdrop, so dragging a text selection out of a field does not close the dialog
+  const pressedBackdropRef = useRef(false)
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -112,7 +114,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
   }
 
   function trapFocus(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+    if (event.key === 'Escape') { event.preventDefault(); if (!submitting) onClose(); return }
     if (event.key !== 'Tab') return
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')
     if (!focusable || focusable.length === 0) return
@@ -145,28 +147,38 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
   const automationOptions = optionsWithCurrent(referenceData.automationLevels, values.automationLevel)
   const installationOptions = optionsWithCurrent(referenceData.installationTypes, values.installationType)
 
-  return <div className="correction-overlay" role="presentation"><div ref={dialogRef} className="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-correction-title" aria-describedby="equipment-correction-description" onKeyDown={trapFocus}>
-    <div className="correction-dialog__header"><div><p className="eyebrow">Suggest a correction</p><h2 id="equipment-correction-title">Correct this record</h2></div><button className="icon-button" type="button" aria-label="Close correction dialog" onClick={onClose}>×</button></div>
-    <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>
-    <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
-    <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>
-    {error && <p className="form-summary-error" role="alert">{error}</p>}
-    <form onSubmit={(event) => void handleSubmit(event)} noValidate>
-      <div className="form-grid">
-        <div className="form-field"><label htmlFor="equipment-correction-quantity">Quantity</label><input ref={firstFieldRef} id="equipment-correction-quantity" inputMode="numeric" value={values.quantity} onChange={setText('quantity')} aria-invalid={Boolean(fieldErrors.quantity)} aria-describedby={fieldErrors.quantity ? 'equipment-correction-quantity-error' : undefined} />{fieldErrors.quantity && <small id="equipment-correction-quantity-error" className="field-error">{fieldErrors.quantity}</small>}</div>
-        <SelectField id="equipment-correction-environment" label="Mining environment" value={values.environment} options={environmentOptions} error={fieldErrors.environment} onChange={(value) => set('environment', value)} />
-        <SelectField id="equipment-correction-status" label="Deployment status" value={values.deploymentStatus} options={statusOptions} error={fieldErrors.deployment_status} onChange={(value) => set('deploymentStatus', value)} />
-        <SelectField id="equipment-correction-automation" label="Automation level" value={values.automationLevel} options={automationOptions} error={fieldErrors.automation_level} onChange={(value) => set('automationLevel', value)} />
-        <SelectField id="equipment-correction-installation" label="Installation type" value={values.installationType} options={installationOptions} error={fieldErrors.installation_type} onChange={(value) => set('installationType', value)} />
-        <div className="form-field"><label htmlFor="equipment-correction-commissioning">Commissioning date or year</label><input id="equipment-correction-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={setText('commissioningDate')} aria-invalid={Boolean(fieldErrors.commissioning_date)} aria-describedby={fieldErrors.commissioning_date ? 'equipment-correction-commissioning-error' : undefined} />{fieldErrors.commissioning_date && <small id="equipment-correction-commissioning-error" className="field-error">{fieldErrors.commissioning_date}</small>}</div>
-        <div className="form-field form-field--wide"><label htmlFor="equipment-correction-evidence">Evidence URL <span className="form-help-inline">(recommended)</span></label><input id="equipment-correction-evidence" type="url" placeholder="https://" value={values.evidenceUrl} onChange={setText('evidenceUrl')} aria-invalid={Boolean(fieldErrors.evidence_urls)} aria-describedby={fieldErrors.evidence_urls ? 'equipment-correction-evidence-error' : undefined} />{fieldErrors.evidence_urls && <small id="equipment-correction-evidence-error" className="field-error">{fieldErrors.evidence_urls}</small>}</div>
-        <div className="form-field"><label htmlFor="equipment-correction-email">Contact email <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-email" type="email" placeholder="you@example.com" value={values.contributorEmail} onChange={setText('contributorEmail')} aria-invalid={Boolean(fieldErrors.contributor_email)} aria-describedby={fieldErrors.contributor_email ? 'equipment-correction-email-error' : undefined} />{fieldErrors.contributor_email && <small id="equipment-correction-email-error" className="field-error">{fieldErrors.contributor_email}</small>}</div>
-        <div className="form-field"><label htmlFor="equipment-correction-organisation">Organisation <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-organisation" value={values.organisation} onChange={setText('organisation')} /></div>
-        <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
-        <div className="form-field form-field--wide"><label htmlFor="equipment-correction-note">Note <span className="form-help-inline">(optional)</span></label><textarea id="equipment-correction-note" maxLength={1000} value={values.changeNote} onChange={(event) => set('changeNote', event.target.value)} /></div>
+  // Clicking the backdrop closes the dialog, like Cancel and Escape; not while a correction is being sent
+  function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
+    const pressedBackdrop = pressedBackdropRef.current
+    pressedBackdropRef.current = false
+    if (pressedBackdrop && event.target === event.currentTarget && !submitting) onClose()
+  }
+
+  return <div className="correction-overlay" role="presentation" onMouseDown={(event) => { pressedBackdropRef.current = event.target === event.currentTarget }} onClick={closeFromBackdrop}><div ref={dialogRef} className="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-correction-title" aria-describedby="equipment-correction-description" onKeyDown={trapFocus}>
+    <div className="correction-dialog__header"><div><p className="eyebrow">Suggest a correction</p><h2 id="equipment-correction-title">Correct this record</h2></div></div>
+    {/* Only the body scrolls; the title and the actions stay in view */}
+    <form className="correction-dialog__form" onSubmit={(event) => void handleSubmit(event)} noValidate>
+      <div className="correction-dialog__body">
+        <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>
+        <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
+        <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>
+        {error && <p className="form-summary-error" role="alert">{error}</p>}
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="equipment-correction-quantity">Quantity</label><input ref={firstFieldRef} id="equipment-correction-quantity" inputMode="numeric" value={values.quantity} onChange={setText('quantity')} aria-invalid={Boolean(fieldErrors.quantity)} aria-describedby={fieldErrors.quantity ? 'equipment-correction-quantity-error' : undefined} />{fieldErrors.quantity && <small id="equipment-correction-quantity-error" className="field-error">{fieldErrors.quantity}</small>}</div>
+          <SelectField id="equipment-correction-environment" label="Mining environment" value={values.environment} options={environmentOptions} error={fieldErrors.environment} onChange={(value) => set('environment', value)} />
+          <SelectField id="equipment-correction-status" label="Deployment status" value={values.deploymentStatus} options={statusOptions} error={fieldErrors.deployment_status} onChange={(value) => set('deploymentStatus', value)} />
+          <SelectField id="equipment-correction-automation" label="Automation level" value={values.automationLevel} options={automationOptions} error={fieldErrors.automation_level} onChange={(value) => set('automationLevel', value)} />
+          <SelectField id="equipment-correction-installation" label="Installation type" value={values.installationType} options={installationOptions} error={fieldErrors.installation_type} onChange={(value) => set('installationType', value)} />
+          <div className="form-field"><label htmlFor="equipment-correction-commissioning">Commissioning date or year</label><input id="equipment-correction-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={setText('commissioningDate')} aria-invalid={Boolean(fieldErrors.commissioning_date)} aria-describedby={fieldErrors.commissioning_date ? 'equipment-correction-commissioning-error' : undefined} />{fieldErrors.commissioning_date && <small id="equipment-correction-commissioning-error" className="field-error">{fieldErrors.commissioning_date}</small>}</div>
+          <div className="form-field form-field--wide"><label htmlFor="equipment-correction-evidence">Evidence URL <span className="form-help-inline">(recommended)</span></label><input id="equipment-correction-evidence" type="url" placeholder="https://" value={values.evidenceUrl} onChange={setText('evidenceUrl')} aria-invalid={Boolean(fieldErrors.evidence_urls)} aria-describedby={fieldErrors.evidence_urls ? 'equipment-correction-evidence-error' : undefined} />{fieldErrors.evidence_urls && <small id="equipment-correction-evidence-error" className="field-error">{fieldErrors.evidence_urls}</small>}</div>
+          <div className="form-field"><label htmlFor="equipment-correction-email">Contact email <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-email" type="email" placeholder="you@example.com" value={values.contributorEmail} onChange={setText('contributorEmail')} aria-invalid={Boolean(fieldErrors.contributor_email)} aria-describedby={fieldErrors.contributor_email ? 'equipment-correction-email-error' : undefined} />{fieldErrors.contributor_email && <small id="equipment-correction-email-error" className="field-error">{fieldErrors.contributor_email}</small>}</div>
+          <div className="form-field"><label htmlFor="equipment-correction-organisation">Organisation <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-organisation" value={values.organisation} onChange={setText('organisation')} /></div>
+          <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
+          <div className="form-field form-field--wide"><label htmlFor="equipment-correction-note">Note <span className="form-help-inline">(optional)</span></label><textarea id="equipment-correction-note" maxLength={1000} value={values.changeNote} onChange={(event) => set('changeNote', event.target.value)} /></div>
+        </div>
+        <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>
+        {fieldErrors.disclosure_accepted && <p className="field-error" role="alert">{fieldErrors.disclosure_accepted}</p>}
       </div>
-      <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>
-      {fieldErrors.disclosure_accepted && <p className="field-error" role="alert">{fieldErrors.disclosure_accepted}</p>}
       <div className="form-actions correction-dialog__actions"><button className="button button--secondary" type="button" onClick={onClose} disabled={submitting}>Cancel</button><button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit correction'}</button></div>
     </form>
   </div></div>

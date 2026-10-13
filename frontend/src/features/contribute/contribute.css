@@ -24,16 +24,6 @@
 
 .detail-toggle {
   justify-self: start;
-  min-height: 2.75rem;
-  padding: 0.55rem 0.1rem;
-  border: 0;
-  color: var(--brand);
-  background: transparent;
-  font: inherit;
-  font-weight: 750;
-  text-decoration: underline;
-  text-underline-offset: 0.2rem;
-  cursor: pointer;
 }
 
 .contribution-notice p {
@@ -83,6 +73,10 @@
   gap: 0.8rem;
 }
 
+.evidence-add {
+  margin-top: 0.75rem;
+}
+
 .chip-field {
   min-inline-size: 0;
   padding: 0;
@@ -114,7 +108,7 @@
   border-radius: 999px;
   color: var(--text-strong);
   background: var(--color-surface);
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 

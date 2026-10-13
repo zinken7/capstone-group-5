@@ -44,10 +44,6 @@
   text-decoration: none;
 }
 
-.admin-brand .brand-mark {
-  background: var(--color-primary);
-}
-
 .admin-brand strong,
 .admin-brand small {
   display: block;
@@ -260,12 +256,9 @@
   gap: var(--space-5);
 }
 
-.form-field textarea {
-  min-height: 5rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.5rem;
-  font: inherit;
+/* A clear-date toggle keeps its chip size instead of stretching across the field */
+.form-field > .choice-chip {
+  justify-self: start;
 }
 
 .admin-notice {
@@ -315,15 +308,17 @@
   font-size: var(--type-sm);
 }
 
+/* Enough room above and below for a row action's 44px target, which reaches into the padding */
 .admin-table th,
 .admin-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
 }
 
 .admin-table thead th {
+  vertical-align: middle;
   background: #f7f8fb;
   color: var(--text-muted);
   font-size: var(--type-xs);
@@ -347,8 +342,6 @@
 }
 
 .admin-table .button {
-  display: inline-block;
-  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -363,7 +356,6 @@
 
 .admin-queue__action {
   text-align: right;
-  vertical-align: middle;
 }
 
 /* A quiet outlined button: a column of solid ones is too heavy */
@@ -394,6 +386,12 @@
 
 .admin-review-link svg {
   transition: transform 120ms ease;
+}
+
+/* In a row, actions keep their 44px target but pull up so their label lines up with the row's first line */
+.admin-table td > .admin-review-link,
+.admin-table td > .button {
+  margin-block: calc((1lh - 44px) / 2);
 }
 
 .admin-review-link:hover svg {
@@ -508,6 +506,11 @@
     box-sizing: border-box;
     text-align: center;
   }
+
+  .admin-table--stack td > .admin-review-link,
+  .admin-table--stack td > .button {
+    margin-block: 0;
+  }
 }
 
 /* Record page: details on the left, decisions on the right; one column on small screens */
@@ -619,7 +622,7 @@
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--control-border);
-  border-radius: 0.6rem;
+  border-radius: var(--control-radius);
   cursor: pointer;
 }
 

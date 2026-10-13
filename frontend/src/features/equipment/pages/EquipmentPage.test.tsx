@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import EquipmentPage from './EquipmentPage'
@@ -39,7 +39,7 @@ describe('EquipmentPage', () => {
     render(<EquipmentPage records={records} />)
 
     expect(
-      screen.getByRole('heading', { name: /equipment register/i }),
+      screen.getByRole('heading', { name: /^equipment$/i }),
     ).toBeInTheDocument()
 
     expect(
@@ -258,6 +258,34 @@ describe('EquipmentPage', () => {
     const environmentSelect = screen.getByRole('combobox', { name: /mining environment/i })
     expect(environmentSelect).toHaveValue('both')
     expect(within(environmentSelect).getByRole('option', { name: 'Surface and underground' })).toBeInTheDocument()
+  })
+
+  test('closes the correction dialog from the backdrop, but not after a drag that starts in a field', async () => {
+    const user = userEvent.setup()
+    const item = { id: 20203, site_id: 7, site_name: 'Backdrop site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json({ machine_types: ['haul_truck'], automation_levels: ['autonomous'], environments: ['surface'], deployment_statuses: ['operational'], installation_types: ['unknown'] }))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [item] }))
+    }))
+
+    render(<EquipmentPage />)
+
+    await user.click(await screen.findByRole('button', { name: /correct backdrop site/i }))
+    const dialog = screen.getByRole('dialog', { name: /correct this record/i })
+    expect(within(dialog).queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
+    const backdrop = dialog.parentElement as HTMLElement
+
+    // A text selection dragged out of a field ends on the backdrop; that must not close the dialog
+    fireEvent.mouseDown(within(dialog).getByRole('textbox', { name: /quantity/i }))
+    fireEvent.click(backdrop)
+    expect(screen.getByRole('dialog', { name: /correct this record/i })).toBeInTheDocument()
+
+    await user.click(backdrop)
+    expect(screen.queryByRole('dialog', { name: /correct this record/i })).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
   })
 
   test('opens the correction dialog and submits a pending-review correction', async () => {
