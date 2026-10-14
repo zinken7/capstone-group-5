@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
+import BrandMark from '../../../shared/components/BrandMark'
 import { useAdminSession } from '../session'
 
 /**
@@ -17,7 +18,7 @@ function AdminBar() {
     <header className="admin-header">
       <div className="admin-header__inner">
         <Link className="admin-brand" to={profile ? '/admin' : '/admin/login'}>
-          <span className="brand-mark" aria-hidden="true">AM</span>
+          <BrandMark />
           <span>
             <strong>Mining Market Map</strong>
             <small>Administration</small>
@@ -32,6 +33,7 @@ function AdminBar() {
                 Review queue
               </NavLink>
             )}
+            {!mustChange && <NavLink to="/admin/submissions">Submission history</NavLink>}
             {!mustChange && profile.role === 'root' && <NavLink to="/admin/users">Administrators</NavLink>}
             <NavLink to="/admin/password">Change password</NavLink>
           </nav>

@@ -84,6 +84,161 @@ describe('access control', () => {
   })
 })
 
+describe('GET /api/admin/submissions', () => {
+  it('requires an administrator session', async () => {
+    const response = await request(app).get('/api/admin/submissions')
+    expect(response.status).toBe(401)
+  })
+
+  it('returns submission history with the default pagination', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(Number),
+          site_name: expect.any(String),
+          country_code: expect.any(String),
+          verification_status: expect.any(String),
+          updated_at: expect.any(String),
+        }),
+      ]),
+    )
+  })
+
+  it('uses the latest correction review as the submission history decision', async () => {
+    const id = await contribute()
+
+    const initialReview = await review(id, { decision: 'approved' })
+    expect(initialReview.status).toBe(201)
+
+    const proposal = await request(app)
+      .patch(`/api/deployments/${id}`)
+      .send({
+        quantity: 20,
+        disclosure_accepted: true,
+      })
+    expect(proposal.status).toBe(202)
+
+    const correctionId = proposal.body.correction_id as number
+
+    const correctionReview = await request(app)
+      .post(`/api/admin/corrections/${correctionId}/reviews`)
+      .set('Cookie', cookie)
+      .set('X-Requested-With', 'fetch')
+      .send({ decision: 'rejected', note: 'Insufficient supporting evidence' })
+    expect(correctionReview.status).toBe(201)
+
+    const response = await request(app)
+      .get(`/api/admin/submissions?id=${id}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual([
+      expect.objectContaining({
+        id,
+        latest_decision: 'rejected',
+        latest_decision_is_correction: true,
+      }),
+    ])
+  })
+  it('filters history by deployment ID', async () => {
+    const response = await request(app)
+      .get('/api/admin/submissions?id=12')
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items.map((item: { id: number }) => item.id)).toEqual([12])
+  })
+
+  it.each([
+    'limit=0',
+    'limit=101',
+    'limit=abc',
+    'offset=-1',
+    'offset=abc',
+    'id=0',
+    'id=abc',
+  ])('rejects invalid query parameters: %s', async (query) => {
+    const response = await request(app)
+      .get(`/api/admin/submissions?${query}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('invalid pagination or submission ID')
+  })
+
+  it('searches by the start of an ID or part of a site name', async () => {
+    const id = await contribute()
+    const prefix = String(id).slice(0, 2)
+    const byId = await request(app).get(`/api/admin/submissions?q=${prefix}`).set('Cookie', cookie)
+    expect(byId.status).toBe(200)
+    const ids: number[] = byId.body.items.map((item: { id: number }) => item.id)
+    expect(ids).toContain(id)
+    expect(ids.every((value) => String(value).startsWith(prefix))).toBe(true)
+
+    const siteName: string = byId.body.items.find((item: { id: number }) => item.id === id).site_name
+    const fragment = siteName.slice(1, 5).toLowerCase()
+    const bySite = await request(app).get(`/api/admin/submissions?q=${encodeURIComponent(` ${fragment} `)}`).set('Cookie', cookie)
+    expect(bySite.body.items.map((item: { id: number }) => item.id)).toContain(id)
+    expect(bySite.body.items.every((item: { site_name: string }) => item.site_name.toLowerCase().includes(fragment))).toBe(true)
+
+    // LIKE wildcards in the search are taken literally
+    const wildcard = await request(app).get('/api/admin/submissions?q=%25').set('Cookie', cookie)
+    expect(wildcard.body.items).toEqual([])
+  })
+
+  it('rejects a repeated search parameter', async () => {
+    const response = await request(app).get('/api/admin/submissions?q=a&q=b').set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('invalid q parameter')
+  })
+
+  it('sorts by the requested column in either order', async () => {
+    const ids = (body: { items: { id: number }[] }) => body.items.map((item) => item.id)
+    const ascending = await request(app).get('/api/admin/submissions?sort=id&order=asc').set('Cookie', cookie)
+    const descending = await request(app).get('/api/admin/submissions?sort=id&order=desc').set('Cookie', cookie)
+
+    expect(ascending.status).toBe(200)
+    expect(ids(ascending.body)).toEqual([...ids(ascending.body)].sort((a, b) => a - b))
+    expect(ids(descending.body)).toEqual([...ids(ascending.body)].reverse())
+  })
+
+  it('sorts statuses and decisions by their text, with unreviewed records last', async () => {
+    const approved = await contribute()
+    expect((await review(approved, { decision: 'approved' })).status).toBe(201)
+    const rejected = await contribute()
+    expect((await review(rejected, { decision: 'rejected', note: 'Not an autonomous fleet' })).status).toBe(201)
+    await contribute()
+
+    const byStatus = await request(app).get('/api/admin/submissions?sort=status').set('Cookie', cookie)
+    const statuses = byStatus.body.items.map((item: { verification_status: string }) => item.verification_status)
+    expect(statuses).toEqual([...statuses].sort())
+
+    const byDecision = await request(app).get('/api/admin/submissions?sort=decision&order=desc').set('Cookie', cookie)
+    const decisions: (string | null)[] = byDecision.body.items.map((item: { latest_decision: string | null }) => item.latest_decision)
+    const reviewed = decisions.filter((decision) => decision !== null)
+    expect(reviewed).toEqual(expect.arrayContaining(['approved', 'rejected']))
+    expect(decisions.slice(0, reviewed.length)).toEqual(reviewed)
+    expect(reviewed).toEqual([...reviewed].sort().reverse())
+  })
+
+  it.each([
+    ['sort=country', 'invalid sort parameter'],
+    ['sort=', 'invalid sort parameter'],
+    ['order=up', 'invalid order parameter'],
+    ['sort=id&order=ASC', 'invalid order parameter'],
+  ])('rejects an invalid sort: %s', async (query, error) => {
+    const response = await request(app).get(`/api/admin/submissions?${query}`).set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe(error)
+  })
+})
 describe('GET /api/admin/reviews', () => {
   it('lists records pending review, least recently changed first', async () => {
     const contributed = await contribute()
@@ -153,6 +308,92 @@ describe('GET /api/admin/deployments/:id', () => {
       reviews: [],
       revisions: [],
     })
+  })
+
+  it('identifies possible duplicate deployments and excludes the current record', async () => {
+    const firstId = await contribute()
+    const secondId = await contribute()
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({
+        id: secondId,
+        verification_status: 'pending_review',
+        machine_manufacturer: 'Komatsu',
+        machine_model: '930E',
+        machine_type: 'haul_truck',
+        technology_product: 'FrontRunner',
+        quantity: 15,
+        commissioning_date: '2022-07-01',
+        status: 'operational',
+      }),
+    ])
+    expect(response.body.possible_duplicates).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: firstId })]),
+    )
+  })
+
+  it('identifies deployments with the same supplier but different products', async () => {
+    const firstId = await contribute()
+    const secondId = await contribute({ technology_product: 'Different Automation Product' })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({ id: secondId }),
+    ])
+  })
+
+  it('identifies duplicate deployments when both products are null', async () => {
+    const firstId = await contribute({ technology_product: null })
+    const secondId = await contribute({ technology_product: null })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({
+        id: secondId,
+        technology_product: null,
+        verification_status: 'pending_review',
+      }),
+    ])
+  })
+
+  it('does not identify deployments with a different technology supplier as duplicates', async () => {
+    const firstId = await contribute()
+    await contribute({
+      technology_supplier: 'Different Automation Supplier',
+      technology_product: null,
+    })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([])
+  })
+
+  it('does not identify deployments at a different site as duplicates', async () => {
+    const firstId = await contribute()
+    await contribute({ site_name: 'Different Mine Site' })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([])
   })
 
   it('shows the contributor of a submission in its revision history', async () => {

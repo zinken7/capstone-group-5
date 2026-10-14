@@ -44,10 +44,6 @@
   text-decoration: none;
 }
 
-.admin-brand .brand-mark {
-  background: var(--color-primary);
-}
-
 .admin-brand strong,
 .admin-brand small {
   display: block;
@@ -260,12 +256,9 @@
   gap: var(--space-5);
 }
 
-.form-field textarea {
-  min-height: 5rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.5rem;
-  font: inherit;
+/* A clear-date toggle keeps its chip size instead of stretching across the field */
+.form-field > .choice-chip {
+  justify-self: start;
 }
 
 .admin-notice {
@@ -315,15 +308,17 @@
   font-size: var(--type-sm);
 }
 
+/* Enough room above and below for a row action's 44px target, which reaches into the padding */
 .admin-table th,
 .admin-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
 }
 
 .admin-table thead th {
+  vertical-align: middle;
   background: #f7f8fb;
   color: var(--text-muted);
   font-size: var(--type-xs);
@@ -347,8 +342,6 @@
 }
 
 .admin-table .button {
-  display: inline-block;
-  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -363,7 +356,6 @@
 
 .admin-queue__action {
   text-align: right;
-  vertical-align: middle;
 }
 
 /* A quiet outlined button: a column of solid ones is too heavy */
@@ -394,6 +386,12 @@
 
 .admin-review-link svg {
   transition: transform 120ms ease;
+}
+
+/* In a row, actions keep their 44px target but pull up so their label lines up with the row's first line */
+.admin-table td > .admin-review-link,
+.admin-table td > .button {
+  margin-block: calc((1lh - 44px) / 2);
 }
 
 .admin-review-link:hover svg {
@@ -508,6 +506,11 @@
     box-sizing: border-box;
     text-align: center;
   }
+
+  .admin-table--stack td > .admin-review-link,
+  .admin-table--stack td > .button {
+    margin-block: 0;
+  }
 }
 
 /* Record page: details on the left, decisions on the right; one column on small screens */
@@ -619,7 +622,7 @@
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--control-border);
-  border-radius: 0.6rem;
+  border-radius: var(--control-radius);
   cursor: pointer;
 }
 
@@ -640,6 +643,40 @@
 
 .decision-form .form-actions .button {
   width: 100%;
+}
+
+/* Possible duplicates: one compact row per matching record */
+
+.duplicate-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.duplicate-list li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+}
+
+.duplicate-list a {
+  font-weight: 600;
+}
+
+.duplicate-list small {
+  color: var(--text-muted);
+  font-size: var(--type-sm);
+}
+
+.duplicate-list__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
 }
 
 /* Proposed correction */
@@ -839,5 +876,74 @@
 
   .admin-panel {
     padding: var(--space-4);
+  }
+}
+/* Submission history search and pagination */
+
+/* Sorting on small screens, where the table's sortable headings are hidden */
+.admin-sort {
+  display: none;
+}
+
+/* The label sits above the field, as on every other form and filter bar */
+.admin-search {
+  display: grid;
+  gap: 0.375rem;
+  max-width: 32rem;
+  margin-bottom: var(--space-5);
+}
+
+.admin-search label {
+  color: var(--text-strong);
+  font-size: var(--label-font-size);
+  font-weight: 600;
+}
+
+.admin-search input {
+  width: 100%;
+}
+
+.admin-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.admin-pagination span {
+  color: var(--text-muted);
+  font-size: var(--type-sm);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .admin-pagination {
+    gap: var(--space-2);
+  }
+
+  .admin-sort {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .admin-sort label {
+    color: var(--text-strong);
+    font-size: var(--label-font-size);
+    font-weight: 600;
+  }
+
+  .admin-sort select {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  /* The headings are hidden here, so their sort buttons must not take keyboard focus */
+  .admin-table--stack thead .table-sort-button {
+    visibility: hidden;
   }
 }

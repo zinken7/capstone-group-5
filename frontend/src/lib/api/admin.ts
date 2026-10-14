@@ -9,6 +9,8 @@ import type {
   ReviewDecision,
   ReviewQueueItem,
   ReviewRecord,
+  SubmissionHistoryItem,
+  SubmissionHistorySort,
 } from '../../features/admin/types'
 
 // The backend refuses modifying admin requests without this header (CSRF protection).
@@ -115,6 +117,17 @@ interface RecordDto {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  possible_duplicates: {
+    id: number
+    verification_status: string
+    machine_manufacturer: string
+    machine_model: string | null
+    machine_type: string
+    technology_product: string | null
+    quantity: number
+    commissioning_date: string | null
+    status: string
+  }[]
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -164,6 +177,17 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     quantity: dto.quantity,
     technologySupplier: dto.technology_supplier,
     technologyProduct: dto.technology_product,
+    possibleDuplicates: dto.possible_duplicates.map((item) => ({
+      id: item.id,
+      verificationStatus: item.verification_status,
+      machineManufacturer: item.machine_manufacturer,
+      machineModel: item.machine_model,
+      machineType: item.machine_type,
+      technologyProduct: item.technology_product,
+      quantity: item.quantity,
+      commissioningDate: item.commissioning_date,
+      status: item.status,
+    })),
     automationLevel: dto.automation_level,
     environment: dto.environment,
     installationType: dto.installation_type,
@@ -291,4 +315,48 @@ export async function setAdministratorActive(id: number, active: boolean): Promi
     headers: MODIFYING_HEADERS,
     body: JSON.stringify({ active }),
   })
+}
+
+
+export interface SubmissionHistoryQuery {
+  limit?: number
+  offset?: number
+  /** Free text: the start of a submission ID or part of a site name */
+  q?: string
+  sort?: SubmissionHistorySort
+  order?: 'asc' | 'desc'
+}
+
+/** Retrieves submission history, optionally searched by ID or site name; newest first unless sorted. */
+export async function getSubmissionHistory(
+  { limit = 50, offset = 0, q, sort = 'updated', order = 'desc' }: SubmissionHistoryQuery = {},
+): Promise<SubmissionHistoryItem[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    sort,
+    order,
+  })
+
+  if (q) params.set('q', q)
+
+  const response = await requestJson<{ items: {
+    id: number
+    site_name: string
+    country_code: string
+    verification_status: string
+    latest_decision: ReviewDecision | null
+    latest_decision_is_correction: boolean | null
+    updated_at: string
+  }[] }>(`admin/submissions?${params.toString()}`)
+
+  return response.items.map((item) => ({
+    id: item.id,
+    siteName: item.site_name,
+    countryCode: item.country_code,
+    verificationStatus: item.verification_status,
+    latestDecision: item.latest_decision,
+    latestDecisionIsCorrection: item.latest_decision_is_correction,
+    updatedAt: item.updated_at,
+  }))
 }

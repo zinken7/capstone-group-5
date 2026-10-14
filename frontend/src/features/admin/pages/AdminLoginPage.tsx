@@ -51,7 +51,6 @@ function AdminLoginPage() {
           <header className="admin-heading admin-heading--card">
             <div>
               <h1>Sign in</h1>
-              <p>Administrators review community submissions before they appear in public views.</p>
             </div>
           </header>
 

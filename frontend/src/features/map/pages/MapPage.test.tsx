@@ -212,9 +212,11 @@ describe('MapPage', () => {
     renderMap()
     await screen.findByRole('button', { name: /roy hill/i })
 
-    const markers = document.querySelectorAll('.site-marker')
-    expect(markers.length).toBeGreaterThan(0)
-    fireEvent.click(markers[0] as Element)
+    // Map paths only: the site list draws its own .site-marker swatches. Larger sites draw first,
+    // so the last path is Kiruna, the smaller site
+    const markers = document.querySelectorAll('.leaflet-overlay-pane path.site-marker')
+    expect(markers).toHaveLength(2)
+    fireEvent.click(markers[1] as Element)
 
     expect(await screen.findByRole('article')).toHaveAccessibleName('Kiruna')
     expect(flyTo).toHaveBeenCalledWith([67.9, 20.2], 5, { duration: 0.6 })
@@ -235,6 +237,11 @@ describe('MapPage', () => {
 
     renderMap()
     await screen.findByRole('button', { name: /roy hill/i })
+
+    await waitFor(() => {
+      expect(fitBounds).toHaveBeenCalled()
+    })
+
     const overviewFits = fitBounds.mock.calls.length
 
     await userEvent.setup().click(await screen.findByRole('button', { name: /roy hill/i }))

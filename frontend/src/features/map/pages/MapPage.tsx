@@ -14,8 +14,6 @@ import '../map.css'
 
 const LEGEND_STATUSES = [
   ['operational', 'Operational'],
-  ['commissioning', 'Commissioning'],
-  ['announced', 'Announced'],
   ['decommissioned', 'Decommissioned only'],
 ] as const
 const LEGEND_SIZES = [10, 25, 50]

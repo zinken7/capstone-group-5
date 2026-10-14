@@ -159,6 +159,42 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             </dl>
           </section>}
 
+          {record.possibleDuplicates.length > 0 && (
+            <section
+              className="admin-panel admin-record__lead"
+              aria-labelledby="duplicates-heading"
+            >
+              <h2 id="duplicates-heading">Possible duplicate deployments</h2>
+              <p className="admin-notice admin-notice--warning" role="status">
+                {record.possibleDuplicates.length} possible matching
+                {record.possibleDuplicates.length === 1 ? ' record was' : ' records were'}
+                {' '}found at this site. Review them before making a decision.
+              </p>
+              <ul className="duplicate-list">
+                {record.possibleDuplicates.map((duplicate) => (
+                  <li key={duplicate.id}>
+                    <Link to={`/admin/deployments/${duplicate.id}`}>
+                      Record {duplicate.id}: {duplicate.machineManufacturer} {duplicate.machineModel ?? formatEnumLabel(duplicate.machineType)}
+                    </Link>
+                    <small>
+                      {[
+                        formatEnumLabel(duplicate.machineType),
+                        `${formatNumber(duplicate.quantity)} ${duplicate.quantity === 1 ? 'machine' : 'machines'}`,
+                        duplicate.technologyProduct ?? 'No product recorded',
+                      ].join(' · ')}
+                    </small>
+                    <small className="duplicate-list__state">
+                      <StatusBadge status={duplicate.verificationStatus} />
+                      <span>
+                        {formatEnumLabel(duplicate.status)} · {duplicate.commissioningDate ? `Commissioned ${formatCommissioning(duplicate.commissioningDate, null)}` : 'Commissioning date not recorded'}
+                      </span>
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="admin-panel admin-record__rest" aria-labelledby="details-heading">
             <h2 id="details-heading">Details</h2>
             <dl className="record-fields">

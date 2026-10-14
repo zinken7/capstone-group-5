@@ -20,10 +20,11 @@ import {
   insertReview,
   listPendingCorrections,
   listPendingSubmissions,
+  listSubmissionHistory,
   lockDecisionState,
   setVerificationStatus,
 } from '../repositories/moderation.js'
-import type { QueueItem, ReviewRecord } from '../repositories/moderation.js'
+import type { QueueItem, ReviewRecord, SubmissionHistoryOptions } from '../repositories/moderation.js'
 import { alignValidity, changesFromProposed, diffChanges, windowOrdered } from './corrections.js'
 
 /** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
@@ -39,6 +40,10 @@ export async function listQueue(): Promise<QueueItem[]> {
   return [...submissions, ...corrections].sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))
 }
 
+/** Lists submission history for administrator discovery. */
+export function getSubmissionHistory(options: SubmissionHistoryOptions) {
+  return listSubmissionHistory(options)
+}
 export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
   return findReviewRecord(id)
 }

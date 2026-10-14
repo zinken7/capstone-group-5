@@ -1,10 +1,12 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
 import { isoTimestamp } from '../lib/iso-timestamp.js'
+import { likePattern } from './deployments.js'
 
 // company joins twice: once as the machine manufacturer, once as the technology supplier
 const manufacturer = alias(tables.company, 'manufacturer')
@@ -109,6 +111,91 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
   })
 }
 
+export interface SubmissionHistoryItem {
+  id: number
+  site_name: string
+  country_code: string
+  verification_status: string
+  latest_decision: string | null
+  latest_decision_is_correction: boolean | null
+  updated_at: string
+}
+
+/** Columns the submission history can be sorted by. */
+export const SUBMISSION_HISTORY_SORTS = ['id', 'site', 'decision', 'status', 'updated'] as const
+export type SubmissionHistorySort = typeof SUBMISSION_HISTORY_SORTS[number]
+
+export interface SubmissionHistoryOptions {
+  limit?: number
+  offset?: number
+  /** An exact deployment ID */
+  deploymentId?: number
+  /** Free text: an ID starting with these digits, or a site name containing the text */
+  query?: string
+  sort?: SubmissionHistorySort
+  order?: 'asc' | 'desc'
+}
+
+/** Admin history of submissions across all verification statuses; ties go to the newest record. */
+export async function listSubmissionHistory({
+  limit = 50,
+  offset = 0,
+  deploymentId,
+  query,
+  sort = 'updated',
+  order = 'desc',
+}: SubmissionHistoryOptions = {}): Promise<SubmissionHistoryItem[]> {
+  const latestDecision = sql<string | null>`(
+    SELECT vr.decision::text
+    FROM ${tables.verificationReview} vr
+    WHERE vr.deployment_id = ${tables.deployment.id}
+    ORDER BY vr.reviewed_at DESC, vr.id DESC
+    LIMIT 1
+  )`
+
+  const latestDecisionIsCorrection = sql<boolean | null>`(
+    SELECT vr.correction_id IS NOT NULL
+    FROM ${tables.verificationReview} vr
+    WHERE vr.deployment_id = ${tables.deployment.id}
+    ORDER BY vr.reviewed_at DESC, vr.id DESC
+    LIMIT 1
+  )`
+
+  // Status and decision sort by their text, which matches the order of their labels
+  const sortColumns: Record<SubmissionHistorySort, SQL> = {
+    id: sql`${tables.deployment.id}`,
+    site: sql`${tables.site.name}`,
+    decision: latestDecision,
+    status: sql`${tables.deployment.verificationStatus}::text`,
+    updated: sql`${tables.deployment.updatedAt}`,
+  }
+
+  return db
+    .select({
+      id: tables.deployment.id,
+      site_name: tables.site.name,
+      country_code: tables.site.countryCode,
+      verification_status: tables.deployment.verificationStatus,
+      latest_decision: latestDecision,
+      latest_decision_is_correction: latestDecisionIsCorrection,
+      updated_at: isoTimestamp(tables.deployment.updatedAt),
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .where(and(
+      deploymentId === undefined ? undefined : eq(tables.deployment.id, deploymentId),
+      query ? or(
+        /^\d+$/.test(query) ? sql`${tables.deployment.id}::text LIKE ${`${query}%`}` : undefined,
+        ilike(tables.site.name, likePattern(query)),
+      ) : undefined,
+    ))
+    .orderBy(
+      sql`${sortColumns[sort]} ${sql.raw(order === 'asc' ? 'ASC' : 'DESC')} NULLS LAST`,
+      sql`${tables.deployment.id} DESC`,
+    )
+    .limit(limit)
+    .offset(offset)
+}
 /** Proposed corrections to verified records, oldest first; the record fields are its current values. */
 export async function listPendingCorrections(): Promise<QueueItem[]> {
   const rows = await db
@@ -166,6 +253,17 @@ export interface ReviewRecord {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  possible_duplicates: {
+    id: number
+    verification_status: string
+    machine_manufacturer: string
+    machine_model: string | null
+    machine_type: string
+    technology_product: string | null
+    quantity: number
+    commissioning_date: string | null
+    status: string | null
+  }[]
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -202,7 +300,7 @@ export interface CorrectionView {
   changes: { field: string; before: unknown; proposed: unknown; current: unknown }[]
 }
 
-type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections'>
+type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections' | 'possible_duplicates'>
 
 /** A record's current value for each field a correction can propose, in the stored proposal format. */
 function currentValue(record: RecordFields, field: string): unknown {
@@ -223,6 +321,9 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .select({
       id: tables.deployment.id,
       verification_status: tables.deployment.verificationStatus,
+      machine_model_id: tables.deployment.machineModelId,
+      technology_product_id: tables.deployment.technologyProductId,
+      technology_supplier_id: tables.deployment.technologySupplierId,
       site_id: tables.site.id,
       site_name: tables.site.name,
       country_code: tables.site.countryCode,
@@ -258,6 +359,36 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
+
+  // Advisory only: other pending or verified records at the same site, from the same supplier, with the same model or type
+  const possible_duplicates = await db
+    .select({
+      id: tables.deployment.id,
+      verification_status: tables.deployment.verificationStatus,
+      machine_manufacturer: manufacturer.name,
+      machine_model: tables.machineModel.modelName,
+      machine_type: tables.machineModel.machineType,
+      technology_product: tables.technologyProduct.productName,
+      quantity: tables.deployment.quantity,
+      commissioning_date: tables.deployment.commissioningDate,
+      status: tables.deployment.status,
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .where(and(
+      ne(tables.deployment.id, id),
+      eq(tables.deployment.siteId, record.site_id),
+      eq(tables.deployment.technologySupplierId, record.technology_supplier_id),
+      inArray(tables.deployment.verificationStatus, ['pending_review', 'verified']),
+      or(
+        eq(tables.deployment.machineModelId, record.machine_model_id),
+        eq(tables.machineModel.machineType, record.machine_type),
+      ),
+    ))
+    .orderBy(asc(tables.deployment.id))
 
   const [evidence, reviews, revisions, corrections] = await Promise.all([
     db
@@ -314,8 +445,14 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       .where(eq(tables.deploymentCorrection.deploymentId, id))
       .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id)),
   ])
+  const publicRecord = Object.fromEntries(
+    Object.entries(record).filter(
+      ([key]) => key !== 'machine_model_id' && key !== 'technology_product_id' && key !== 'technology_supplier_id',
+    ),
+  ) as Omit<typeof record, 'machine_model_id' | 'technology_product_id' | 'technology_supplier_id'>
   return {
-    ...record,
+    ...publicRecord,
+    possible_duplicates,
     evidence,
     reviews,
     revisions,
