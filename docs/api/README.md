@@ -405,21 +405,14 @@ Corrects an existing deployment. Site, company and model details remain administ
 
 At least one correctable field or evidence URL must be supplied.
 
-What happens depends on the record's verification status (#114):
+Only a verified record can be corrected (#114). The correction is stored as a proposal and the record is not changed. It stays in public views with its current values until an administrator decides the correction (`POST /api/admin/corrections/{id}/reviews`). Only the fields that differ from the current record are kept, together with their values at submission time. New evidence URLs are kept with the proposal and are added to the record only if it is approved.
 
-- **Verified record:** the correction is stored as a proposal and the record is not changed. It stays in public views with its current values until an administrator decides the correction (`POST /api/admin/corrections/{id}/reviews`). Only the fields that differ from the current record are kept, together with their values at submission time. New evidence URLs are kept with the proposal and are added to the record only if it is approved.
-- **Any other status** (`pending_review`, `unverified`, `rejected`): the correction is applied directly. The record is not public, so nothing is hidden by doing so. An `update` revision stores each previous changed value, the previous verification status and, when evidence is added, the previous evidence list, and the record returns to `pending_review`.
+A record in any other status (`pending_review`, `unverified`, `rejected`) returns `403 {"error":"only verified records can be corrected"}` and nothing is stored. Before verification only a record's contributor may change it (FR-46), which needs the submission key (#205).
 
-### Response — `202 Accepted` (verified record)
+### Response — `202 Accepted`
 
 ```json
 { "id": 10, "correction_id": 4, "verification_status": "verified" }
-```
-
-### Response — `200 OK` (any other record)
-
-```json
-{ "id": 12, "verification_status": "pending_review" }
 ```
 
 Invalid corrections return `400`, a filled `website` field returns `400 {"error":"invalid correction"}` with no `fields` and stores nothing, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
@@ -635,7 +628,7 @@ The automation level can be corrected but not cleared:
 level (FR-57).
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
-status does not change. Responses match the public correction: `200 {"id",
+status does not change. Responses: `200 {"id",
 "verification_status"}`, `400` for invalid input or a correction that changes
 nothing, `404` for an unknown record.
 

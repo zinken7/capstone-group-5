@@ -29,6 +29,14 @@ async function corrections(deploymentId: number) {
   )
 }
 
+async function stateOf(deploymentId: number) {
+  const [row] = await query<{ quantity: number; verification_status: string }>(
+    'SELECT quantity, verification_status::text FROM deployment WHERE id = $1',
+    [deploymentId],
+  )
+  return row
+}
+
 describe('PATCH /api/deployments/:id', () => {
   it('stores a correction to a verified record as a proposal and leaves the record unchanged', async () => {
     const response = await request(app)
@@ -87,32 +95,42 @@ describe('PATCH /api/deployments/:id', () => {
     expect(correction?.contributor_id).not.toBeNull()
   })
 
-  it('corrects a record that is not verified directly, keeping the previous values', async () => {
+  it('refuses a correction to a record pending review and stores nothing', async () => {
     const response = await request(app)
       .patch('/api/deployments/12')
-      .send({ quantity: 9, change_note: 'One more LHD', disclosure_accepted: true })
+      .send({ quantity: 9, evidence_urls: ['https://example.com/new'], contributor_email: 'analyst@example.com', disclosure_accepted: true })
 
-    expect(response.status).toBe(200)
-    expect(response.body).toEqual({ id: 12, verification_status: 'pending_review' })
-    const [deployment] = await query<{ quantity: number }>('SELECT quantity FROM deployment WHERE id = 12')
-    expect(deployment?.quantity).toBe(9)
-    expect(await revisions(12)).toEqual([{
-      action: 'update',
-      previous_values: { quantity: 8, verification_status: 'pending_review' },
-      change_note: 'One more LHD',
-      contributor_id: expect.any(Number),
-    }])
+    expect(response.status).toBe(403)
+    expect(response.body).toEqual({ error: 'only verified records can be corrected' })
+    expect(await stateOf(12)).toEqual({ quantity: 8, verification_status: 'pending_review' })
+    expect(await revisions(12)).toEqual([])
     expect(await corrections(12)).toEqual([])
+    expect(await query('SELECT url FROM evidence WHERE deployment_id = 12')).toEqual([])
+    expect(await query('SELECT id FROM contributor')).toEqual([])
   })
 
-  it('returns a rejected record to pending review when it is corrected', async () => {
+  it('refuses a correction to a rejected record, which stays rejected', async () => {
     await query("UPDATE deployment SET verification_status = 'rejected' WHERE id = 12")
 
     const response = await request(app).patch('/api/deployments/12').send({ quantity: 9, disclosure_accepted: true })
 
-    expect(response.status).toBe(200)
-    expect(response.body).toEqual({ id: 12, verification_status: 'pending_review' })
-    expect((await revisions(12))[0]?.previous_values).toEqual({ quantity: 8, verification_status: 'rejected' })
+    expect(response.status).toBe(403)
+    expect(response.body).toEqual({ error: 'only verified records can be corrected' })
+    expect(await stateOf(12)).toEqual({ quantity: 8, verification_status: 'rejected' })
+    expect(await revisions(12)).toEqual([])
+  })
+
+  it('refuses a correction to an imported unverified record, so it cannot be pushed into the review queue', async () => {
+    // Loaded without review, like the seeded dataset: no submission, no revision
+    await query("UPDATE deployment SET verification_status = 'unverified' WHERE id = 12")
+
+    const response = await request(app).patch('/api/deployments/12').send({ quantity: 9, disclosure_accepted: true })
+
+    expect(response.status).toBe(403)
+    expect(response.body).toEqual({ error: 'only verified records can be corrected' })
+    expect(await stateOf(12)).toEqual({ quantity: 8, verification_status: 'unverified' })
+    expect(await revisions(12)).toEqual([])
+    expect(await query('SELECT id FROM contributor')).toEqual([])
   })
 
   it('returns 400 and writes nothing when the values match the current record', async () => {

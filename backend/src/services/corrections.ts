@@ -4,19 +4,15 @@ import {
   closeValidityToday,
   findEvidenceUrls,
   insertContributor,
-  insertEvidence,
-  insertRevision,
   lockDeployment,
-  updateDeploymentForReview,
 } from '../repositories/contributions.js'
 import type { CorrectableColumn, CurrentDeployment } from '../repositories/contributions.js'
 import { insertCorrection } from '../repositories/corrections.js'
 
 export type CorrectionOutcome =
   | { kind: 'not_found' }
+  | { kind: 'not_verified' }
   | { kind: 'unchanged' }
-  | { kind: 'invalid_window' }
-  | { kind: 'updated'; id: number; verificationStatus: string }
   | { kind: 'proposed'; id: number; correctionId: number; verificationStatus: string }
 
 export interface ChangeSet {
@@ -123,51 +119,30 @@ export function changesFromProposed(values: Record<string, unknown>): Deployment
 /**
  * A correction to a verified record is stored as a proposal and the record
  * stays public until an administrator decides it (#114). Any other record is
- * corrected directly: the previous values go into an update revision (FR-47)
- * and the record returns to pending review.
+ * refused: before verification only its contributor may change it (FR-46),
+ * and nothing identifies the contributor until the submission key (#205).
  */
 export async function correctDeployment(id: number, input: CorrectionInput): Promise<CorrectionOutcome> {
   return withTransaction(async (tx) => {
     const current = await lockDeployment(tx, id)
     if (!current) return { kind: 'not_found' }
+    if (current.verificationStatus !== 'verified') return { kind: 'not_verified' }
 
-    const { previous, updates } = diffChanges(current, input.changes)
+    const { previous } = diffChanges(current, input.changes)
     const existingUrls = await findEvidenceUrls(tx, id)
     const newUrls = input.evidenceUrls.filter((url) => !existingUrls.includes(url))
     if (Object.keys(previous).length === 0 && newUrls.length === 0) return { kind: 'unchanged' }
-    // Only a direct correction touches the window; a proposal waits for review
-    if (current.verificationStatus !== 'verified') {
-      alignValidity(current, { previous, updates })
-      if (!windowOrdered(current, updates)) return { kind: 'invalid_window' }
-    }
 
     // Each revision names exactly one actor, so an anonymous correction still gets a contributor row
     const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
-
-    if (current.verificationStatus === 'verified') {
-      const correctionId = await insertCorrection(tx, {
-        deploymentId: id,
-        contributorId,
-        proposedValues: proposedValues(input.changes, previous),
-        baseValues: previous,
-        evidenceUrls: newUrls,
-        changeNote: input.changeNote,
-      })
-      return { kind: 'proposed', id, correctionId, verificationStatus: current.verificationStatus }
-    }
-
-    if (newUrls.length > 0) previous.evidence_urls = existingUrls
-    previous.verification_status = current.verificationStatus
-    await insertRevision(tx, {
+    const correctionId = await insertCorrection(tx, {
       deploymentId: id,
       contributorId,
-      action: 'update',
-      previousValues: previous,
+      proposedValues: proposedValues(input.changes, previous),
+      baseValues: previous,
+      evidenceUrls: newUrls,
       changeNote: input.changeNote,
     })
-    const verificationStatus = await updateDeploymentForReview(tx, id, updates)
-    await insertEvidence(tx, id, newUrls)
-
-    return { kind: 'updated', id, verificationStatus }
+    return { kind: 'proposed', id, correctionId, verificationStatus: current.verificationStatus }
   })
 }
