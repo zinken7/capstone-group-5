@@ -69,6 +69,11 @@ export function useAdminSession(): AdminSessionValue {
   return value
 }
 
+/** The session on a public page, which may also render without the provider; null then. */
+export function useOptionalAdminSession(): AdminSessionValue | null {
+  return useContext(AdminSessionContext)
+}
+
 interface RequireAdminSessionProps {
   children: ReactNode
   allowPendingPasswordChange?: boolean

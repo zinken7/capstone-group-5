@@ -67,7 +67,15 @@ describe('requestJson', () => {
     const error = await requestJson('map').catch((cause: unknown) => cause)
 
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 400, message: 'invalid bbox parameter' })
+    expect(error).toMatchObject({ status: 400, message: 'invalid bbox parameter', fields: {} })
+  })
+
+  it('keeps the messages the backend gives for individual fields', async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'invalid correction', fields: { quantity: 'must be positive', note: 42 } }, { status: 400 }))
+
+    await expect(requestJson('admin/deployments/1')).rejects.toMatchObject({
+      status: 400, message: 'invalid correction', fields: { quantity: 'must be positive' },
+    })
   })
 
   it.each(['<html>Bad gateway</html>', '', '{"error":42}'])(

@@ -225,6 +225,13 @@ function LiveEquipmentPage() {
     setRefreshToken((current) => current + 1)
   }
 
+  function handleCorrectionApplied() {
+    setCorrectionRecord(null)
+    setNotice('Record updated. The previous values are kept in its history.')
+    setLoading(true)
+    setRefreshToken((current) => current + 1)
+  }
+
   return <>
     <EquipmentShell title="Equipment" exportDisabled={total === 0} onExport={exportCsv}>
     <div className="register-totals" aria-label="Register totals"><article><span>Deployments</span><strong>{formatNumber(total)}</strong></article><article><span>Machines</span><strong>{formatNumber(machineTotal)}</strong><div className="register-status-stack">{Object.entries(statuses).map(([status, count]) => <span key={status} className={`register-status-stack__segment register-status-stack__segment--${status}`} style={{ width: `${machineTotal ? (count / machineTotal) * 100 : 0}%` }} title={`${formatEnumLabel(status)}: ${formatNumber(count)}`} />)}</div><small className="register-status-legend">{Object.entries(statuses).map(([status, count], index, entries) => <span key={status}>{formatEnumLabel(status)} {formatNumber(count)}{index < entries.length - 1 ? ' ·' : ''}</span>)}</small></article><article><span>Mine sites</span><strong>{formatNumber(siteTotal)}</strong></article><article><span>Countries</span><strong>{formatNumber(countryTotal)}</strong></article></div>
@@ -249,7 +256,7 @@ function LiveEquipmentPage() {
     {!loading && !error && records.length === 0 ? <StateMessage title="No matching equipment" message="Change or clear one of the filters to see more records." /> : records.length > 0 && <EquipmentTable records={records} onCorrect={setCorrectionRecord} onSort={(sort) => updateView({ ...view, sort, order: sort === view.sort ? view.order === 'asc' ? 'desc' : 'asc' : sortDirectionFor(sort), page: 1 })} sortButtonLabel={(label, key) => view.sort !== key ? `Sort by ${label}` : `Sort by ${label}, ${view.order === 'asc' ? 'ascending' : 'descending'}`} sortIndicator={(key) => view.sort !== key ? '↕' : view.order === 'asc' ? '↑' : '↓'} sortState={(key) => view.sort !== key ? 'none' : view.order === 'asc' ? 'ascending' : 'descending'} />}
     <nav className="pagination" aria-label="Register pages"><button className="button button--secondary" type="button" disabled={view.page <= 1 || loading} onClick={() => updateView({ ...view, page: view.page - 1 })}>Previous</button><span>Page {formatNumber(view.page)} of {formatNumber(pageCount)}</span><button className="button button--secondary" type="button" disabled={view.page >= pageCount || loading} onClick={() => updateView({ ...view, page: view.page + 1 })}>Next</button></nav>
     </EquipmentShell>
-    {correctionRecord && <CorrectionDialog record={correctionRecord} referenceData={reference} onClose={() => setCorrectionRecord(null)} onSubmitted={handleCorrectionSubmitted} />}
+    {correctionRecord && <CorrectionDialog record={correctionRecord} referenceData={reference} onClose={() => setCorrectionRecord(null)} onSubmitted={handleCorrectionSubmitted} onApplied={handleCorrectionApplied} />}
   </>
 }
 
