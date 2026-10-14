@@ -5,9 +5,8 @@
 This is the proposed logical data model for the Autonomous Mining Equipment
 Market Map.  It aligns to SRS v0.6: FR-01, FR-02, FR-04 to FR-08, FR-10,
 FR-11 and FR-57 as committed scope, with FR-03, FR-12 to FR-14 and FR-56
-intended. FR-09 is withdrawn. The supplier association below is the target
-change in #171, not a claim that the database has already been migrated.
-In particular it holds
+intended. FR-09 is withdrawn. Migration 005 (#188, issue #171) implements the
+supplier association below. In particular it holds
 the manufacturer of a machine and the supplier of its automation technology as
 separate values.
 
@@ -57,7 +56,7 @@ erDiagram
         text country_code
         bigint region_id FK "nullable"
         text commodity
-        site_status mine_status
+        site_status mine_status "legacy; unused in MVP"
         geometry point_4326
     }
     SITE_COMPANY_ROLE {
@@ -81,8 +80,8 @@ erDiagram
         bigint supplier_id FK
         text product_name
         text vendor_term
-        automation_level automation_level "nullable"
-        text level_basis
+        automation_level automation_level "legacy; unused in MVP"
+        text level_basis "legacy; unused in MVP"
     }
     DEPLOYMENT {
         bigint id PK
@@ -113,7 +112,7 @@ erDiagram
     }
     CONTRIBUTOR {
         bigint id PK
-        text display_name "nullable"
+        text display_name "legacy; unused in MVP"
         text email "nullable"
         text organisation "nullable"
         timestamptz created_at
