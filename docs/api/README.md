@@ -567,7 +567,7 @@ The note (up to 2,000 characters) is required unless approving.
 |---|---|
 | `approved` | `verified` |
 | `rejected` | `rejected` |
-| `needs_changes` | `unverified`; the record leaves the queue until a correction returns it to `pending_review` |
+| `needs_changes` | `unverified`; the record leaves the queue, and nothing returns it to `pending_review` until #204. The administration interface does not offer this decision meanwhile |
 
 The review row, the new status and a `verification_change` revision holding the
 previous status are written in one transaction.
