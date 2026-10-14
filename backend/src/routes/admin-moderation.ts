@@ -3,6 +3,8 @@ import { Router } from 'express'
 import { validateAdminCorrection, validateReview } from '../lib/admin-validation.js'
 import { parseId } from '../lib/ids.js'
 import { currentAdmin, requireAdmin } from '../middleware/require-admin.js'
+import { SUBMISSION_HISTORY_SORTS } from '../repositories/moderation.js'
+import type { SubmissionHistorySort } from '../repositories/moderation.js'
 import { correctAsAdministrator, decide, decideCorrection, getReviewRecord, getSubmissionHistory, listQueue } from '../services/moderation.js'
 
 const router = Router()
@@ -33,9 +35,29 @@ router.get('/admin/submissions', ...requireAdmin(), async (req, res, next) => {
     return
   }
 
+  // Free text: an ID prefix or part of a site name; blank means no search
+  const rawQuery = req.query.q
+  if (rawQuery !== undefined && typeof rawQuery !== 'string') {
+    res.status(400).json({ error: 'invalid q parameter' })
+    return
+  }
+  const query = rawQuery?.trim() || undefined
+
+  // Newest first by default; any other column starts ascending
+  const sort = req.query.sort ?? 'updated'
+  if (typeof sort !== 'string' || !(SUBMISSION_HISTORY_SORTS as readonly string[]).includes(sort)) {
+    res.status(400).json({ error: 'invalid sort parameter' })
+    return
+  }
+  const order = req.query.order ?? (sort === 'updated' ? 'desc' : 'asc')
+  if (order !== 'asc' && order !== 'desc') {
+    res.status(400).json({ error: 'invalid order parameter' })
+    return
+  }
+
   try {
     res.status(200).json({
-      items: await getSubmissionHistory(limit, offset, id),
+      items: await getSubmissionHistory({ limit, offset, deploymentId: id, query, sort: sort as SubmissionHistorySort, order }),
     })
   } catch (error) {
     next(error)

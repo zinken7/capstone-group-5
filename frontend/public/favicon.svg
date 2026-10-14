@@ -1,5 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mining Market Map">
-  <path fill="#27348b" d="M32 4C18.745 4 8 14.745 8 28c0 17.5 24 32 24 32s24-14.5 24-32C56 14.745 45.255 4 32 4Z"/>
-  <circle cx="32" cy="28" r="11" fill="#e2b600"/>
-  <circle cx="32" cy="28" r="5" fill="#27348b"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Mining Market Map">
+  <rect width="48" height="48" rx="11" fill="#14213d"/>
+  <g fill="none" stroke="#e2b600" stroke-width="2.6" stroke-linecap="round">
+    <circle cx="24" cy="24" r="15"/>
+    <circle cx="24" cy="24" r="8.5"/>
+    <path d="M24 24L34.6 13.4"/>
+  </g>
+  <g fill="#e2b600">
+    <circle cx="24" cy="24" r="2.8"/>
+    <circle cx="16" cy="19.5" r="2.6"/>
+    <circle cx="31.2" cy="31" r="2.6"/>
+  </g>
 </svg>

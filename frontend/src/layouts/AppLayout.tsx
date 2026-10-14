@@ -2,14 +2,17 @@ import type { PropsWithChildren } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 
+import BrandMark from '../shared/components/BrandMark'
+
 const pageTitles: [string, string][] = [
   ['/admin/deployments/', 'Admin · Review record'],
   ['/admin/password', 'Admin · Change password'],
   ['/admin/login', 'Admin · Sign in'],
   ['/admin/users', 'Admin · Administrators'],
+  ['/admin/submissions', 'Admin · Submission history'],
   ['/admin', 'Admin · Review queue'],
   ['/map', 'Map'],
-  ['/equipment', 'Equipment register'],
+  ['/equipment', 'Equipment'],
   ['/analytics', 'Analytics'],
   ['/contribute', 'Contribute'],
 ]
@@ -43,7 +46,7 @@ function AppLayout({ children }: PropsWithChildren) {
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="site-header">
         <NavLink className="brand" to="/map" aria-label="Mining Market Map home">
-          <span className="brand-mark" aria-hidden="true">AM</span>
+          <BrandMark />
           <span>
             <strong>Mining Market Map</strong>
             <small>Autonomous equipment intelligence</small>
@@ -52,14 +55,18 @@ function AppLayout({ children }: PropsWithChildren) {
 
         <nav className="primary-nav" aria-label="Primary navigation">
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/map">Map</NavLink>
-          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment Register</NavLink>
+          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/analytics">Analytics</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
         </nav>
+        {/* On phones the footer link is a long scroll away, so the header carries it as an icon, after the navigation in tab order */}
+        <Link className="site-header__admin" to="/admin" aria-label="Administrator sign-in" title="Administrator sign-in">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+        </Link>
       </header>
       <main className="page-content" id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
-        <p><strong>About the data</strong> · Verified public records loaded from the project API. Unverified submissions are excluded from public views. Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noreferrer" target="_blank">CC BY 4.0</a>.</p>
+        <p><strong>About the data</strong> · Unverified submissions are excluded from public views. Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noreferrer" target="_blank">CC BY 4.0</a>.</p>
         {/* The way in for administrators; the pages behind it still require a sign-in */}
         <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>
       </footer>

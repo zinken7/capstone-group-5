@@ -24,7 +24,7 @@ import {
   lockDecisionState,
   setVerificationStatus,
 } from '../repositories/moderation.js'
-import type { QueueItem, ReviewRecord } from '../repositories/moderation.js'
+import type { QueueItem, ReviewRecord, SubmissionHistoryOptions } from '../repositories/moderation.js'
 import { alignValidity, changesFromProposed, diffChanges, windowOrdered } from './corrections.js'
 
 /** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
@@ -41,12 +41,8 @@ export async function listQueue(): Promise<QueueItem[]> {
 }
 
 /** Lists submission history for administrator discovery. */
-export function getSubmissionHistory(
-  limit: number,
-  offset: number,
-  deploymentId?: number,
-) {
-  return listSubmissionHistory(limit, offset, deploymentId)
+export function getSubmissionHistory(options: SubmissionHistoryOptions) {
+  return listSubmissionHistory(options)
 }
 export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
   return findReviewRecord(id)

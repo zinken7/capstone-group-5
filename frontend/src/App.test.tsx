@@ -40,7 +40,7 @@ describe('Application shell and navigation', () => {
   })
 
 
-  test('navigates to the Equipment Register', async () => {
+  test('navigates to the Equipment page', async () => {
     const user = userEvent.setup()
 
     renderApp()

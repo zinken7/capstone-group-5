@@ -4,6 +4,7 @@ import type { FormEvent } from 'react'
 import { postContribution } from '../../../lib/api/contributions'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
+import MapIcon from '../../map/components/MapIcon'
 import {
   COUNTRIES,
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
@@ -199,7 +200,7 @@ function ContributePage({
     return (
       <section className="product-page contribute-page" aria-labelledby="contribution-success-heading">
         <header className="page-heading">
-          <div><p className="eyebrow">Community data</p><h1>Contribute</h1><p className="intro">Help improve the autonomous mining equipment dataset.</p></div>
+          <div><p className="eyebrow">Community data</p><h1>Contribute</h1></div>
         </header>
         <section className="success-panel" role="status">
           <span className="success-panel__icon" aria-hidden="true">✓</span>
@@ -220,7 +221,6 @@ function ContributePage({
           <div>
             <p className="eyebrow">Community data</p>
             <h1 id="contribute-heading">Contribute a deployment</h1>
-            <p className="intro">Share a verified autonomous mining equipment deployment with the project team.</p>
           </div>
         </header>
         <StateMessage
@@ -239,7 +239,6 @@ function ContributePage({
           <div>
             <p className="eyebrow">Community data</p>
             <h1 id="contribute-heading">Contribute a deployment</h1>
-            <p className="intro">Share a verified autonomous mining equipment deployment with the project team.</p>
           </div>
         </header>
         <StateMessage
@@ -257,7 +256,6 @@ function ContributePage({
         <div>
           <p className="eyebrow">Community data</p>
           <h1 id="contribute-heading">Contribute a deployment</h1>
-          <p className="intro">Share a verified autonomous mining equipment deployment with the project team.</p>
         </div>
       </header>
 
@@ -319,13 +317,13 @@ function ContributePage({
         </fieldset>
 
         <button
-          className="detail-toggle"
+          className="text-button text-button--disclosure text-button--flush detail-toggle"
           type="button"
           aria-expanded={showMoreDetails}
           aria-controls="additional-contribution-details"
           onClick={() => setShowMoreDetails((current) => !current)}
         >
-          {showMoreDetails ? 'Hide additional details' : 'Add more detail'}
+          <MapIcon name="chevronDown" size={16} /> {showMoreDetails ? 'Hide additional details' : 'Add more detail'}
         </button>
 
         {showMoreDetails && <fieldset id="additional-contribution-details">
@@ -389,7 +387,7 @@ function ContributePage({
                 <button className="button button--secondary" type="button" onClick={() => removeEvidence(index)} disabled={values.evidenceUrls.length === 1}>Remove</button>
               </div>)}
               <FieldError id="evidence-url-error" message={showError('evidenceUrls')} />
-              <button className="button button--secondary" type="button" onClick={addEvidence}>Add another source</button>
+              <button className="button button--secondary evidence-add" type="button" onClick={addEvidence}>Add another source</button>
             </div>
             {showMoreDetails && <div className="form-grid">
               <label className="form-field" htmlFor="email">Contact email <span className="form-help">(optional)</span>

@@ -9,6 +9,7 @@ import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
 import type { ContributionReferenceData } from '../../contribute/types'
+import MapIcon from '../../map/components/MapIcon'
 import CorrectionDialog from '../components/CorrectionDialog'
 import type { EquipmentRecord, EquipmentSort, SortDirection } from '../types'
 import '../equipment.css'
@@ -67,7 +68,7 @@ function DemoEquipmentPage({ records }: { records: EquipmentRecord[] }) {
     return sort !== key ? 'none' : sortDirection === 'asc' ? 'ascending' : 'descending'
   }
 
-  return <EquipmentShell title="Equipment Register" intro="Search, filter and export verified equipment records from the project API." exportDisabled={visibleRecords.length === 0} onExport={() => undefined}>
+  return <EquipmentShell title="Equipment" exportDisabled={visibleRecords.length === 0} onExport={() => undefined}>
     <div className="filter-panel" aria-label="Equipment filters">
       <label>Search<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Site, model or company" /></label>
       <label>Supplier<select value={supplier} onChange={(event) => setSupplier(event.target.value)}><option value="all">All suppliers</option>{suppliers.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
@@ -225,8 +226,8 @@ function LiveEquipmentPage() {
   }
 
   return <>
-    <EquipmentShell title="Equipment Register" intro="Search, filter and export verified equipment records from the project API." exportDisabled={total === 0} onExport={exportCsv}>
-    <div className="register-totals" aria-label="Register totals"><article><span>Deployments</span><strong>{formatNumber(total)}</strong></article><article><span>Machines</span><strong>{formatNumber(machineTotal)}</strong><div className="register-status-stack">{Object.entries(statuses).map(([status, count]) => <span key={status} className={`register-status-stack__segment register-status-stack__segment--${status}`} style={{ width: `${machineTotal ? (count / machineTotal) * 100 : 0}%` }} title={`${formatEnumLabel(status)}: ${formatNumber(count)}`} />)}</div><small>{Object.entries(statuses).map(([status, count]) => `${formatEnumLabel(status)} ${formatNumber(count)}`).join(' · ')}</small></article><article><span>Mine sites</span><strong>{formatNumber(siteTotal)}</strong></article><article><span>Countries</span><strong>{formatNumber(countryTotal)}</strong></article></div>
+    <EquipmentShell title="Equipment" exportDisabled={total === 0} onExport={exportCsv}>
+    <div className="register-totals" aria-label="Register totals"><article><span>Deployments</span><strong>{formatNumber(total)}</strong></article><article><span>Machines</span><strong>{formatNumber(machineTotal)}</strong><div className="register-status-stack">{Object.entries(statuses).map(([status, count]) => <span key={status} className={`register-status-stack__segment register-status-stack__segment--${status}`} style={{ width: `${machineTotal ? (count / machineTotal) * 100 : 0}%` }} title={`${formatEnumLabel(status)}: ${formatNumber(count)}`} />)}</div><small className="register-status-legend">{Object.entries(statuses).map(([status, count], index, entries) => <span key={status}>{formatEnumLabel(status)} {formatNumber(count)}{index < entries.length - 1 ? ' ·' : ''}</span>)}</small></article><article><span>Mine sites</span><strong>{formatNumber(siteTotal)}</strong></article><article><span>Countries</span><strong>{formatNumber(countryTotal)}</strong></article></div>
     <section className="filter-panel register-filters" aria-label="Equipment filters">
       <label>Search<input type="search" value={view.filters.q ?? ''} onChange={(event) => setFilter('q', event.target.value)} placeholder="Site, model or company" /></label>
       <FilterSelect label="Machine type" value={view.filters.machineType} options={reference.machineTypes} onChange={(value) => setFilter('machineType', value)} />
@@ -235,8 +236,10 @@ function LiveEquipmentPage() {
       <FilterSelect label="Environment" value={view.filters.environment} options={reference.environments} onChange={(value) => setFilter('environment', value)} />
       <label>Technology supplier<select value={view.filters.supplier ?? ''} onChange={(event) => setFilter('supplier', event.target.value)}><option value="">All suppliers</option>{supplierOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
       <label>Country<select value={view.filters.country ?? ''} onChange={(event) => setFilter('country', event.target.value)}><option value="">All countries</option>{countryOptions.map((value) => <option key={value} value={value}>{formatCountry(value)}</option>)}</select></label>
-      <button className="button button--secondary" type="button" onClick={() => setMoreFilters((current) => !current)}>{moreFilters ? 'Hide more filters' : 'More filters'}</button>
-      <button className="button button--secondary" type="button" onClick={clearFilters} disabled={Object.keys(view.filters).length === 0}>Clear all</button>
+      <div className="filter-actions">
+        <button className="text-button text-button--disclosure text-button--flush" type="button" aria-expanded={moreFilters} onClick={() => setMoreFilters((current) => !current)}><MapIcon name="chevronDown" size={16} /> More filters</button>
+        <button className="text-button" type="button" onClick={clearFilters} disabled={Object.keys(view.filters).length === 0}><MapIcon name="reset" size={16} /> Clear all</button>
+      </div>
       {moreFilters && <><label>Manufacturer<input value={view.filters.manufacturer ?? ''} onChange={(event) => setFilter('manufacturer', event.target.value)} /></label><label>Region<input value={view.filters.region ?? ''} onChange={(event) => setFilter('region', event.target.value)} /></label><label>Commodity<input value={view.filters.commodity ?? ''} onChange={(event) => setFilter('commodity', event.target.value)} /></label></>}
     </section>
     {error && <StateMessage variant="error" title="Unable to load the register" message={`${error}. Check that the backend is running and try again.`} />}
@@ -251,12 +254,12 @@ function LiveEquipmentPage() {
 }
 
 function FilterSelect({ label, value, options, onChange }: { label: string; value?: string; options: readonly (readonly [string, string])[]; onChange: (value: string) => void }) {
-  const allLabel = label === 'Automation' ? 'All automation levels' : label === 'Machine type' ? 'All machine types' : label === 'Status' ? 'All statuses' : label === 'Environment' ? 'All environments' : 'All'
+  const allLabel = label === 'Automation' ? 'All levels' : label === 'Machine type' ? 'All machine types' : label === 'Status' ? 'All statuses' : label === 'Environment' ? 'All environments' : 'All'
   return <label>{label}<select value={value ?? ''} onChange={(event) => onChange(event.target.value)}><option value="">{allLabel}</option>{options.map(([option, optionLabel]) => <option key={option} value={option}>{optionLabel}</option>)}</select></label>
 }
 
-function EquipmentShell({ title, intro, children, exportDisabled, onExport }: { title: string; intro: string; children: ReactNode; exportDisabled: boolean; onExport: () => void }) {
-  return <section className="product-page"><header className="page-heading"><div><p className="eyebrow">Recorded deployments</p><h1>{title}</h1><p className="intro">{intro}</p></div><button className="button button--primary" type="button" aria-label="Export CSV" onClick={onExport} disabled={exportDisabled}>Download CSV</button></header>{children}</section>
+function EquipmentShell({ title, children, exportDisabled, onExport }: { title: string; children: ReactNode; exportDisabled: boolean; onExport: () => void }) {
+  return <section className="product-page"><header className="page-heading"><div><p className="eyebrow">Recorded deployments</p><h1>{title}</h1></div><button className="button button--primary" type="button" aria-label="Export CSV" onClick={onExport} disabled={exportDisabled}>Download CSV</button></header>{children}</section>
 }
 
 function EquipmentTable({ records, onCorrect, onSort, sortButtonLabel, sortIndicator, sortState }: { records: EquipmentRecord[]; onCorrect?: (record: EquipmentRecord) => void; onSort: (sort: EquipmentSort) => void; sortButtonLabel: (label: string, key: EquipmentSort) => string; sortIndicator: (key: EquipmentSort) => string; sortState: (key: EquipmentSort) => 'ascending' | 'descending' | 'none' }) {

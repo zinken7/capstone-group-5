@@ -507,6 +507,9 @@ Query parameters:
 | `limit` | `50` | Safe integer from 1 to 100 |
 | `offset` | `0` | Non-negative safe integer |
 | `id` | Omitted | Positive safe integer; exact deployment ID |
+| `q` | Omitted | Free text: deployments whose ID starts with these digits, or whose site name contains the text (case-insensitive; `%` and `_` match themselves). Blank means no search |
+| `sort` | `updated` | `id`, `site`, `decision`, `status` or `updated`. `decision` and `status` sort by their stored value, which follows their labels; records without a decision come last in either order. Ties go to the newest record |
+| `order` | `desc` for `updated`, otherwise `asc` | `asc` or `desc` |
 
 Success: `200 OK`, returning `{"items": [...]}`. Each item includes
 `id`, `site_name`, `country_code`, `verification_status`,
@@ -521,6 +524,8 @@ The latest decision can come from a deployment review or a correction review.
 Invalid parameters return `400 Bad Request` with
 `{"error":"invalid pagination or submission ID"}`.
 Examples: `limit=0`, `limit=101`, `offset=-1`, `id=0`, `id=abc`.
+A repeated `q` returns `{"error":"invalid q parameter"}`. An unknown `sort` returns `{"error":"invalid sort parameter"}` and an unknown
+`order` returns `{"error":"invalid order parameter"}`, both with `400`.
 
 Unauthenticated requests return `401 Unauthorized`.
 

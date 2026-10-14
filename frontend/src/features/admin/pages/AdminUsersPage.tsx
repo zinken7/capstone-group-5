@@ -23,7 +23,6 @@ function AdminUsersPage() {
         <header className="admin-heading">
           <div>
             <h1>Administrators</h1>
-            <p>Add reviewers and remove their access. Root accounts are managed from the command line.</p>
           </div>
         </header>
         {isRoot

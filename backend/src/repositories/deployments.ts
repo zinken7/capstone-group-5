@@ -69,7 +69,8 @@ export interface DeploymentSummary {
 // buildWhere and the register/count/summary tests pin the three together.
 
 /** Escapes LIKE wildcards so a search for "50%" matches literally. */
-function likePattern(text: string): string {
+/** A contains-match ILIKE pattern with the user's %, _ and \ taken literally. */
+export function likePattern(text: string): string {
   return `%${text.replace(/[\\%_]/g, (character) => `\\${character}`)}%`
 }
 

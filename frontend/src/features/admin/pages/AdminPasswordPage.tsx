@@ -54,7 +54,6 @@ function AdminPasswordPage() {
         <header className="admin-heading">
           <div>
             <h1>Change password</h1>
-            <p>{mustChange ? 'Choose your own password to finish setting up your account.' : 'Changing your password signs you out everywhere else.'}</p>
           </div>
         </header>
 
