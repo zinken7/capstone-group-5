@@ -1,7 +1,7 @@
 import type { FeatureCollection } from 'geojson'
 import type { Map as LeafletMap } from 'leaflet'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { CircleMarker, GeoJSON, MapContainer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, GeoJSON, MapContainer, Pane, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import type { MapMarker } from '../../../lib/api/types'
@@ -108,16 +108,20 @@ function SiteMap({ markers, selectedId, onSelect, onMapReady }: SiteMapProps) {
       worldCopyJump={false}
       aria-label="Map of mine sites"
     >
-      {countries && (
-        <GeoJSON data={countries} interactive={false} style={{ className: 'basemap-country' }} attribution={BASEMAP_ATTRIBUTION} />
-      )}
+      {/* The outlines load after the markers, so their own pane keeps them underneath whichever arrives first */}
+      <Pane name="basemap" style={{ zIndex: 350 }}>
+        {countries && (
+          <GeoJSON data={countries} interactive={false} style={{ className: 'basemap-country' }} attribution={BASEMAP_ATTRIBUTION} />
+        )}
+      </Pane>
       {drawOrder.map((marker) => (
         <CircleMarker
-          // The status class is fixed when Leaflet creates the path, so a new status needs a new marker
+          // Leaflet reads className only when it creates the path (pathOptions updates never add it),
+          // so it is passed as an option here, and a new status needs a new marker
           key={`${marker.id}-${marker.status}`}
+          className={`site-marker site-marker--${marker.status}`}
           center={[marker.latitude, marker.longitude]}
           radius={markerRadius(marker.machineCount)}
-          pathOptions={{ className: `site-marker site-marker--${marker.status}` }}
           bubblingMouseEvents={false}
           eventHandlers={{ click: () => onSelect(marker.id) }}
         >
@@ -132,7 +136,7 @@ function SiteMap({ markers, selectedId, onSelect, onMapReady }: SiteMapProps) {
           center={[selected.latitude, selected.longitude]}
           radius={markerRadius(selected.machineCount) + 5}
           interactive={false}
-          pathOptions={{ className: 'site-marker-ring' }}
+          className="site-marker-ring"
         />
       )}
       <MapEffects markers={markers} fitKey={fitKey} selectedId={selectedId} onMapReady={onMapReady} />
