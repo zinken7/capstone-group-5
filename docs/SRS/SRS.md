@@ -425,7 +425,7 @@ Entities are grouped into reference data, described once and reused, and the fac
 
 ![Proposed logical data model](../images/erd.png)
 
-The diagram shows the schema as currently built. It will change under issue #171: a deployment will be able to name a supplier without a product, and the level held against a product is no longer used. *(rev 0.6)*
+The diagram shows the schema as built, including migration 005 (issue #171): a deployment names its technology supplier directly, the technology product is optional, and the level held against a product is no longer used. *(rev 0.6)*
 
 The diagram is maintained as Mermaid source in `docs/database/ERD.md`, which the project plan makes normative for enumerations and constraints. The image above is generated from it. Types shown are those of the chosen PostgreSQL and PostGIS implementation; if PostGIS is unavailable, `point_4326` is held as latitude and longitude columns, which serve the point rendering and bounding-box queries the map requires.
 
