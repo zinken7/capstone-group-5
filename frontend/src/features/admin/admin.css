@@ -645,6 +645,40 @@
   width: 100%;
 }
 
+/* Possible duplicates: one compact row per matching record */
+
+.duplicate-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.duplicate-list li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+}
+
+.duplicate-list a {
+  font-weight: 600;
+}
+
+.duplicate-list small {
+  color: var(--text-muted);
+  font-size: var(--type-sm);
+}
+
+.duplicate-list__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
 /* Proposed correction */
 
 .correction-panel {

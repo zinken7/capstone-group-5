@@ -324,9 +324,8 @@ describe('record review', () => {
       name: /Record 13: Sandvik 930E/,
     })
     expect(duplicateLink).toHaveAttribute('href', '/admin/deployments/13')
-    expect(screen.getByText(/Quantity: 15/)).toBeInTheDocument()
-    expect(screen.getByText(/Deployment status: Operational/)).toBeInTheDocument()
-    expect(screen.getByText(/Commissioning: 2024-05-10/)).toBeInTheDocument()
+    expect(screen.getByText(/15 machines/)).toBeInTheDocument()
+    expect(screen.getByText(/Operational · Commissioned 10\/05\/2024/)).toBeInTheDocument()
   })
 
   test('does not show a duplicate warning when there are no possible duplicates', async () => {

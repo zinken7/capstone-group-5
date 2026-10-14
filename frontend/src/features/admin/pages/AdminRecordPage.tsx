@@ -170,27 +170,25 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
                 {record.possibleDuplicates.length === 1 ? ' record was' : ' records were'}
                 {' '}found at this site. Review them before making a decision.
               </p>
-              <ul>
+              <ul className="duplicate-list">
                 {record.possibleDuplicates.map((duplicate) => (
                   <li key={duplicate.id}>
-                    <p>
-                      <Link to={`/admin/deployments/${duplicate.id}`}>
-                        Record {duplicate.id}: {duplicate.machineManufacturer}
-                        {' '}{duplicate.machineModel ?? 'Model not recorded'}
-                      </Link>
-                    </p>
-                    <p>
-                      Machine type: {formatEnumLabel(duplicate.machineType)}
-                      {' | '}Quantity: {formatNumber(duplicate.quantity)}
-                    </p>
-                    <p>
-                      Technology: {duplicate.technologyProduct ?? 'Not recorded'}
-                      {' | '}Verification: {formatEnumLabel(duplicate.verificationStatus)}
-                    </p>
-                    <p>
-                      Deployment status: {formatEnumLabel(duplicate.status)}
-                      {' | '}Commissioning: {duplicate.commissioningDate ?? 'Not recorded'}
-                    </p>
+                    <Link to={`/admin/deployments/${duplicate.id}`}>
+                      Record {duplicate.id}: {duplicate.machineManufacturer} {duplicate.machineModel ?? formatEnumLabel(duplicate.machineType)}
+                    </Link>
+                    <small>
+                      {[
+                        formatEnumLabel(duplicate.machineType),
+                        `${formatNumber(duplicate.quantity)} ${duplicate.quantity === 1 ? 'machine' : 'machines'}`,
+                        duplicate.technologyProduct ?? 'No product recorded',
+                      ].join(' · ')}
+                    </small>
+                    <small className="duplicate-list__state">
+                      <StatusBadge status={duplicate.verificationStatus} />
+                      <span>
+                        {formatEnumLabel(duplicate.status)} · {duplicate.commissioningDate ? `Commissioned ${formatCommissioning(duplicate.commissioningDate, null)}` : 'Commissioning date not recorded'}
+                      </span>
+                    </small>
                   </li>
                 ))}
               </ul>
