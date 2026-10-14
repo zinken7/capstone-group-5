@@ -117,6 +117,17 @@ interface RecordDto {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  possible_duplicates: {
+    id: number
+    verification_status: string
+    machine_manufacturer: string
+    machine_model: string | null
+    machine_type: string
+    technology_product: string | null
+    quantity: number
+    commissioning_date: string | null
+    status: string
+  }[]
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -166,6 +177,17 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     quantity: dto.quantity,
     technologySupplier: dto.technology_supplier,
     technologyProduct: dto.technology_product,
+    possibleDuplicates: dto.possible_duplicates.map((item) => ({
+      id: item.id,
+      verificationStatus: item.verification_status,
+      machineManufacturer: item.machine_manufacturer,
+      machineModel: item.machine_model,
+      machineType: item.machine_type,
+      technologyProduct: item.technology_product,
+      quantity: item.quantity,
+      commissioningDate: item.commissioning_date,
+      status: item.status,
+    })),
     automationLevel: dto.automation_level,
     environment: dto.environment,
     installationType: dto.installation_type,

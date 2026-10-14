@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
@@ -253,6 +253,17 @@ export interface ReviewRecord {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  possible_duplicates: {
+    id: number
+    verification_status: string
+    machine_manufacturer: string
+    machine_model: string | null
+    machine_type: string
+    technology_product: string | null
+    quantity: number
+    commissioning_date: string | null
+    status: string | null
+  }[]
   automation_level: string | null
   environment: string | null
   installation_type: string
@@ -289,7 +300,7 @@ export interface CorrectionView {
   changes: { field: string; before: unknown; proposed: unknown; current: unknown }[]
 }
 
-type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections'>
+type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections' | 'possible_duplicates'>
 
 /** A record's current value for each field a correction can propose, in the stored proposal format. */
 function currentValue(record: RecordFields, field: string): unknown {
@@ -310,6 +321,9 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .select({
       id: tables.deployment.id,
       verification_status: tables.deployment.verificationStatus,
+      machine_model_id: tables.deployment.machineModelId,
+      technology_product_id: tables.deployment.technologyProductId,
+      technology_supplier_id: tables.deployment.technologySupplierId,
       site_id: tables.site.id,
       site_name: tables.site.name,
       country_code: tables.site.countryCode,
@@ -345,6 +359,36 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
     .where(eq(tables.deployment.id, id))
   const record = rows[0]
   if (!record) return null
+
+  // Advisory only: other pending or verified records at the same site, from the same supplier, with the same model or type
+  const possible_duplicates = await db
+    .select({
+      id: tables.deployment.id,
+      verification_status: tables.deployment.verificationStatus,
+      machine_manufacturer: manufacturer.name,
+      machine_model: tables.machineModel.modelName,
+      machine_type: tables.machineModel.machineType,
+      technology_product: tables.technologyProduct.productName,
+      quantity: tables.deployment.quantity,
+      commissioning_date: tables.deployment.commissioningDate,
+      status: tables.deployment.status,
+    })
+    .from(tables.deployment)
+    .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
+    .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
+    .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
+    .where(and(
+      ne(tables.deployment.id, id),
+      eq(tables.deployment.siteId, record.site_id),
+      eq(tables.deployment.technologySupplierId, record.technology_supplier_id),
+      inArray(tables.deployment.verificationStatus, ['pending_review', 'verified']),
+      or(
+        eq(tables.deployment.machineModelId, record.machine_model_id),
+        eq(tables.machineModel.machineType, record.machine_type),
+      ),
+    ))
+    .orderBy(asc(tables.deployment.id))
 
   const [evidence, reviews, revisions, corrections] = await Promise.all([
     db
@@ -401,8 +445,14 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       .where(eq(tables.deploymentCorrection.deploymentId, id))
       .orderBy(asc(tables.deploymentCorrection.submittedAt), asc(tables.deploymentCorrection.id)),
   ])
+  const publicRecord = Object.fromEntries(
+    Object.entries(record).filter(
+      ([key]) => key !== 'machine_model_id' && key !== 'technology_product_id' && key !== 'technology_supplier_id',
+    ),
+  ) as Omit<typeof record, 'machine_model_id' | 'technology_product_id' | 'technology_supplier_id'>
   return {
-    ...record,
+    ...publicRecord,
+    possible_duplicates,
     evidence,
     reviews,
     revisions,

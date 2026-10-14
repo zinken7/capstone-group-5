@@ -310,6 +310,92 @@ describe('GET /api/admin/deployments/:id', () => {
     })
   })
 
+  it('identifies possible duplicate deployments and excludes the current record', async () => {
+    const firstId = await contribute()
+    const secondId = await contribute()
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({
+        id: secondId,
+        verification_status: 'pending_review',
+        machine_manufacturer: 'Komatsu',
+        machine_model: '930E',
+        machine_type: 'haul_truck',
+        technology_product: 'FrontRunner',
+        quantity: 15,
+        commissioning_date: '2022-07-01',
+        status: 'operational',
+      }),
+    ])
+    expect(response.body.possible_duplicates).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: firstId })]),
+    )
+  })
+
+  it('identifies deployments with the same supplier but different products', async () => {
+    const firstId = await contribute()
+    const secondId = await contribute({ technology_product: 'Different Automation Product' })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({ id: secondId }),
+    ])
+  })
+
+  it('identifies duplicate deployments when both products are null', async () => {
+    const firstId = await contribute({ technology_product: null })
+    const secondId = await contribute({ technology_product: null })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([
+      expect.objectContaining({
+        id: secondId,
+        technology_product: null,
+        verification_status: 'pending_review',
+      }),
+    ])
+  })
+
+  it('does not identify deployments with a different technology supplier as duplicates', async () => {
+    const firstId = await contribute()
+    await contribute({
+      technology_supplier: 'Different Automation Supplier',
+      technology_product: null,
+    })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([])
+  })
+
+  it('does not identify deployments at a different site as duplicates', async () => {
+    const firstId = await contribute()
+    await contribute({ site_name: 'Different Mine Site' })
+
+    const response = await request(app)
+      .get(`/api/admin/deployments/${firstId}`)
+      .set('Cookie', cookie)
+
+    expect(response.status).toBe(200)
+    expect(response.body.possible_duplicates).toEqual([])
+  })
+
   it('shows the contributor of a submission in its revision history', async () => {
     const id = await contribute({ contributor_email: 'Field@Example.com', organisation: 'Example Mining' })
     const response = await request(app).get(`/api/admin/deployments/${id}`).set('Cookie', cookie)
