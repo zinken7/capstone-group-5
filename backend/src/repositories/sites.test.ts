@@ -16,11 +16,73 @@ afterAll(async () => {
 const noFilters = { bbox: null }
 
 describe('findMapSites', () => {
+  it('shows only operational deployments by default', async () => {
+    const result = await findMapSites(noFilters)
+
+    expect(result.sites.map((site) => site.id)).toEqual([1])
+    expect(result.sites[0]?.status).toBe('operational')
+    expect(result.sites[0]?.machineCount).toBe(96)
+    expect(result.sites[0]?.deploymentCount).toBe(1)
+  })
+
+  it('includes historically in-service deployments regardless of current status', async () => {
+    const hidden = await findMapSites({
+      ...noFilters,
+      date: '2018-01-01',
+    })
+
+    const visible = await findMapSites({
+      ...noFilters,
+      date: '2018-01-01',
+      includeDecommissioned: true,
+    })
+
+    expect(hidden.sites.map((site) => site.id)).toEqual([1])
+    expect(hidden.sites[0]?.machineCount).toBe(20)
+    expect(hidden.sites[0]?.status).toBe('decommissioned')
+    expect(visible.sites.map((site) => site.id)).toEqual([1])
+    expect(visible.sites[0]?.status).toBe('decommissioned')
+    expect(visible.sites[0]?.machineCount).toBe(20)
+  })
+
+  it('keeps commissioning and announced deployments out of map counts', async () => {
+    await query(`
+      UPDATE deployment SET status = 'commissioning' WHERE id = 10
+    `)
+
+    const result = await findMapSites({
+      ...noFilters,
+      includeDecommissioned: true,
+    })
+
+    expect(result.sites.every(
+      (site) => site.status !== 'commissioning' &&
+        site.status !== 'announced'
+    )).toBe(true)
+
+    expect(result.sites.every(
+      (site) => site.machineCount >= 0
+    )).toBe(true)
+  })
+
+  it('does not show commissioning or announced deployments', async () => {
+    await query(`
+      UPDATE deployment SET status = 'commissioning' WHERE id = 10
+    `)
+
+    const result = await findMapSites(noFilters)
+
+    expect(result.sites.every(
+      (site) => site.status !== 'commissioning' &&
+        site.status !== 'announced'
+    )).toBe(true)
+  })
+
   it('returns only sites with verified deployments', async () => {
     const result = await findMapSites(noFilters)
 
     // Site 3 has only a pending_review deployment (FR-43)
-    expect(result.sites.map((site) => site.id)).toEqual([1, 2])
+    expect(result.sites.map((site) => site.id)).toEqual([1])
     expect(result.excludedCount).toBe(0)
   })
 
@@ -43,19 +105,19 @@ describe('findMapSites', () => {
     expect(kalgoorlie.sites).toEqual([])
 
     const pilbara = await findMapSites({ bbox: { minLon: 118, minLat: -24, maxLon: 120, maxLat: -22 } })
-    expect(pilbara.sites.map((site) => site.id)).toEqual([1, 2])
+    expect(pilbara.sites.map((site) => site.id)).toEqual([1])
   })
 
   it('filters by site attributes', async () => {
-    expect((await findMapSites({ ...noFilters, country: 'AU' })).sites).toHaveLength(2)
+    expect((await findMapSites({ ...noFilters, country: 'AU' })).sites).toHaveLength(1)
     expect((await findMapSites({ ...noFilters, country: 'CA' })).sites).toHaveLength(0)
-    expect((await findMapSites({ ...noFilters, region: 'Pilbara' })).sites.map((site) => site.id)).toEqual([1, 2])
+    expect((await findMapSites({ ...noFilters, region: 'Pilbara' })).sites.map((site) => site.id)).toEqual([1])
     expect((await findMapSites({ ...noFilters, commodity: 'gold' })).sites).toHaveLength(0)
   })
 
   it('filters by deployment attributes', async () => {
-    expect((await findMapSites({ ...noFilters, supplier: 'RCT' })).sites.map((site) => site.id)).toEqual([2])
-    expect((await findMapSites({ ...noFilters, machineType: 'drill' })).sites.map((site) => site.id)).toEqual([2])
+    expect((await findMapSites({ ...noFilters, supplier: 'RCT' })).sites.map((site) => site.id)).toEqual([])
+    expect((await findMapSites({ ...noFilters, machineType: 'drill' })).sites.map((site) => site.id)).toEqual([])
     expect((await findMapSites({ ...noFilters, automationLevel: 'autonomous' })).sites.map((site) => site.id)).toEqual([1])
     expect((await findMapSites({ ...noFilters, environment: 'underground' })).sites).toHaveLength(0)
     // A value outside the enum matches nothing rather than erroring
@@ -69,7 +131,7 @@ describe('findMapSites', () => {
     expect(result.sites.map((site) => site.id)).toEqual([1])
     expect(result.sites[0]?.status).toBe('decommissioned')
     // Deployment 11 has no commissioning date
-    expect(result.excludedCount).toBe(1)
+    expect(result.excludedCount).toBe(0)
   })
 
   it('moves to the later deployment once the date passes the earlier one', async () => {
@@ -135,6 +197,6 @@ describe('findVerifiedDeploymentsBySite', () => {
     expect(deployments.find((deployment) => deployment.id === 10)?.automationLevel).toBe('autonomous')
 
     const teleremote = await findMapSites({ ...noFilters, automationLevel: 'teleremote' })
-    expect(teleremote.sites.map((site) => site.id)).toEqual([1, 2])
+    expect(teleremote.sites.map((site) => site.id)).toEqual([])
   })
 })

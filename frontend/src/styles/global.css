@@ -59,15 +59,44 @@ a { color: inherit; }
   transform: translateY(0);
 }
 
-button,
-input,
-textarea,
-select {
+/* Controls take the page font; zero specificity so the field and button rules below set their size and weight */
+:where(button, input, textarea, select) {
   font: inherit;
 }
 
+/* Fields: every text input, select and textarea shares one look with the buttons (height, radius, border).
+   :where() keeps this at zero specificity, so a feature can still size or place a field */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="hidden"]), select, textarea) {
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background-color: var(--color-surface);
+  color: var(--text-strong);
+  font-size: var(--control-font-size);
+  font-weight: 400;
+  line-height: 1.4;
+}
+:where(textarea) { min-height: 5.5rem; padding-block: 0.6rem; resize: vertical; }
+/* One chevron on every browser, in place of each system's own */
+:where(select) {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23536078' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+:where(input, textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+:where(input, select, textarea):disabled { background-color: var(--surface-muted); color: var(--text-muted); cursor: not-allowed; }
+
 .app-shell {
   display: grid;
+  /* One column that never grows past the viewport, so a wide header or table cannot widen the page */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   min-height: 100vh;
 }
@@ -88,14 +117,17 @@ select {
 }
 
 .brand { display: flex; gap: 0.7rem; align-items: center; text-decoration: none; }
-.brand-mark { display: grid; width: 2.4rem; height: 2.4rem; place-items: center; border-radius: 0.55rem; color: white; background: var(--brand); font-size: 0.78rem; font-weight: 800; }
+.brand-mark { display: block; flex: none; width: 2.4rem; height: 2.4rem; }
+.brand-mark__ground { fill: var(--color-ink); }
+.brand-mark__lines { fill: none; stroke: var(--color-accent); stroke-width: 2.4; stroke-linecap: round; }
+.brand-mark__blip { fill: var(--color-ink); }
 .brand strong, .brand small { display: block; }
 .brand small { margin-top: 0.1rem; color: var(--text-muted); font-size: 0.7rem; }
 .primary-nav { display: flex; align-items: center; gap: 0.25rem; }
 .primary-nav a { display: inline-flex; min-height: 44px; align-items: center; padding: 0.65rem 0.8rem; border-radius: 0.45rem; color: #405068; font-size: 0.9rem; font-weight: 700; text-decoration: none; }
 .primary-nav a:hover { background: #f0f4f7; }
 .primary-nav a.active { color: var(--text-strong); background: transparent; box-shadow: inset 0 -2px 0 var(--accent); }
-.primary-nav a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.primary-nav a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 .page-content {
   width: 100%;
@@ -108,6 +140,8 @@ select {
 .site-footer p { margin: 0; }
 .site-footer__admin { color: var(--text-muted); font-weight: 600; text-underline-offset: 0.2em; }
 .site-footer__admin:hover { color: var(--text-strong); }
+/* The header's administrator icon shows on phones only, in place of the footer link, which is a long scroll away there */
+.site-header__admin { display: none; }
 
 .product-page {
   display: grid;
@@ -121,11 +155,12 @@ select {
 }
 
 .page-heading { display: flex; justify-content: space-between; gap: 1.5rem; align-items: flex-end; }
-.button { min-height: 44px; padding: 0.6rem 1rem; border: 0; border-radius: 0.5rem; font-weight: 750; cursor: pointer; }
+/* Buttons (design system): the same box as a field, 600 weight; secondary is a field's white with its border */
+.button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 1.125rem; border: 1px solid transparent; border-radius: var(--control-radius); font-size: var(--control-font-size); font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; cursor: pointer; }
 .button--primary { color: white; background: var(--brand); }
-.button--primary:hover { background: var(--brand-dark); }
-.button--secondary { color: var(--text-strong); background: var(--surface-muted); border: 1px solid var(--control-border); }
-.button--secondary:hover { background: #e7ebf3; }
+.button--primary:hover:not(:disabled) { background: var(--brand-dark); }
+.button--secondary { color: var(--text-strong); background: var(--color-surface); border-color: var(--control-border); }
+.button--secondary:hover:not(:disabled) { background: var(--surface-muted); }
 .button:disabled { cursor: not-allowed; opacity: 0.55; }
 .state-message { padding: 1.25rem; border: 1px solid #efc36e; border-radius: 0.75rem; background: #fff8e6; }
 .state-message--error { border-color: #e9a7a7; background: #fff1f1; }
@@ -134,21 +169,12 @@ select {
 .state-message h2 { font-size: 1.05rem; }
 .state-message p { margin-top: 0.35rem; color: var(--text-muted); }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-.form-field { display: grid; gap: var(--space-2); color: var(--text-strong); font-size: var(--type-sm); font-weight: 700; }
-.form-label { display: inline-flex; align-items: baseline; gap: 0.2rem; }
+/* Labels: one size and weight on every form and filter bar */
+.form-field { display: grid; gap: 0.375rem; color: var(--text-strong); font-size: var(--label-font-size); font-weight: 600; }
+/* A narrow label wraps "(optional)" whole onto the next line instead of breaking the word */
+.form-label { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.25rem; }
 .form-field--wide { grid-column: 1 / -1; }
-.form-field input, .form-field textarea, .form-field select {
-  width: 100%;
-  min-height: 44px;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.45rem;
-  background: var(--color-surface);
-  color: var(--text-strong);
-  font: inherit;
-  font-weight: 400;
-}
-.form-field textarea { min-height: 5rem; }
+.form-field input:not([type="checkbox"], [type="radio"]), .form-field textarea, .form-field select { width: 100%; }
 .form-field input:focus-visible,
 .form-field textarea:focus-visible,
 .form-field select:focus-visible,
@@ -157,7 +183,8 @@ select {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
-.form-field input[aria-invalid="true"], .form-field textarea[aria-invalid="true"], .form-field select[aria-invalid="true"] { border-color: #b42318; }
+/* An invalid field gets a 2px red border (design system), drawn inside so the layout does not move */
+:is(input, textarea, select)[aria-invalid="true"] { border-color: #b42318; box-shadow: inset 0 0 0 1px #b42318; }
 .form-help { color: var(--text-muted); font-size: var(--type-sm); font-weight: 400; line-height: 1.45; }
 .form-error { margin: 0; color: #b42318; font-size: var(--type-sm); font-weight: 600; }
 .form-summary-error { margin: 0; padding: 0.8rem 1rem; border: 1px solid #e9a7a7; border-radius: 0.6rem; color: #8f1d1d; background: #fff1f1; }
@@ -182,6 +209,21 @@ select {
 .status-badge--verified { color: var(--color-success); }
 .status-badge--pending-review { color: var(--color-warning); }
 .status-badge--rejected { color: var(--color-danger); }
+/* Quiet text button for secondary filter actions (More filters, Clear all); matches the map's filter panel */
+.text-button { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--control-height); padding: 0 var(--space-2); border: 0; border-radius: var(--control-radius); background: none; color: var(--color-primary); font: inherit; font-size: var(--type-sm); font-weight: 600; white-space: nowrap; cursor: pointer; }
+.text-button:hover:not(:disabled) { background: #eef1fa; }
+.text-button:disabled { color: var(--text-muted); opacity: 0.6; cursor: default; }
+.text-button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* The first text button in a row pulls left by its padding so its icon lines up with the fields above, as on the map */
+.text-button--flush { margin-left: calc(var(--space-2) * -1); }
+.text-button--disclosure .map-icon { transform: rotate(-90deg); transition: transform 120ms ease; }
+.text-button--disclosure[aria-expanded='true'] .map-icon { transform: none; }
+/* Sortable column headings, shared by the register and the admin tables. The button keeps the
+   heading's case, and each table centres its headings, so sortable and plain headings line up */
+.table-sort-button { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; letter-spacing: inherit; text-align: left; text-transform: inherit; cursor: pointer; }
+.table-sort-button:hover { color: var(--text-strong); }
+.table-sort-button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 0.25rem; }
+.table-sort-button span { color: var(--text-strong); font-size: 1rem; line-height: 1; }
 .coming-soon { display: flex; align-items: flex-start; gap: 1rem; padding: clamp(1.2rem, 3vw, 2rem); border: 1px dashed #9aa9b8; border-radius: 0.8rem; background: var(--surface-muted); }
 .coming-soon > span { display: grid; flex: 0 0 auto; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: white; background: var(--accent); font-weight: 800; }
 .coming-soon h2, .coming-soon p { margin: 0; }
@@ -231,5 +273,11 @@ code { font-family: var(--font-mono); }
 
 @media (max-width: 760px) {
   .brand small { display: none; }
+  .site-header { grid-template-columns: minmax(0, 1fr) auto; }
+  .primary-nav { grid-column: 1 / -1; }
+  /* On phones the sign-in is this primary icon button, and the footer link is hidden so there is only one */
+  .site-header__admin { display: grid; grid-row: 1; grid-column: 2; width: 44px; height: 44px; place-items: center; border-radius: var(--control-radius); color: white; background: var(--brand); }
+  .site-header__admin:hover { background: var(--brand-dark); }
+  .site-footer__admin { display: none; }
   .page-heading { align-items: flex-start; flex-direction: column; }
 }

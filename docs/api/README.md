@@ -20,6 +20,7 @@
 | `DELETE` | `/api/admin/session` | Signs out |
 | `POST` | `/api/admin/password` | Changes the signed-in administrator's password |
 | `GET` | `/api/admin/reviews` | Lists records pending review (FR-45) |
+| `GET` | `/api/admin/submissions` | Lists submission history with pagination and optional ID filtering |
 | `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
 | `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
 | `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
@@ -44,8 +45,8 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | `bbox` | `minLon,minLat,maxLon,maxLat` | No | Restrict to sites within the given rectangular range |
 | `supplier` | string | No | Filter by technology supplier |
 | `date` | `YYYY-MM-DD` | No | Only return deployments still in service on this date |
-| `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them. Use either `date` or `year`, not both |
-| `include_decommissioned` | `true`\|`false` | No | With `date` or `year`, also keep sites whose deployments had ended by then (announced deployments never count as ended). Default `false` |
+| `year` | `YYYY` | No | Only return deployments in service on 31 December of this year, counted as the analytics timeline counts them except for commissioning deployments. Use either `date` or `year`, not both |
+| `include_decommissioned` | `true`\|`false` | No | Without `date` or `year`, also count deployments currently marked decommissioned. With `date` or `year`, also keep sites whose deployments had ended by then (announced and commissioning deployments never count as ended). Default `false` |
 | `country` | string | No | Filter by country code |
 | `region` | string | No | Filter by region |
 | `machine_type` | string | No | Filter by machine type |
@@ -82,14 +83,14 @@ Fields and enum values are aligned with the controlled-values table in `docs/dat
 | Field | Description |
 |---|---|
 | `geometry.coordinates` | `[longitude, latitude]` |
-| `excluded_count` | Number of deployments that cannot be placed in time (FR-19): with `date`, those without a commissioning date; with `year`, those without a commissioning year, other than announced ones |
+| `excluded_count` | Number of deployments that cannot be placed in time (FR-19): with `date`, those without a commissioning date; with `year`, those without a commissioning year. Announced and commissioning deployments are never counted |
 | `properties.id`/`name` | Site identifier and name |
 | `properties.country_code`/`region`/`commodity` | Site attributes, for headline counts and the site card without a request per site |
 | `properties.status` | Highest-precedence deployment status for the site (FR-16). A site kept only by `include_decommissioned` reads `decommissioned` |
 | `properties.technology_suppliers` | Array because a site may have multiple suppliers (FR-18) |
-| `properties.machine_count`/`deployment_count` | Machines and deployments in view: every matching verified deployment, or only those in service on the `date` or `year`. Ended deployments kept by `include_decommissioned` never count |
+| `properties.machine_count`/`deployment_count` | Machines and deployments in view (FR-16). Without `date` or `year`: matching verified deployments currently marked operational, plus decommissioned ones with `include_decommissioned`. With `date` or `year`: those in service on that day, whatever their current status. Announced and commissioning deployments never count, and ended deployments kept by `include_decommissioned` never count |
 
-**`year` rule.** On 31 December of the year, a deployment is in service when it is not announced, its commissioning year (or the year of its commissioning date) is no later, and the day falls inside `valid_from`..`valid_to`. This is the rule `GET /api/analytics/timeline` uses, so the machine counts on the map add up to that year's `in_service`. Unlike `date`, it places records known only by their year.
+**`year` rule.** On 31 December of the year, a deployment is in service when it is neither announced nor commissioning, its commissioning year (or the year of its commissioning date) is no later, and the day falls inside `valid_from`..`valid_to`. A deployment decommissioned since then still counts for the years it was in service. `GET /api/analytics/timeline` uses the same rule but also counts commissioning deployments, so the machine counts on the map add up to that year's `in_service` less its commissioning machines. Unlike `date`, it places records known only by their year.
 
 Malformed `bbox`, `date`, `year` or `include_decommissioned` parameters return `400` rather than being silently ignored, as does giving both `date` and `year`. Sites without coordinates cannot be placed on the map and are omitted. Filtering runs in SQL, so `excluded_count` remains accurate.
 
@@ -494,6 +495,40 @@ every deployment with `verification_status = pending_review` (`kind:
   they said;
 - `submitted_at`: when the record last changed, or when the correction was sent.
 
+### `GET /api/admin/submissions`
+
+Lists submission history across verification statuses. Requires an
+authenticated administrator with moderation access.
+
+Query parameters:
+
+| Parameter | Default | Validation |
+|---|---|---|
+| `limit` | `50` | Safe integer from 1 to 100 |
+| `offset` | `0` | Non-negative safe integer |
+| `id` | Omitted | Positive safe integer; exact deployment ID |
+| `q` | Omitted | Free text: deployments whose ID starts with these digits, or whose site name contains the text (case-insensitive; `%` and `_` match themselves). Blank means no search |
+| `sort` | `updated` | `id`, `site`, `decision`, `status` or `updated`. `decision` and `status` sort by their stored value, which follows their labels; records without a decision come last in either order. Ties go to the newest record |
+| `order` | `desc` for `updated`, otherwise `asc` | `asc` or `desc` |
+
+Success: `200 OK`, returning `{"items": [...]}`. Each item includes
+`id`, `site_name`, `country_code`, `verification_status`,
+`latest_decision`, `latest_decision_is_correction`, and `updated_at`.
+The latest decision can come from a deployment review or a correction review.
+
+`latest_decision_is_correction` indicates the source of the latest decision:
+- `true`: the latest decision was made on a correction;
+- `false`: the latest decision was made on the deployment itself;
+- `null`: no review decision has been recorded.
+
+Invalid parameters return `400 Bad Request` with
+`{"error":"invalid pagination or submission ID"}`.
+Examples: `limit=0`, `limit=101`, `offset=-1`, `id=0`, `id=abc`.
+A repeated `q` returns `{"error":"invalid q parameter"}`. An unknown `sort` returns `{"error":"invalid sort parameter"}` and an unknown
+`order` returns `{"error":"invalid order parameter"}`, both with `400`.
+
+Unauthenticated requests return `401 Unauthorized`.
+
 ### `GET /api/admin/deployments/{id}`
 
 `200` with the record in any verification status: `verification_status`, site
@@ -515,6 +550,18 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
   correction was sent and `current` the value now, so they differ when the
   record has changed since. Commissioning values are a date or a year
   (`"2021-01-01"`, `"2020"`).
+- `possible_duplicates`: an array of other deployments that may match this
+  record. Each entry contains `id`, `verification_status`,
+  `machine_manufacturer`, `machine_model`, `machine_type`,
+  `technology_product`, `quantity`, `commissioning_date`, and `status`.
+  `commissioning_date` may be `null`. The array is empty when no potential
+  matches are found.
+
+  A possible duplicate must belong to the same site, have the same
+  deployment-level technology supplier, and match either the machine model
+  or machine type. Only deployments with verification status `pending_review`
+  or `verified` are considered. The current deployment is excluded.
+  Technology products do not need to match and may be `null`.
 
 `404` for an unknown or malformed id.
 
