@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import EquipmentPage from './EquipmentPage'
+import { AdminSessionProvider } from '../../admin/session'
 import { fixtureSites } from '../../map/data/fixtureSites'
 import { buildEquipmentRecords } from '../presentation'
 
@@ -381,6 +383,111 @@ describe('EquipmentPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(correctButton).toHaveFocus()
+  })
+
+  test('applies an administrator\'s correction at once instead of proposing it', async () => {
+    const user = userEvent.setup()
+    const item = { id: 20204, site_id: 7, site_name: 'Admin site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input)
+      if (url.endsWith('/admin/session')) return Promise.resolve(Response.json({ email: 'admin@example.com', role: 'admin', must_change_password: false }))
+      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ id: 20204, verification_status: 'verified' }))
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceData))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [item] }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const registerCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).includes('/register')).length
+
+    render(<MemoryRouter><AdminSessionProvider><EquipmentPage /></AdminSessionProvider></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: /correct admin site/i }))
+    const dialog = screen.getByRole('dialog', { name: /correct this record/i })
+    expect(await within(dialog).findByText('Administrator correction')).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: /open the record in administration/i })).toHaveAttribute('href', '/admin/deployments/20204')
+    expect(within(dialog).queryByRole('textbox', { name: /contact email/i })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument()
+
+    const loads = registerCalls()
+    await user.clear(within(dialog).getByRole('textbox', { name: /quantity/i }))
+    await user.type(within(dialog).getByRole('textbox', { name: /quantity/i }), '2')
+    await user.click(within(dialog).getByRole('button', { name: /save changes/i }))
+
+    // Nothing is sent until the administrator confirms the listed changes
+    let confirm = screen.getByRole('alertdialog', { name: /publish these changes/i })
+    expect(within(confirm).getByText('Quantity').closest('div')).toHaveTextContent(/1\s*→\s*changes to\s*2/)
+    expect(within(confirm).getByRole('button', { name: /back to editing/i })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /correct this record/i })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /save changes/i })).toHaveFocus()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
+
+    await user.click(within(dialog).getByRole('button', { name: /save changes/i }))
+    confirm = screen.getByRole('alertdialog', { name: /publish these changes/i })
+    await user.click(within(confirm).getByRole('button', { name: /publish changes/i }))
+
+    expect(await screen.findByText('Record updated. The previous values are kept in its history.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const patchCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === 'PATCH')
+    expect(patchCalls).toHaveLength(1)
+    expect(String(patchCalls[0][0])).toMatch(/\/admin\/deployments\/20204$/)
+    expect(JSON.parse(String(patchCalls[0][1]?.body))).toEqual({ quantity: 2 })
+    // The register reloads to show the corrected record
+    await waitFor(() => expect(registerCalls()).toBeGreaterThan(loads))
+  })
+
+  test('returns an administrator to the form when the backend refuses the change', async () => {
+    const user = userEvent.setup()
+    const item = { id: 20206, site_id: 7, site_name: 'Refused site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input)
+      if (url.endsWith('/admin/session')) return Promise.resolve(Response.json({ email: 'admin@example.com', role: 'admin', must_change_password: false }))
+      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } }, { status: 400 }))
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceData))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [item] }))
+    }))
+
+    render(<MemoryRouter><AdminSessionProvider><EquipmentPage /></AdminSessionProvider></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: /correct refused site/i }))
+    const dialog = screen.getByRole('dialog', { name: /correct this record/i })
+    await within(dialog).findByText('Administrator correction')
+    const commissioning = within(dialog).getByRole('textbox', { name: /commissioning/i })
+    await user.clear(commissioning)
+    await user.type(commissioning, '2030')
+    await user.click(within(dialog).getByRole('button', { name: /save changes/i }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /publish changes/i }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('invalid correction')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(commissioning).toHaveAttribute('aria-invalid', 'true')
+    expect(within(dialog).getByText('must not be after valid_to')).toBeInTheDocument()
+  })
+
+  test('keeps a signed-out visitor\'s correction a proposal for review', async () => {
+    const user = userEvent.setup()
+    const item = { id: 20205, site_id: 7, site_name: 'Visitor site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/admin/session')) return Promise.resolve(Response.json({ error: 'authentication required' }, { status: 401 }))
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceData))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [item] }))
+    }))
+
+    render(<MemoryRouter><AdminSessionProvider><EquipmentPage /></AdminSessionProvider></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: /correct visitor site/i }))
+    const dialog = screen.getByRole('dialog', { name: /correct this record/i })
+    expect(await within(dialog).findByText('Suggest a correction')).toBeInTheDocument()
+    expect(within(dialog).getByRole('textbox', { name: /contact email/i })).toBeInTheDocument()
+    expect(within(dialog).getByRole('checkbox')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /submit correction/i })).toBeEnabled()
   })
 
   test('restores URL state and paginates the live register without a full scan', async () => {

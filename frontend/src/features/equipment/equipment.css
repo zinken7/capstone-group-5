@@ -83,6 +83,19 @@
 .field-error { color: #b42318; font-size: 0.78rem; font-weight: 600; }
 .form-help-inline { color: var(--text-muted); font-weight: 400; }
 .correction-dialog__actions { flex: none; justify-content: flex-end; padding: 1rem var(--dialog-pad); border-top: 1px solid var(--border); }
+/* An administrator's confirmation sits over the correction dialog, which stays in view behind it */
+.correction-confirm { position: fixed; inset: 0; z-index: 1110; display: grid; place-items: center; padding: 1rem; overscroll-behavior: contain; background: rgb(15 23 42 / 35%); }
+.correction-confirm__panel { display: grid; gap: 1rem; width: min(32rem, 100%); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--border); border-radius: 1rem; background: white; box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 30%); }
+.correction-confirm__panel h2 { margin: 0; font-size: 1.2rem; }
+.correction-confirm__panel .form-help { margin: 0; }
+.correction-confirm__changes { display: grid; gap: 0.75rem; margin: 0; padding: 0.9rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--surface-muted); }
+.correction-confirm__changes dt { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.correction-confirm__changes dd { margin: 0.2rem 0 0; color: var(--text-strong); font-size: 0.9rem; overflow-wrap: anywhere; }
+.correction-confirm__before { color: var(--text-muted); text-decoration: line-through; }
+.correction-confirm__hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.correction-confirm__actions { justify-content: flex-end; }
+/* Too narrow for the two buttons side by side, so they stack at full width in reading order */
+@media (max-width: 480px) { .correction-confirm__actions { flex-direction: column; align-items: stretch; gap: var(--space-3); } }
 /* The filter grid narrows in steps so no option text is cut off; the buttons stay beside Country */
 @media (max-width: 1200px) { .filter-panel, .register-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .filter-actions { grid-column: span 2; } }
 @media (max-width: 760px) { .filter-panel, .register-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filter-actions { grid-column: auto; } }

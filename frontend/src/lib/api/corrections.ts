@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from './config'
-import { ApiError } from './errors'
+import { ApiError, fieldMessages } from './errors'
 
 export interface CorrectionPayload {
   quantity?: number
@@ -23,12 +23,9 @@ export interface CorrectionResult {
 }
 
 export class CorrectionApiError extends ApiError {
-  readonly fields: Record<string, string>
-
   constructor(message: string, status: number | undefined, fields: Record<string, string> = {}) {
-    super(message, status)
+    super(message, status, { fields })
     this.name = 'CorrectionApiError'
-    this.fields = fields
   }
 }
 
@@ -67,9 +64,7 @@ export async function submitCorrection(id: number, payload: CorrectionPayload): 
 
   if (!response.ok) {
     const object = typeof responseBody === 'object' && responseBody !== null ? responseBody as Record<string, unknown> : {}
-    const fields = typeof object.fields === 'object' && object.fields !== null
-      ? Object.fromEntries(Object.entries(object.fields).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
-      : {}
+    const fields = fieldMessages(object)
     const message = typeof object.error === 'string' && object.error.trim() ? object.error : `API request failed (${response.status})`
     throw new CorrectionApiError(message, response.status, fields)
   }

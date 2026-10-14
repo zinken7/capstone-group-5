@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent, MouseEvent } from 'react'
+import { Link } from 'react-router-dom'
 
-import { submitCorrection, CorrectionApiError } from '../../../lib/api/corrections'
+import { correctRecord } from '../../../lib/api/admin'
+import { submitCorrection } from '../../../lib/api/corrections'
 import type { CorrectionResult } from '../../../lib/api/corrections'
 import type { CorrectionPayload } from '../../../lib/api/corrections'
-import { formatCommissioning, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { ApiError } from '../../../lib/api/errors'
+import { formatCommissioning, formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { useOptionalAdminSession } from '../../admin/session'
 import type { ContributionReferenceData, ReferenceOption } from '../../contribute/types'
 import type { EquipmentRecord } from '../types'
 
@@ -12,7 +16,21 @@ interface CorrectionDialogProps {
   record: EquipmentRecord
   referenceData: ContributionReferenceData
   onClose: () => void
+  /** A visitor's correction, sent for review */
   onSubmitted: (result: CorrectionResult) => void
+  /** An administrator's correction, already applied to the public record */
+  onApplied: () => void
+}
+
+/** Who is correcting: an administrator's change applies at once, anyone else's is a proposal; checking until the session is known */
+type CorrectionMode = 'checking' | 'public' | 'administrator'
+
+function modeFor(session: ReturnType<typeof useOptionalAdminSession>): CorrectionMode {
+  if (!session) return 'public'
+  const { state } = session
+  if (state.status === 'unknown') return 'checking'
+  // An administrator still on a temporary password cannot use the administration API yet
+  return state.status === 'signed-in' && !state.profile.mustChangePassword ? 'administrator' : 'public'
 }
 
 interface CorrectionValues {
@@ -55,10 +73,10 @@ function optionsWithCurrent(options: readonly ReferenceOption[], value: string):
   return [[value, value.replaceAll('_', ' ')], ...options]
 }
 
-function getPayload(record: EquipmentRecord, values: CorrectionValues): CorrectionPayload | { message: string; fields?: Record<string, string> } {
+function getPayload(record: EquipmentRecord, values: CorrectionValues, mode: CorrectionMode): CorrectionPayload | { message: string; fields?: Record<string, string> } {
   const before = initialValues(record)
   const fields: Record<string, string> = {}
-  if (!values.disclosureAccepted) fields.disclosure_accepted = 'Please confirm the disclosure before submitting.'
+  if (mode !== 'administrator' && !values.disclosureAccepted) fields.disclosure_accepted = 'Please confirm the disclosure before submitting.'
 
   const quantity = Number(values.quantity)
   if (values.quantity !== before.quantity && (!Number.isInteger(quantity) || quantity < 1)) fields.quantity = 'Quantity must be a positive whole number.'
@@ -86,15 +104,85 @@ function SelectField({ id, label, value, options, error, onChange }: { id: strin
   return <div className="form-field"><label htmlFor={id}>{label}</label><select id={id} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined}><option value="">Not recorded</option>{options.map(([option, optionLabel]) => <option key={option} value={option}>{optionLabel}</option>)}</select>{error && <small id={`${id}-error`} className="field-error">{error}</small>}</div>
 }
 
-function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: CorrectionDialogProps) {
+interface ChangeRow {
+  label: string
+  /** Absent when the change adds something rather than replacing a value */
+  before?: string
+  after: string
+}
+
+/**
+ * Asks an administrator to check their changes before they are published,
+ * since they skip review. Escape, the backdrop and "Back to editing" return to the form.
+ */
+function ConfirmChanges({ siteName, changes, publishing, onCancel, onConfirm }: { siteName: string; changes: ChangeRow[]; publishing: boolean; onCancel: () => void; onConfirm: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const backRef = useRef<HTMLButtonElement>(null)
+
+  // Focus starts on the safe choice, so a second press of Enter does not publish unread changes
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    backRef.current?.focus()
+    return () => previousFocus?.focus()
+  }, [])
+
+  function trapFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') { event.preventDefault(); if (!publishing) onCancel(); return }
+    if (event.key !== 'Tab') return
+    const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])')
+    if (!focusable || focusable.length === 0) { event.preventDefault(); return }
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+
+  return <div className="correction-confirm" role="presentation" onClick={(event) => { if (event.target === event.currentTarget && !publishing) onCancel() }}>
+    <div ref={panelRef} className="correction-confirm__panel" role="alertdialog" aria-modal="true" aria-labelledby="equipment-confirm-title" aria-describedby="equipment-confirm-description" onKeyDown={trapFocus}>
+      <h2 id="equipment-confirm-title">Publish these changes?</h2>
+      <p id="equipment-confirm-description" className="form-help">They replace the public record for <strong>{siteName}</strong> at once. The previous values stay in its history.</p>
+      <dl className="correction-confirm__changes">
+        {changes.map((change) => <div key={change.label}><dt>{change.label}</dt><dd>
+          {/* A replaced value shows old and new; an added source or note reads as plain text */}
+          {change.before === undefined ? change.after : <><span className="correction-confirm__before">{change.before}</span><span aria-hidden="true"> → </span><span className="correction-confirm__hidden"> changes to </span><strong>{change.after}</strong></>}
+        </dd></div>)}
+      </dl>
+      <div className="form-actions correction-confirm__actions">
+        <button ref={backRef} className="button button--secondary" type="button" onClick={onCancel} disabled={publishing}>Back to editing</button>
+        <button className="button button--primary" type="button" onClick={onConfirm} disabled={publishing}>{publishing ? 'Publishing…' : 'Publish changes'}</button>
+      </div>
+    </div>
+  </div>
+}
+
+/** The label a select shows for a value, or the value itself when the reference data does not list it */
+function optionLabel(options: readonly ReferenceOption[], value: string): string {
+  if (!value) return 'Not recorded'
+  return options.find(([option]) => option === value)?.[1] ?? formatEnumLabel(value)
+}
+
+function CorrectionDialog({ record, referenceData, onClose, onSubmitted, onApplied }: CorrectionDialogProps) {
+  const session = useOptionalAdminSession()
+  // Settled once the session is known, so a session that ends mid-edit reports an error instead of turning the form into a proposal
+  const [settledMode, setSettledMode] = useState<CorrectionMode | null>(null)
+  const liveMode = modeFor(session)
+  if (settledMode === null && liveMode !== 'checking') setSettledMode(liveMode)
+  const mode = settledMode ?? liveMode
   const [values, setValues] = useState(() => initialValues(record))
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+  // An administrator's checked changes, waiting for confirmation before they are published
+  const [pending, setPending] = useState<CorrectionPayload | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const firstFieldRef = useRef<HTMLInputElement>(null)
   // Set when a press starts on the backdrop, so dragging a text selection out of a field does not close the dialog
   const pressedBackdropRef = useRef(false)
+
+  // Public pages do not check the session on load, so the first correction asks for it
+  useEffect(() => {
+    if (session?.state.status === 'unknown') session.load()
+  }, [session])
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -126,16 +214,41 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const result = getPayload(record, values)
+    if (mode === 'checking') return
+    const result = getPayload(record, values, mode)
     if ('message' in result) { setError(result.message); setFieldErrors(result.fields ?? {}); return }
+    setError(null)
+    setFieldErrors({})
+    if (mode === 'administrator') setPending(result)
+    else await send(result)
+  }
+
+  async function send(result: CorrectionPayload) {
     setSubmitting(true)
     setError(null)
     setFieldErrors({})
     try {
-      onSubmitted(await submitCorrection(Number(record.id), result))
+      if (mode === 'administrator') {
+        await correctRecord(Number(record.id), {
+          quantity: result.quantity,
+          environment: result.environment,
+          deploymentStatus: result.deploymentStatus,
+          automationLevel: result.automationLevel,
+          installationType: result.installationType,
+          commissioningDate: result.commissioningDate,
+          evidenceUrls: result.evidenceUrls,
+          changeNote: result.changeNote,
+        })
+        onApplied()
+      } else {
+        onSubmitted(await submitCorrection(Number(record.id), result))
+      }
     } catch (cause) {
-      if (cause instanceof CorrectionApiError) setFieldErrors(cause.fields)
-      setError(cause instanceof Error ? cause.message : 'Unable to submit the correction.')
+      if (cause instanceof ApiError) setFieldErrors(cause.fields)
+      // The session reports an ended session or a pending password change in its own words
+      setError(mode === 'administrator' && session ? session.handleError(cause) : cause instanceof Error ? cause.message : 'Unable to submit the correction.')
+      // Back to the form, where the error and any field it names are shown
+      setPending(null)
     } finally {
       setSubmitting(false)
     }
@@ -147,6 +260,21 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
   const automationOptions = optionsWithCurrent(referenceData.automationLevels, values.automationLevel)
   const installationOptions = optionsWithCurrent(referenceData.installationTypes, values.installationType)
 
+  /** What the confirmation lists: each changed field with its current and new value, then any evidence or note added */
+  function changeRows(payload: CorrectionPayload): ChangeRow[] {
+    const before = initialValues(record)
+    const rows: ChangeRow[] = []
+    if (payload.quantity !== undefined) rows.push({ label: 'Quantity', before: formatNumber(record.quantity), after: formatNumber(payload.quantity) })
+    if (payload.environment) rows.push({ label: 'Mining environment', before: optionLabel(environmentOptions, before.environment), after: optionLabel(environmentOptions, payload.environment) })
+    if (payload.deploymentStatus) rows.push({ label: 'Deployment status', before: optionLabel(statusOptions, before.deploymentStatus), after: optionLabel(statusOptions, payload.deploymentStatus) })
+    if (payload.automationLevel) rows.push({ label: 'Automation level', before: optionLabel(automationOptions, before.automationLevel), after: optionLabel(automationOptions, payload.automationLevel) })
+    if (payload.installationType) rows.push({ label: 'Installation type', before: optionLabel(installationOptions, before.installationType), after: optionLabel(installationOptions, payload.installationType) })
+    if (payload.commissioningDate) rows.push({ label: 'Commissioning', before: formatDate(before.commissioningDate), after: formatDate(payload.commissioningDate) })
+    for (const url of payload.evidenceUrls ?? []) rows.push({ label: 'New evidence', after: url })
+    if (payload.changeNote) rows.push({ label: 'Note', after: payload.changeNote })
+    return rows
+  }
+
   // Clicking the backdrop closes the dialog, like Cancel and Escape; not while a correction is being sent
   function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
     const pressedBackdrop = pressedBackdropRef.current
@@ -154,14 +282,15 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
     if (pressedBackdrop && event.target === event.currentTarget && !submitting) onClose()
   }
 
-  return <div className="correction-overlay" role="presentation" onMouseDown={(event) => { pressedBackdropRef.current = event.target === event.currentTarget }} onClick={closeFromBackdrop}><div ref={dialogRef} className="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-correction-title" aria-describedby="equipment-correction-description" onKeyDown={trapFocus}>
-    <div className="correction-dialog__header"><div><p className="eyebrow">Suggest a correction</p><h2 id="equipment-correction-title">Correct this record</h2></div></div>
+  return <div className="correction-overlay" role="presentation" onMouseDown={(event) => { pressedBackdropRef.current = event.target === event.currentTarget }} onClick={closeFromBackdrop}><div ref={dialogRef} className="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-correction-title" aria-describedby="equipment-correction-description" onKeyDown={trapFocus} inert={pending !== null}>
+    <div className="correction-dialog__header"><div>{mode !== 'checking' && <p className="eyebrow">{mode === 'administrator' ? 'Administrator correction' : 'Suggest a correction'}</p>}<h2 id="equipment-correction-title">Correct this record</h2></div></div>
     {/* Only the body scrolls; the title and the actions stay in view */}
     <form className="correction-dialog__form" onSubmit={(event) => void handleSubmit(event)} noValidate>
       <div className="correction-dialog__body">
-        <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>
+        {mode === 'administrator' && <p id="equipment-correction-description" className="form-help">Your changes to <strong>{record.siteName}</strong> are published at once, and the previous values stay in its history. For the technology, site coordinates or validity dates, <Link to={`/admin/deployments/${record.id}`}>open the record in administration</Link>.</p>}
+        {mode === 'public' && <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>}
         <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
-        <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>
+        {mode === 'public' && <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>}
         {error && <p className="form-summary-error" role="alert">{error}</p>}
         <div className="form-grid">
           <div className="form-field"><label htmlFor="equipment-correction-quantity">Quantity</label><input ref={firstFieldRef} id="equipment-correction-quantity" inputMode="numeric" value={values.quantity} onChange={setText('quantity')} aria-invalid={Boolean(fieldErrors.quantity)} aria-describedby={fieldErrors.quantity ? 'equipment-correction-quantity-error' : undefined} />{fieldErrors.quantity && <small id="equipment-correction-quantity-error" className="field-error">{fieldErrors.quantity}</small>}</div>
@@ -171,17 +300,24 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted }: Corre
           <SelectField id="equipment-correction-installation" label="Installation type" value={values.installationType} options={installationOptions} error={fieldErrors.installation_type} onChange={(value) => set('installationType', value)} />
           <div className="form-field"><label htmlFor="equipment-correction-commissioning">Commissioning date or year</label><input id="equipment-correction-commissioning" placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={setText('commissioningDate')} aria-invalid={Boolean(fieldErrors.commissioning_date)} aria-describedby={fieldErrors.commissioning_date ? 'equipment-correction-commissioning-error' : undefined} />{fieldErrors.commissioning_date && <small id="equipment-correction-commissioning-error" className="field-error">{fieldErrors.commissioning_date}</small>}</div>
           <div className="form-field form-field--wide"><label htmlFor="equipment-correction-evidence">Evidence URL <span className="form-help-inline">(recommended)</span></label><input id="equipment-correction-evidence" type="url" placeholder="https://" value={values.evidenceUrl} onChange={setText('evidenceUrl')} aria-invalid={Boolean(fieldErrors.evidence_urls)} aria-describedby={fieldErrors.evidence_urls ? 'equipment-correction-evidence-error' : undefined} />{fieldErrors.evidence_urls && <small id="equipment-correction-evidence-error" className="field-error">{fieldErrors.evidence_urls}</small>}</div>
-          <div className="form-field"><label htmlFor="equipment-correction-email">Contact email <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-email" type="email" placeholder="you@example.com" value={values.contributorEmail} onChange={setText('contributorEmail')} aria-invalid={Boolean(fieldErrors.contributor_email)} aria-describedby={fieldErrors.contributor_email ? 'equipment-correction-email-error' : undefined} />{fieldErrors.contributor_email && <small id="equipment-correction-email-error" className="field-error">{fieldErrors.contributor_email}</small>}</div>
-          <div className="form-field"><label htmlFor="equipment-correction-organisation">Organisation <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-organisation" value={values.organisation} onChange={setText('organisation')} /></div>
-          <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
+          {/* An administrator's change is attributed to their account, so it needs no contact details or disclosure */}
+          {mode === 'public' && <>
+            <div className="form-field"><label htmlFor="equipment-correction-email">Contact email <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-email" type="email" placeholder="you@example.com" value={values.contributorEmail} onChange={setText('contributorEmail')} aria-invalid={Boolean(fieldErrors.contributor_email)} aria-describedby={fieldErrors.contributor_email ? 'equipment-correction-email-error' : undefined} />{fieldErrors.contributor_email && <small id="equipment-correction-email-error" className="field-error">{fieldErrors.contributor_email}</small>}</div>
+            <div className="form-field"><label htmlFor="equipment-correction-organisation">Organisation <span className="form-help-inline">(optional)</span></label><input id="equipment-correction-organisation" value={values.organisation} onChange={setText('organisation')} /></div>
+            <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
+          </>}
           <div className="form-field form-field--wide"><label htmlFor="equipment-correction-note">Note <span className="form-help-inline">(optional)</span></label><textarea id="equipment-correction-note" maxLength={1000} value={values.changeNote} onChange={(event) => set('changeNote', event.target.value)} /></div>
         </div>
-        <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>
+        {mode === 'public' && <label className="disclosure-check"><input type="checkbox" checked={values.disclosureAccepted} onChange={(event) => set('disclosureAccepted', event.target.checked)} /> <span>I confirm that this correction is accurate and may be reviewed by the project team.</span></label>}
         {fieldErrors.disclosure_accepted && <p className="field-error" role="alert">{fieldErrors.disclosure_accepted}</p>}
       </div>
-      <div className="form-actions correction-dialog__actions"><button className="button button--secondary" type="button" onClick={onClose} disabled={submitting}>Cancel</button><button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit correction'}</button></div>
+      <div className="form-actions correction-dialog__actions"><button className="button button--secondary" type="button" onClick={onClose} disabled={submitting}>Cancel</button>{mode === 'administrator'
+        ? <button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save changes'}</button>
+        : <button className="button button--primary" type="submit" disabled={submitting || mode === 'checking'}>{submitting ? 'Submitting…' : 'Submit correction'}</button>}</div>
     </form>
-  </div></div>
+  </div>
+  {pending && <ConfirmChanges siteName={record.siteName} changes={changeRows(pending)} publishing={submitting} onCancel={() => setPending(null)} onConfirm={() => void send(pending)} />}
+  </div>
 }
 
 export default CorrectionDialog
