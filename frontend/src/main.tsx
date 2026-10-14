@@ -5,9 +5,10 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-sans/400.css'
 import '@fontsource/ibm-plex-sans/600.css'
 import '@fontsource/ibm-plex-sans/700.css'
+// Base styles load before App pulls in each page's CSS, so a page's own rules win over the shared ones
+import './styles/global.css'
 import App from './App'
 import { watchScrollbarWidth } from './lib/scrollbar'
-import './styles/global.css'
 
 const rootElement = document.getElementById('root')
 

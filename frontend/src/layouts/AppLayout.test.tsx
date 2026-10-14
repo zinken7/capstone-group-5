@@ -11,7 +11,8 @@ describe('AppLayout', () => {
 
   test.each([
     ['/map', 'Map · Mining Market Map'],
-    ['/equipment', 'Equipment register · Mining Market Map'],
+    ['/equipment', 'Equipment · Mining Market Map'],
+    ['/admin/submissions', 'Admin · Submission history · Mining Market Map'],
     ['/admin/deployments/12', 'Admin · Review record · Mining Market Map'],
     ['/admin/users', 'Admin · Administrators · Mining Market Map'],
   ])('sets a route-specific document title for %s', (path, title) => {

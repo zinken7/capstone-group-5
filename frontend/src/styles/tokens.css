@@ -47,4 +47,17 @@
   --text-strong: var(--color-ink);
   --text-muted: var(--color-text-muted);
   --focus: var(--color-focus);
+  /* Controls (design system): fields and buttons share height, radius and border */
+  --control-height: 44px;
+  --control-radius: 0.5rem;
+  --control-padding-x: 0.75rem;
+  --control-font-size: 0.9375rem;
+  --label-font-size: var(--type-sm);
+}
+
+/* On touch screens fields use 16px, the size below which iOS zooms into a field on focus */
+@media (pointer: coarse) {
+  :root {
+    --control-font-size: 1rem;
+  }
 }

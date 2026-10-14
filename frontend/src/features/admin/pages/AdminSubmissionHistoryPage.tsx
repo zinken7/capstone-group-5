@@ -4,11 +4,42 @@ import { Link } from 'react-router-dom'
 import { getSubmissionHistory } from '../../../lib/api/admin'
 import { formatCountry, formatDateTime, formatEnumLabel } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
+import StatusBadge from '../../../shared/components/StatusBadge'
 import AdminBar from '../components/AdminBar'
-import type { SubmissionHistoryItem } from '../types'
+import type { SubmissionHistoryItem, SubmissionHistorySort } from '../types'
 import '../admin.css'
 
 const PAGE_SIZE = 50
+/** Typing pauses this long before the search runs, so each keystroke does not send a request */
+const SEARCH_DELAY_MS = 250
+
+type SortOrder = 'asc' | 'desc'
+
+/** The status colour each decision leads to; needs changes sends a record back to unverified */
+const DECISION_STATUS: Record<string, string> = {
+  approved: 'verified',
+  rejected: 'rejected',
+  needs_changes: 'unverified',
+}
+
+/** The sort choices offered on small screens, where the table's headings are hidden */
+const SORT_CHOICES: { value: `${SubmissionHistorySort}:${SortOrder}`; label: string }[] = [
+  { value: 'updated:desc', label: 'Last updated, newest first' },
+  { value: 'updated:asc', label: 'Last updated, oldest first' },
+  { value: 'id:desc', label: 'Submission ID, highest first' },
+  { value: 'id:asc', label: 'Submission ID, lowest first' },
+  { value: 'site:asc', label: 'Site, A to Z' },
+  { value: 'site:desc', label: 'Site, Z to A' },
+  { value: 'decision:asc', label: 'Latest decision, A to Z' },
+  { value: 'decision:desc', label: 'Latest decision, Z to A' },
+  { value: 'status:asc', label: 'Current status, A to Z' },
+  { value: 'status:desc', label: 'Current status, Z to A' },
+]
+
+/** IDs and dates start newest first; text columns start A to Z */
+function defaultOrder(sort: SubmissionHistorySort): SortOrder {
+  return sort === 'id' || sort === 'updated' ? 'desc' : 'asc'
+}
 
 type PageState =
   | { status: 'loading' }
@@ -23,15 +54,22 @@ function decisionLabel(decision: string, isCorrection: boolean | null): string {
 function AdminSubmissionHistoryPage() {
   const [page, setPage] = useState<PageState>({ status: 'loading' })
   const [search, setSearch] = useState('')
-  const [validationError, setValidationError] = useState<string | null>(null)
-  const [activeId, setActiveId] = useState<number | undefined>()
+  const [query, setQuery] = useState('')
   const [offset, setOffset] = useState(0)
+  const [sort, setSort] = useState<{ key: SubmissionHistorySort; order: SortOrder }>({ key: 'updated', order: 'desc' })
+
+  // Searches as you type, like the register, once typing pauses
+  useEffect(() => {
+    const value = search.trim()
+    if (value === query) return
+    const timer = window.setTimeout(() => runSearch(value), SEARCH_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [search, query])
 
   useEffect(() => {
     let active = true
 
-
-    getSubmissionHistory(PAGE_SIZE + 1, offset, activeId)
+    getSubmissionHistory({ limit: PAGE_SIZE + 1, offset, q: query || undefined, sort: sort.key, order: sort.order })
       .then((items) => {
         if (active) {
           setPage({
@@ -53,21 +91,30 @@ function AdminSubmissionHistoryPage() {
     return () => {
       active = false
     }
-  }, [activeId, offset])
+  }, [query, offset, sort])
 
-  function handleSearch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const value = search.trim()
-
-    if (value && (!/^\d+$/.test(value) || Number(value) < 1 || !Number.isSafeInteger(Number(value)))) {
-      setValidationError('Enter a valid positive Submission ID.')
-      return
-    }
-
-    setValidationError(null)
-
+  function runSearch(value: string) {
+    setQuery(value)
     setOffset(0)
-    setActiveId(value ? Number(value) : undefined)
+  }
+
+  function changeSort(key: SubmissionHistorySort) {
+    setSort((current) => current.key === key
+      ? { key, order: current.order === 'asc' ? 'desc' : 'asc' }
+      : { key, order: defaultOrder(key) })
+    setOffset(0)
+  }
+
+  function sortableHeader(label: string, key: SubmissionHistorySort) {
+    const direction = sort.order === 'asc' ? 'ascending' : 'descending'
+    const active = sort.key === key
+    return (
+      <th scope="col" aria-sort={active ? direction : 'none'}>
+        <button className="table-sort-button" type="button" onClick={() => changeSort(key)} aria-label={active ? `Sort by ${label}, ${direction}` : `Sort by ${label}`}>
+          {label} <span aria-hidden="true">{active ? (sort.order === 'asc' ? '↑' : '↓') : '↕'}</span>
+        </button>
+      </th>
+    )
   }
 
   return (
@@ -77,36 +124,20 @@ function AdminSubmissionHistoryPage() {
         <header className="admin-heading">
           <div>
             <h1>Submission history</h1>
-            <p>Find submissions across verification statuses and review their latest decisions.</p>
           </div>
         </header>
 
-        <form onSubmit={handleSearch} className="admin-search">
-          <label htmlFor="submission-id">Submission ID</label>
+        {/* Enter searches at once instead of waiting for the pause; the field's own clear button empties it, as on the register */}
+        <form role="search" className="admin-search" onSubmit={(event) => { event.preventDefault(); runSearch(search.trim()) }}>
+          <label htmlFor="submission-search">Search</label>
           <input
-            id="submission-id"
+            id="submission-search"
             type="search"
-            inputMode="numeric"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Enter a Submission ID"
+            placeholder="Submission ID or site name"
           />
-          <button type="submit" className="button button--primary">Search</button>
-          <button type="button" className="button button--secondary" onClick={() => {
-            setSearch('')
-            setValidationError(null)
-            setOffset(0)
-            setActiveId(undefined)
-          }}>
-            Show all
-          </button>
         </form>
-
-        {validationError && (
-          <p role="alert" className="admin-search-error">
-            {validationError}
-          </p>
-        )}
 
         {page.status === 'loading' && (
           <StateMessage variant="loading" title="Loading submission history" message="Fetching historical submissions." />
@@ -115,21 +146,35 @@ function AdminSubmissionHistoryPage() {
           <StateMessage variant="error" title="History unavailable" message={page.message} />
         )}
         {page.status === 'ready' && page.items.length === 0 && (
-          <StateMessage title="No submissions found" message="Try another Submission ID or show all submissions." />
+          <StateMessage title="No submissions found" message="Try another ID or site name, or clear the search." />
         )}
         {page.status === 'ready' && page.items.length > 0 && (
           <>
+            <div className="admin-sort">
+              <label htmlFor="history-sort">Sort by</label>
+              <select
+                id="history-sort"
+                value={`${sort.key}:${sort.order}`}
+                onChange={(event) => {
+                  const [key, order] = event.target.value.split(':') as [SubmissionHistorySort, SortOrder]
+                  setSort({ key, order })
+                  setOffset(0)
+                }}
+              >
+                {SORT_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+              </select>
+            </div>
             <div className="admin-table-wrap">
               <table className="admin-table admin-table--stack">
                 <caption className="visually-hidden">Submission history</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Submission ID</th>
-                    <th scope="col">Site</th>
+                    {sortableHeader('Submission ID', 'id')}
+                    {sortableHeader('Site', 'site')}
                     <th scope="col">Country</th>
-                    <th scope="col">Latest decision</th>
-                    <th scope="col">Current status</th>
-                    <th scope="col">Last updated</th>
+                    {sortableHeader('Latest decision', 'decision')}
+                    {sortableHeader('Current status', 'status')}
+                    {sortableHeader('Last updated', 'updated')}
                     <th scope="col">Action</th>
                   </tr>
                 </thead>
@@ -141,10 +186,10 @@ function AdminSubmissionHistoryPage() {
                       <td data-label="Country">{formatCountry(item.countryCode)}</td>
                       <td data-label="Latest decision">
                         {item.latestDecision
-                          ? decisionLabel(item.latestDecision, item.latestDecisionIsCorrection)
+                          ? <StatusBadge status={DECISION_STATUS[item.latestDecision]} label={decisionLabel(item.latestDecision, item.latestDecisionIsCorrection)} />
                           : 'No review recorded'}
                       </td>
-                      <td data-label="Current status">{formatEnumLabel(item.verificationStatus)}</td>
+                      <td data-label="Current status"><StatusBadge status={item.verificationStatus} /></td>
                       <td data-label="Last updated">
                         {formatDateTime(item.updatedAt)}
                       </td>
@@ -159,25 +204,23 @@ function AdminSubmissionHistoryPage() {
               </table>
             </div>
 
-            {!activeId && (
-              <div className="admin-pagination">
-                <button className="button button--secondary"
-                  type="button"
-                  disabled={offset === 0}
-                  onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-                >
-                  Previous
-                </button>
-                <span>Showing {offset + 1}–{offset + page.items.length}</span>
-                <button className="button button--secondary"
-                  type="button"
-                  disabled={!page.hasNextPage}
-                  onClick={() => setOffset(offset + PAGE_SIZE)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <div className="admin-pagination">
+              <button className="button button--secondary"
+                type="button"
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              >
+                Previous
+              </button>
+              <span>Showing {offset + 1}–{offset + page.items.length}</span>
+              <button className="button button--secondary"
+                type="button"
+                disabled={!page.hasNextPage}
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+              >
+                Next
+              </button>
+            </div>
           </>
         )}
       </main>

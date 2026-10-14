@@ -4,6 +4,7 @@ import { getAnalyticsBreakdowns, getAnalyticsCrosstab, getAnalyticsSummary, getA
 import type { AnalyticsBreakdownsDto, AnalyticsCrosstabDto, AnalyticsFilters, AnalyticsSummaryDto, AnalyticsTimelineDto } from '../../../lib/api/analytics'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
+import MapIcon from '../../map/components/MapIcon'
 import { formatCountry, formatEnumLabel } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import { byValue, emptyCrosstab, plural, toRows } from '../chartData'
@@ -116,11 +117,11 @@ function FilterBar({ filters, onChange, onClear }: { filters: AnalyticsFilters; 
       {select('Machine type', 'machineType', 'All machine types', reference.machineTypes)}
       {select('Technology supplier', 'supplier', 'All suppliers', remoteOptions.suppliers.map((value) => [value, value] as const))}
       {select('Manufacturer', 'manufacturer', 'All manufacturers', remoteOptions.manufacturers.map((value) => [value, value] as const))}
-      {select('Automation level', 'automationLevel', 'All automation levels', reference.automationLevels)}
+      {select('Automation level', 'automationLevel', 'All levels', reference.automationLevels)}
       {select('Environment', 'environment', 'All environments', reference.environments)}
       {select('Commissioned from', 'commissionedFrom', 'Any year', years.filter((year) => !filters.commissionedTo || year <= Number(filters.commissionedTo)).map((year) => [String(year), String(year)] as const))}
       {select('Commissioned to', 'commissionedTo', 'Any year', years.filter((year) => !filters.commissionedFrom || year >= Number(filters.commissionedFrom)).map((year) => [String(year), String(year)] as const))}
-      <button className="analytics-clear" type="button" onClick={onClear} disabled={Object.keys(filters).length === 0}>Clear all</button>
+      <button className="text-button text-button--flush analytics-clear" type="button" onClick={onClear} disabled={Object.keys(filters).length === 0}><MapIcon name="reset" size={16} /> Clear all</button>
     </section>
   )
 }
@@ -173,7 +174,7 @@ function AnalyticsPage({ summary: suppliedSummary }: AnalyticsPageProps = {}) {
 
   return (
     <section className="product-page analytics-page">
-      <header className="page-heading"><div><p className="eyebrow">Market overview</p><h1>Analytics</h1><p className="intro">How the autonomous mining equipment market is growing, where, and who supplies it. Every chart follows the filters below.</p></div></header>
+      <header className="page-heading"><div><p className="eyebrow">Market overview</p><h1>Analytics</h1></div></header>
       <FilterBar filters={filters} onChange={updateFilters} onClear={() => updateFilters({})} />
       {loading && !data && <StateMessage variant="loading" title="Loading live analytics" message="Connecting to the database-backed analytics API…" />}
       {error && !data && <StateMessage variant="error" title="Unable to load analytics" message={`${error}. Check that the backend is running and try again.`} />}

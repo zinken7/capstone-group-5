@@ -35,7 +35,6 @@ function AdminQueuePage() {
         <header className="admin-heading">
           <div>
             <h1>Review queue</h1>
-            <p>Submissions and corrections waiting for a decision, oldest first. Nothing here is public until it is approved.</p>
           </div>
           {count !== null && count > 0 && <p className="admin-count"><strong>{formatNumber(count)}</strong> waiting</p>}
         </header>

@@ -95,7 +95,7 @@
 
 .map-field {
   display: grid;
-  gap: var(--space-1);
+  gap: 0.375rem;
 }
 
 .map-field label,
@@ -106,14 +106,7 @@
 }
 
 .map-field select {
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--control-border);
-  border-radius: 0.5rem;
-  background: var(--color-surface);
-  color: var(--text-strong);
-  font: inherit;
-  font-size: var(--type-sm);
+  width: 100%;
 }
 
 .map-chips {
@@ -828,6 +821,30 @@
     overscroll-behavior: auto;
     border-right: 0;
     border-bottom: 1px solid var(--border);
+  }
+
+  /* The panel opens above the map here, so its toggle is a full-width bar and the arrows point down and up */
+  .map-rail {
+    padding: var(--space-3) var(--space-5);
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .map-rail__button {
+    flex: 1 1 auto;
+    flex-direction: row;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+  }
+
+  .map-rail__label {
+    font-size: var(--type-sm);
+    writing-mode: horizontal-tb;
+  }
+
+  [aria-controls="map-panel"] .map-icon {
+    transform: rotate(90deg);
   }
 
   .map-stage {

@@ -1,10 +1,12 @@
-import { and, asc, eq, inArray, isNull, sql, ne, or } from 'drizzle-orm'
+import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
 import { isoTimestamp } from '../lib/iso-timestamp.js'
+import { likePattern } from './deployments.js'
 
 // company joins twice: once as the machine manufacturer, once as the technology supplier
 const manufacturer = alias(tables.company, 'manufacturer')
@@ -119,12 +121,30 @@ export interface SubmissionHistoryItem {
   updated_at: string
 }
 
-/** Admin history of submissions across all verification statuses. */
-export async function listSubmissionHistory(
+/** Columns the submission history can be sorted by. */
+export const SUBMISSION_HISTORY_SORTS = ['id', 'site', 'decision', 'status', 'updated'] as const
+export type SubmissionHistorySort = typeof SUBMISSION_HISTORY_SORTS[number]
+
+export interface SubmissionHistoryOptions {
+  limit?: number
+  offset?: number
+  /** An exact deployment ID */
+  deploymentId?: number
+  /** Free text: an ID starting with these digits, or a site name containing the text */
+  query?: string
+  sort?: SubmissionHistorySort
+  order?: 'asc' | 'desc'
+}
+
+/** Admin history of submissions across all verification statuses; ties go to the newest record. */
+export async function listSubmissionHistory({
   limit = 50,
   offset = 0,
-  deploymentId?: number,
-): Promise<SubmissionHistoryItem[]> {
+  deploymentId,
+  query,
+  sort = 'updated',
+  order = 'desc',
+}: SubmissionHistoryOptions = {}): Promise<SubmissionHistoryItem[]> {
   const latestDecision = sql<string | null>`(
     SELECT vr.decision::text
     FROM ${tables.verificationReview} vr
@@ -141,6 +161,15 @@ export async function listSubmissionHistory(
     LIMIT 1
   )`
 
+  // Status and decision sort by their text, which matches the order of their labels
+  const sortColumns: Record<SubmissionHistorySort, SQL> = {
+    id: sql`${tables.deployment.id}`,
+    site: sql`${tables.site.name}`,
+    decision: latestDecision,
+    status: sql`${tables.deployment.verificationStatus}::text`,
+    updated: sql`${tables.deployment.updatedAt}`,
+  }
+
   return db
     .select({
       id: tables.deployment.id,
@@ -153,13 +182,15 @@ export async function listSubmissionHistory(
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
-    .where(
-      deploymentId === undefined
-        ? undefined
-        : eq(tables.deployment.id, deploymentId),
-    )
+    .where(and(
+      deploymentId === undefined ? undefined : eq(tables.deployment.id, deploymentId),
+      query ? or(
+        /^\d+$/.test(query) ? sql`${tables.deployment.id}::text LIKE ${`${query}%`}` : undefined,
+        ilike(tables.site.name, likePattern(query)),
+      ) : undefined,
+    ))
     .orderBy(
-      sql`${tables.deployment.updatedAt} DESC`,
+      sql`${sortColumns[sort]} ${sql.raw(order === 'asc' ? 'ASC' : 'DESC')} NULLS LAST`,
       sql`${tables.deployment.id} DESC`,
     )
     .limit(limit)

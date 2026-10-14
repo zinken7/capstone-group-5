@@ -10,6 +10,7 @@ import type {
   ReviewQueueItem,
   ReviewRecord,
   SubmissionHistoryItem,
+  SubmissionHistorySort,
 } from '../../features/admin/types'
 
 // The backend refuses modifying admin requests without this header (CSRF protection).
@@ -317,18 +318,27 @@ export async function setAdministratorActive(id: number, active: boolean): Promi
 }
 
 
-/** Retrieves submission history, optionally filtered by an exact deployment ID. */
+export interface SubmissionHistoryQuery {
+  limit?: number
+  offset?: number
+  /** Free text: the start of a submission ID or part of a site name */
+  q?: string
+  sort?: SubmissionHistorySort
+  order?: 'asc' | 'desc'
+}
+
+/** Retrieves submission history, optionally searched by ID or site name; newest first unless sorted. */
 export async function getSubmissionHistory(
-  limit = 50,
-  offset = 0,
-  id?: number,
+  { limit = 50, offset = 0, q, sort = 'updated', order = 'desc' }: SubmissionHistoryQuery = {},
 ): Promise<SubmissionHistoryItem[]> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
+    sort,
+    order,
   })
 
-  if (id !== undefined) params.set('id', String(id))
+  if (q) params.set('q', q)
 
   const response = await requestJson<{ items: {
     id: number

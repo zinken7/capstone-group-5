@@ -170,6 +170,74 @@ describe('GET /api/admin/submissions', () => {
     expect(response.status).toBe(400)
     expect(response.body.error).toBe('invalid pagination or submission ID')
   })
+
+  it('searches by the start of an ID or part of a site name', async () => {
+    const id = await contribute()
+    const prefix = String(id).slice(0, 2)
+    const byId = await request(app).get(`/api/admin/submissions?q=${prefix}`).set('Cookie', cookie)
+    expect(byId.status).toBe(200)
+    const ids: number[] = byId.body.items.map((item: { id: number }) => item.id)
+    expect(ids).toContain(id)
+    expect(ids.every((value) => String(value).startsWith(prefix))).toBe(true)
+
+    const siteName: string = byId.body.items.find((item: { id: number }) => item.id === id).site_name
+    const fragment = siteName.slice(1, 5).toLowerCase()
+    const bySite = await request(app).get(`/api/admin/submissions?q=${encodeURIComponent(` ${fragment} `)}`).set('Cookie', cookie)
+    expect(bySite.body.items.map((item: { id: number }) => item.id)).toContain(id)
+    expect(bySite.body.items.every((item: { site_name: string }) => item.site_name.toLowerCase().includes(fragment))).toBe(true)
+
+    // LIKE wildcards in the search are taken literally
+    const wildcard = await request(app).get('/api/admin/submissions?q=%25').set('Cookie', cookie)
+    expect(wildcard.body.items).toEqual([])
+  })
+
+  it('rejects a repeated search parameter', async () => {
+    const response = await request(app).get('/api/admin/submissions?q=a&q=b').set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('invalid q parameter')
+  })
+
+  it('sorts by the requested column in either order', async () => {
+    const ids = (body: { items: { id: number }[] }) => body.items.map((item) => item.id)
+    const ascending = await request(app).get('/api/admin/submissions?sort=id&order=asc').set('Cookie', cookie)
+    const descending = await request(app).get('/api/admin/submissions?sort=id&order=desc').set('Cookie', cookie)
+
+    expect(ascending.status).toBe(200)
+    expect(ids(ascending.body)).toEqual([...ids(ascending.body)].sort((a, b) => a - b))
+    expect(ids(descending.body)).toEqual([...ids(ascending.body)].reverse())
+  })
+
+  it('sorts statuses and decisions by their text, with unreviewed records last', async () => {
+    const approved = await contribute()
+    expect((await review(approved, { decision: 'approved' })).status).toBe(201)
+    const rejected = await contribute()
+    expect((await review(rejected, { decision: 'rejected', note: 'Not an autonomous fleet' })).status).toBe(201)
+    await contribute()
+
+    const byStatus = await request(app).get('/api/admin/submissions?sort=status').set('Cookie', cookie)
+    const statuses = byStatus.body.items.map((item: { verification_status: string }) => item.verification_status)
+    expect(statuses).toEqual([...statuses].sort())
+
+    const byDecision = await request(app).get('/api/admin/submissions?sort=decision&order=desc').set('Cookie', cookie)
+    const decisions: (string | null)[] = byDecision.body.items.map((item: { latest_decision: string | null }) => item.latest_decision)
+    const reviewed = decisions.filter((decision) => decision !== null)
+    expect(reviewed).toEqual(expect.arrayContaining(['approved', 'rejected']))
+    expect(decisions.slice(0, reviewed.length)).toEqual(reviewed)
+    expect(reviewed).toEqual([...reviewed].sort().reverse())
+  })
+
+  it.each([
+    ['sort=country', 'invalid sort parameter'],
+    ['sort=', 'invalid sort parameter'],
+    ['order=up', 'invalid order parameter'],
+    ['sort=id&order=ASC', 'invalid order parameter'],
+  ])('rejects an invalid sort: %s', async (query, error) => {
+    const response = await request(app).get(`/api/admin/submissions?${query}`).set('Cookie', cookie)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe(error)
+  })
 })
 describe('GET /api/admin/reviews', () => {
   it('lists records pending review, least recently changed first', async () => {
