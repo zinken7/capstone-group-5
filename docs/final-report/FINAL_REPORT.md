@@ -1,6 +1,6 @@
 # Final Group Report: Autonomous Mining Equipment Market Map
 
-Oct 12, 2026 · @Hans
+Oct 15, 2026 · @Hans
 
 CITS5206 Group 5 · Client: Dr Adrian Boeing, UWA
 
@@ -19,20 +19,20 @@ CITS5206 Group 5 · Client: Dr Adrian Boeing, UWA
 
 ## 1. Requirements and solution
 
-We built an open, crowdsourced and queryable map of autonomous and teleremote mining equipment. On 8 October, 12 of the 15 must-have items in the agreed MVP were working on the staging site, and the other three were due on 13 October. By 13 October, #172 was done (PR #180). For #171, the backend (PR #188) and frontend (PR #193) changes were merged, and the issue is still open. For #157, the four levels now use the client's wording (PR #186); the level definitions on the form, pre-filling a product's level, and administrator classification of products are still open.
+We built an open, crowdsourced and queryable map of autonomous and teleremote mining equipment. All 15 must-have items in the MVP agreed on 8 October are on the staging site. Twelve were working on 8 October, and the other three were closed by 15 October: operational deployments shown by default (#172, PR #180), the required submission fields (#171, PRs #188 and #193), and the four automation levels in the client's wording (#157, PR #186). The rest of #157 was withdrawn in SRS version 0.6: the client rejected deriving a level from the technology product, and the form's help text needs no requirement.
 
 **The need.** Deployment data is sold in market reports at about $50,000–100,000 each, and each report is a single source that nobody can check (client meeting, 6 August). No open dataset exists, so startups, analysts and researchers are locked out.
 
-**Requirements.** The written brief names four functions: an interactive map, an analytics dashboard, a queryable register, and verified crowdsourcing. We turned three client meetings and two industry users' input into a specification, now at version 0.6 \[1\]. Every requirement records its source, and anything the team proposed without a source is marked as such. The client received an MVP scope agreement on 8 October \[2\]. **\[ADD: client's written confirmation, once received.\]**
+**Requirements.** The written brief names four functions: an interactive map, an analytics dashboard, a queryable register, and verified crowdsourcing. We turned three client meetings and two industry users' input into a specification, now at version 0.6, with version 0.7 in review (PR #210) \[1\]. Every requirement records its source, and anything the team proposed without a source is marked as such. The client received an MVP scope agreement on 8 October \[2\]. **\[ADD: client's written confirmation, once received.\]**
 
-**Solution.** The system is written in TypeScript: a React front end with a Leaflet map, and a Node API using Drizzle ORM over PostgreSQL with PostGIS. Staging runs on Vercel and redeploys from the main branch. Public pages show verified records only; every record carries an evidence link, and nothing is published until an administrator approves it.
+**Solution.** The system is written in TypeScript: a React front end with a Leaflet map, and a Node API using Drizzle ORM over PostgreSQL with PostGIS. Staging runs on Vercel and redeploys from the main branch. Public pages show verified records only; a record needs at least one evidence link before it can be verified, and nothing is published until an administrator approves it.
 
-| Function | Delivered on staging (8 Oct) | Open on 8 Oct |
+| Function | Delivered on staging (15 Oct) | Notes |
 | --- | --- | --- |
-| Map | One marker per site with detail (FR-15, FR-17); supplier filter (FR-18); year control (FR-19); new sites appear after approval (FR-04) | Operational deployments by default (FR-16), #172 |
+| Map | One marker per site with detail (FR-15, FR-17); operational deployments by default (FR-16); supplier filter (FR-18); year control (FR-19); new sites appear after approval (FR-04) | FR-16 completed on 13 October (#172) |
 | Analytics | Headline counts, machines in service over time, counts by country and machine type, market share (FR-21–26); one filter set for every chart, aggregates only (FR-27, FR-28) | — |
 | Equipment register | Search, filter and sort (FR-36); export to CSV (FR-37) | — |
-| Contribute and review | Public form with no account; nothing public until approved (FR-40, FR-42); evidence links (FR-44); approve, reject, request changes, correct (FR-45, FR-46) | Required fields (FR-07, FR-08), #171; four automation levels (FR-57), #157 |
+| Contribute and review | Public form with no account (FR-40) and the required fields (FR-07, FR-08); nothing public until approved (FR-42); four automation levels (FR-57); evidence links (FR-44); approve, reject and correct, with a duplicate warning for reviewers (FR-45, FR-46, PR #192); submission history for administrators (PR #191) | "Request changes" is held back until contributors can answer it (PR #212); see Section 4 |
 | All pages | Accessibility to WCAG 2.1 AA (NFR-01) | — |
 | Optional: evidence check (FR-55) | Separate module that checks a submission against its evidence link | Connection to the review screen, awaiting the client's decision |
 
@@ -44,11 +44,12 @@ Every change passed automated tests in CI and a review by another member before 
 
 | Activity | What it checks | Evidence |
 | --- | --- | --- |
-| Automated tests in CI | Every pull request runs the test suite, and our definition of done requires it to pass before merge. On the current main, the backend suite has 350 tests in 35 files and the frontend suite 200 tests in 26 files; run `npm test` in `backend/` or `frontend/`. | [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
+| Automated tests in CI | Every pull request runs the test suite, and our definition of done requires it to pass before merge. On the current main, the backend suite has 350 tests in 35 files and the frontend suite 200 tests in 26 files; run `npm test` in `backend/` or `frontend/`. **\[UPDATE the counts after PR #212 merges.\]** | [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
 | Schema check in CI | The build fails if the code and the database schema drift apart, after the data layer moved to Drizzle ORM. The move itself caught two bugs. | PR #102 |
 | Code review | No pull request merges without review. Reviewers reproduce problems before reporting them: a reported data leak was reproduced locally first and fixed before merge. | PR #173 |
 | Manual QA | Each page checked against a written checklist on staging, by a member other than its author. | [QA checklist](https://github.com/zinken7/capstone-group-5/blob/main/docs/sprint-2-frontend-qa-checklist.md) |
 | Accessibility | Automated end-to-end accessibility tests, plus manual checks of contrast, colour-independent meaning, keyboard use and labelled forms, to WCAG 2.1 AA. | [accessibility.spec.ts](https://github.com/zinken7/capstone-group-5/blob/main/frontend/e2e/accessibility.spec.ts), PR #169 |
+| Workflow and security testing | The whole contribution and review workflow was tested on staging, not only single pages. This found that the public correction route accepted edits to unverified records from anyone, without signing in: an anonymous request reopened and changed a rejected test record. The route now refuses such edits (403), tests check that nothing is stored, and the fix was checked before and after. | #211, PR #212 |
 | Client review | The client reviewed the system at client meetings and received the MVP scope agreement on 8 October. | [Meeting minutes](https://github.com/zinken7/capstone-group-5/tree/main/docs/meeting_minutes) **\[ADD: written confirmation\]** |
 
 **Evidence-check engine (FR-55).** The engine has 255 automated tests. Before any tuning, Hans labelled a set of 20 cases containing 110 facts. The free local check judged 105 of the 110 correctly, and adding Claude Haiku for the uncertain cases raised that to 110. A second member then wrote harder cases. The first five found three ways to fool the engine: planned deployments read as current, fleets credited to the wrong site, and confused company relationships. The remaining cases stay hidden from the engine's author until those fixes are made.
@@ -60,7 +61,7 @@ The README sets out how to install, run and test the system, and each user role 
 | Document | For | What it covers | Link |
 | --- | --- | --- | --- |
 | README | Developers, markers | Requirements, downloading the code, starting the backend, database and frontend, creating an administrator, environment variables, troubleshooting | [README](https://github.com/zinken7/capstone-group-5#readme); tested by following it on a clean Ubuntu VM, macOS and Windows (#189, PR #190) |
-| Administrator guide | Reviewers | Signing in, reviewing the queue, approving, rejecting, requesting changes, correcting a record | [admin-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/admin-guide.md) |
+| Administrator guide | Reviewers | Signing in, reviewing the queue, approving, rejecting and correcting a record | [admin-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/admin-guide.md) |
 | User guide | Public users and contributors | Using the map, analytics and register; submitting a record with evidence | **\[MISSING: no user guide in docs yet\]** |
 | Deployment and CI | Whoever hosts it next | How staging deploys from main, database migrations, CI checks | [staging.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/staging.md), [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
 | API reference | Developers | Endpoints and their parameters | [api/README.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/api/README.md) |
@@ -73,26 +74,28 @@ The README sets out how to install, run and test the system, and each user role 
 
 ## 4. Discussion and future work
 
-The MVP is close to complete, and its main gaps are recorded as open issues in the repository rather than left undocumented. #156, where a deployment decommissioned in the app stayed on the default map, was fixed before submission (PR #166 and #187).
+All must-have items in the agreed MVP are delivered, and the remaining gaps are recorded as open issues rather than left undocumented. Before submission we also fixed #156, where a deployment decommissioned in the app stayed on the default map (PRs #166 and #187), and #168, where duplicate submissions were accepted without a warning (PR #192).
 
 **Open issues at submission** ([issue list](https://github.com/zinken7/capstone-group-5/issues)):
 
-- \#168: duplicate submissions are accepted without a warning. Flagging duplicates for the administrator is a Should item in the agreement. A fix is in review (PR #192).
-- \#157: the level labels follow the client's wording (PR #186), but the level definitions on the form, pre-filling a product's level, and administrator classification of products are not done yet.
-- \#171: the required fields are in place on the backend and frontend (PR #188, PR #193); the issue is still open.
-- \#83 and #69: the evidence check works as a separate module but is not yet connected to the review screen. Connecting it needs the client's decision, a rebase onto main, a guard on outbound requests, and a background worker, which the current serverless host cannot run.
+- \#203 to \#209, with SRS version 0.7 (PR #210): closing the review loop. Requesting changes only works if the contributor can answer, and contributors have no account. Version 0.7 proposes a private submission key so contributors can follow and update their own submissions, and asks the client to confirm the loop (Q-23); the team is still agreeing whether the key is a Must for this semester. Until then, "request changes" is held back (PR #212): an administrator corrects and approves a record, or rejects it with a note.
+- Optional contributor email: FR-40 lets a contributor leave an email so an administrator can follow up. The correction form collects one; the submission form does not yet.
+- \#83 and \#69: the evidence check works as a separate module but is not yet connected to the review screen. Connecting it needs the client's decision, a rebase onto main, a guard on outbound requests, and a background worker, which the current serverless host cannot run.
+- Abuse protection: the public forms have no rate limiting, so a script could flood the review queue. **\[CHECK: whether the FR-51 submission challenge is built.\]**
 
 **What worked.** Tracing every requirement to its source kept scope discussions short: when a feature was questioned, the source settled it. Delivering one complete slice per sprint meant there was always something to show the client.
 
-**What we would change.** Staging redeploys only from merges made by one member's account, so that member became a bottleneck for every release. Hosting at UWA was never confirmed, so the system is handed over on a public host with deployment instructions.
+**What we would change.** We tested the review workflow end to end late. Done earlier, it would have found the anonymous-edit flaw sooner: a unit test had asserted that behaviour as correct, because the specification did not yet say who may change a record before it is verified. Staging redeploys only from merges made by one member's account, so that member became a bottleneck for every release. Hosting at UWA was never confirmed, so the system is handed over on a public host with deployment instructions.
 
 **Future work:**
 
-1. Connect the evidence check to the review screen, if the client agrees, and fix its three known weaknesses (planned deployments, wrong site, company relationships).
-2. Extend it to use source publication dates, detect page language, and learn from reviewers' decisions.
-3. Replace the placeholder data with real records from industry contributors.
-4. Move hosting to a UWA environment and confirm the licences.
-5. Deliver the remaining Should and Could items, such as duplicate flagging and a satellite-view link for reviewers.
+1. Close the review loop: collect the optional email on the submission form, with an "Email contributor" link for administrators, then add the private submission key so contributors can follow and update their own submissions (#204 to #209).
+2. Add rate limiting and an automated-submission challenge (FR-51) to the public forms.
+3. Connect the evidence check to the review screen, if the client agrees, and fix its three known weaknesses (planned deployments, wrong site, company relationships).
+4. Extend it to use source publication dates, detect page language, and learn from reviewers' decisions.
+5. Replace the placeholder data with real records from industry contributors.
+6. Move hosting to a UWA environment and confirm the licences.
+7. Deliver the remaining Should and Could items, such as a satellite-view link for reviewers.
 
 ## 5. Use of generative AI
 
@@ -105,7 +108,7 @@ We used generative AI in documents, code and review, under two team rules.
 
 | Member | Where AI was used | How the output was checked and changed |
 | --- | --- | --- |
-| Hans Lionar | Claude, for drafting and editing the specification and client documents; Claude Code, for writing the evidence-check engine and the Drizzle migration to his design; first-pass review of teammates' pull requests. Commits the agent wrote for the engine and the migration carry a co-author line naming it. | Design written first, then code checked against tests (255 for the engine) and live on staging. Review findings were reproduced before being reported: a data leak was confirmed locally and fixed (PR #173); a suggested map bug could not be reproduced and was dropped from the review (PR #179). |
+| Hans Lionar | Claude, for drafting and editing the specification and client documents; Claude Code, for writing the evidence-check engine and the Drizzle migration to his design, for auditing the review workflow, and for first-pass review of teammates' pull requests. Commits the agent wrote for the engine and the migration carry a co-author line naming it. | Design written first, then code checked against tests (255 for the engine) and live on staging. Findings were reproduced before being acted on: a data leak was confirmed locally and fixed (PR #173); a suggested map bug could not be reproduced and was dropped from the review (PR #179); an audit's report that anyone could edit unverified records was reproduced on staging, where a rejected record was reopened, before the fix, and the fix was confirmed to refuse the same request (#211, PR #212). |
 | Tyrone Tran | **\[ADD: tool, and what you used it for\]** | **\[ADD: how you checked it, and one output you changed or rejected\]** |
 | Zerun Zhang | Claude Code, to help probe the backend for concurrency, injection and data-exposure problems. For concurrency, it drafted and ran a test that forces two corrections onto the same record at once. For injection, it checked that queries are parameterised and that the sort allow-list, search wildcard escaping and CSV formula protection work, with tests covering each. For vulnerabilities, it reproduced an unreviewed submission moving a site on the public map (PR #173) and a stale admin session after reactivation (PR #105). | For the concurrency test, the assistant checked that it fails when the row lock is removed, and I reviewed the result. I reviewed both reproductions before reporting them on those pull requests. I chose which features and pull requests to test, read every finding before acting on it, and only raised issues whose reproduction I had checked. Changed: every fix was undone once to confirm its tests fail, and any test that still passed was rewritten; in PR #166 a drafted test assumed a site had a commissioning year, and I had its expectation corrected after it failed. Rejected: the assistant once merged main into my branch after I had declined it; I had the merge removed before anything was pushed and set a rule against it. |
 | Zunhao Zhang | **\[ADD: tool, and what you used it for\]** | **\[ADD: how you checked it, and one output you changed or rejected\]** |
@@ -116,7 +119,7 @@ We used generative AI in documents, code and review, under two team rules.
 
 ## 6. References
 
-1. Group 5, *Software Requirements Specification*, version 0.6, October 2026. [docs/SRS/SRS.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/SRS/SRS.md)
+1. Group 5, *Software Requirements Specification*, version 0.6, October 2026; version 0.7 in review (PR #210). [docs/SRS/SRS.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/SRS/SRS.md)
 2. Group 5, *MVP Scope Agreement*, sent to the client on 8 October 2026. [Correspondence log](https://github.com/zinken7/capstone-group-5/blob/main/docs/correspondence-log.md)
 3. Group 5, *Project Plan and Specification Report* (Assignment 1), 25 August 2026. [PDF](https://github.com/zinken7/capstone-group-5/blob/main/docs/d1/submitted/2026-08-25-group5-assignment-1.pdf)
 4. Group 5, *FR-55 Automated Evidence Check: Design*, pull request #84. [Link](https://github.com/zinken7/capstone-group-5/pull/84)
