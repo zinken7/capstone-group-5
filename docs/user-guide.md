@@ -59,10 +59,11 @@ the numbers behind any chart. The counts are over verified records only.
    manufacturer, quantity, and the commissioning date or year. Site latitude
    and longitude are optional at submission, but approval needs them, so enter
    both if you can; a new site cannot appear on the map without them.
-3. **Add more detail** opens the optional fields: technology supplier and
-   product, the automation level (choose one, or leave it unrecorded), and a
-   contact email, which is shown only to administrators and is used only to
-   follow up your submission.
+3. Under **Technology details**, enter the technology supplier and choose the
+   automation level: Operator Assistance, Teleremote, Semi Autonomous or Highly
+   Autonomous. Both are required; the product is optional. **Add more detail**
+   opens optional fields: region, commodity, model variant, environment,
+   deployment status and installation type.
 4. Add at least one **evidence** link, a public web page that supports what
    you entered. A record cannot be approved without one.
 5. **Submit**. The confirmation tells you if anything approval needs is still
