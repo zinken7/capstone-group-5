@@ -62,7 +62,8 @@ Production deployments run from GitHub Actions. Vercel's Git integration is
 turned off (`git.deploymentEnabled: false` in each `vercel.json`), so Vercel
 builds no Git or preview deployments.
 
-On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
+On every push to `main`, `.github/workflows/lint.yml` runs CI, then the staging release jobs. Main push workflows are serialized with `cancel-in-progress: false`, so a later merge waits for the current migration and both deployments to finish; staging never advances its schema without deploying the matching code.
+
 
 1. **Check deploy author** reads the author of the merge commit. If anyone but
    M1 authored it, Vercel would block the deployment, so the job skips the
