@@ -73,6 +73,8 @@ export async function findContributionSummaries(ids: readonly number[]): Promise
 }
 
 export interface ContributionDetailRow extends ContributionSummaryRow {
+  latitude: number | null
+  longitude: number | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -87,6 +89,8 @@ export async function findContributionDetail(id: number): Promise<ContributionDe
   const rows = await db
     .select({
       ...summaryColumns,
+      latitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
+      longitude: sql<number | null>`ST_X(${tables.site.point4326})`,
       environment: tables.deployment.environment,
       deployment_status: tables.deployment.status,
       automation_level: tables.deployment.automationLevel,

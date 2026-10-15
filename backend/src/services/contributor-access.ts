@@ -8,6 +8,7 @@ import {
   insertRevision,
   lockDeployment,
   updateDeploymentForReview,
+  updateSiteCoordinates,
 } from '../repositories/contributions.js'
 import { findContributionDetail, findContributionSummaries, findKeyHash, findSubmitter } from '../repositories/contributor-access.js'
 import type { ContributionDetailRow, ContributionSummaryRow } from '../repositories/contributor-access.js'
@@ -31,6 +32,9 @@ export interface ContributionSummary {
 }
 
 export interface ContributionDetail extends ContributionSummary {
+  /** The site's location; null when it has none, which approval needs */
+  latitude: number | null
+  longitude: number | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -62,6 +66,8 @@ function toSummary(row: ContributionSummaryRow): ContributionSummary {
 function toDetail(row: ContributionDetailRow): ContributionDetail {
   return {
     ...toSummary(row),
+    latitude: row.latitude,
+    longitude: row.longitude,
     environment: row.environment,
     deployment_status: row.deployment_status,
     automation_level: row.automation_level,
@@ -90,6 +96,7 @@ export type OwnUpdateOutcome =
   | { kind: 'not_open'; verificationStatus: string }
   | { kind: 'unchanged' }
   | { kind: 'invalid_window' }
+  | { kind: 'site_located' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
 /**
@@ -103,10 +110,14 @@ export async function updateOwnContribution(id: number, key: string, input: Corr
     if (!current || !keyMatches(key, await findKeyHash(tx, id))) return { kind: 'not_found' }
     if (current.verificationStatus !== 'changes_requested') return { kind: 'not_open', verificationStatus: current.verificationStatus }
 
+    // A site is shared by every deployment at it, so a contributor may only supply a location it lacks
+    const coordinates = input.coordinates ?? null
+    if (coordinates && current.siteLatitude !== null) return { kind: 'site_located' }
+
     const { previous, updates } = diffChanges(current, input.changes)
     const existingUrls = await findEvidenceUrls(tx, id)
     const newUrls = input.evidenceUrls.filter((url) => !existingUrls.includes(url))
-    if (Object.keys(previous).length === 0 && newUrls.length === 0) return { kind: 'unchanged' }
+    if (Object.keys(previous).length === 0 && newUrls.length === 0 && !coordinates) return { kind: 'unchanged' }
     alignValidity(current, { previous, updates })
     if (!windowOrdered(current, updates)) return { kind: 'invalid_window' }
 
@@ -114,6 +125,10 @@ export async function updateOwnContribution(id: number, key: string, input: Corr
     const contributorId = await findSubmitter(tx, id)
       ?? await insertContributor(tx, { email: null, organisation: null })
     if (newUrls.length > 0) previous.evidence_urls = existingUrls
+    if (coordinates) {
+      previous.latitude = null
+      previous.longitude = null
+    }
     previous.verification_status = current.verificationStatus
     await insertRevision(tx, {
       deploymentId: id,
@@ -123,6 +138,7 @@ export async function updateOwnContribution(id: number, key: string, input: Corr
       changeNote: input.changeNote,
     })
     const verificationStatus = await updateDeploymentForReview(tx, id, updates)
+    if (coordinates) await updateSiteCoordinates(tx, current.siteId, coordinates)
     await insertEvidence(tx, id, newUrls)
     return { kind: 'updated', id, verificationStatus }
   })

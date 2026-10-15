@@ -102,7 +102,8 @@ router.patch('/contributions/:id', async (req, res, next) => {
     res.status(400).json({ error: 'invalid update' })
     return
   }
-  const result = validateCorrection(req.body)
+  // A contributor may also supply the site's location when it has none, since approval needs it
+  const result = validateCorrection(req.body, { coordinates: true })
   if (!result.ok) {
     res.status(400).json({ error: 'invalid update', fields: result.errors })
     return
@@ -122,6 +123,9 @@ router.patch('/contributions/:id', async (req, res, next) => {
         return
       case 'invalid_window':
         res.status(400).json({ error: 'invalid update', fields: { commissioning_date: 'must not be after valid_to' } })
+        return
+      case 'site_located':
+        res.status(400).json({ error: 'invalid update', fields: { latitude: 'the site already has coordinates', longitude: 'the site already has coordinates' } })
         return
       case 'updated':
         res.status(200).json({ id: outcome.id, verification_status: outcome.verificationStatus })

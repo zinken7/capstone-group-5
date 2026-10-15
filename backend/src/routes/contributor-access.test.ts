@@ -248,6 +248,41 @@ describe('PATCH /api/contributions/:id', () => {
     expect(bot.body).toEqual({ error: 'invalid update' })
   })
 
+  it('supplies the coordinates of a site that has none, so the record can be approved', async () => {
+    const mine = await submit({ site_name: 'Unmapped Pit', latitude: null, longitude: null })
+    expect((await read(mine.id, mine.key)).body).toEqual(expect.objectContaining({ latitude: null, longitude: null }))
+    expect((await decide(mine.id, 'approved')).body.error).toBe('site coordinates are required before the record can be verified')
+    expect((await decide(mine.id, 'needs_changes', 'Please add the site location')).status).toBe(201)
+
+    const response = await update(mine.id, mine.key, { latitude: -23.1, longitude: 119.2 })
+    expect(response.status).toBe(200)
+    expect((await read(mine.id, mine.key)).body).toEqual(expect.objectContaining({ latitude: -23.1, longitude: 119.2 }))
+    const [revision] = await query<{ previous_values: unknown }>("SELECT previous_values FROM revision WHERE deployment_id = $1 AND action = 'update'", [mine.id])
+    expect(revision?.previous_values).toEqual({ latitude: null, longitude: null, verification_status: 'changes_requested' })
+
+    expect((await decide(mine.id, 'approved')).status).toBe(201)
+  })
+
+  it('refuses to move a site that already has coordinates, which other records share', async () => {
+    const mine = await submit()
+    expect((await decide(mine.id, 'needs_changes', 'Add a source')).status).toBe(201)
+
+    const response = await update(mine.id, mine.key, { latitude: 10, longitude: 10, quantity: 18 })
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid update', fields: { latitude: 'the site already has coordinates', longitude: 'the site already has coordinates' } })
+    const [row] = await query<{ quantity: number }>('SELECT quantity FROM deployment WHERE id = $1', [mine.id])
+    expect(row?.quantity).toBe(15)
+  })
+
+  it('needs both coordinates together', async () => {
+    const mine = await submit({ site_name: 'Unmapped Pit', latitude: null, longitude: null })
+    expect((await decide(mine.id, 'needs_changes', 'Please add the site location')).status).toBe(201)
+
+    const response = await update(mine.id, mine.key, { latitude: -23.1 })
+    expect(response.status).toBe(400)
+    expect(response.body.fields).toEqual({ longitude: 'must be given with latitude' })
+  })
+
   it('closes the validity window when the update decommissions the record (#156)', async () => {
     const mine = await submit()
     expect((await decide(mine.id, 'needs_changes', 'Is it still running?')).status).toBe(201)

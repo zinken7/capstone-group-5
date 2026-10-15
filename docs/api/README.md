@@ -451,7 +451,8 @@ each with its id and key"}`.
 ### `GET /api/contributions/{id}`
 
 With the key in `X-Contribution-Key`: `200` with the status item above, plus
-the values the update form needs: `environment`, `deployment_status`,
+the values the update form needs: the site's `latitude` and `longitude`
+(`null` when it has none), `environment`, `deployment_status`,
 `automation_level`, `installation_type`, `commissioning_date` (a date, or the
 year alone) and `evidence_urls`. Otherwise `404 {"error":"contribution not found"}`.
 
@@ -462,7 +463,10 @@ changes (FR-46). The body is the same as for
 [`PATCH /api/deployments/{id}`](#patch-apideploymentsid): the correctable
 fields, new evidence URLs, `change_note` and `disclosure_accepted`; contact
 details are ignored, since the original submission already names the
-contributor.
+contributor. `latitude` and `longitude`, given together, supply the location
+of a site that has none, which approval needs (FR-04). A site that already has
+coordinates is shared by every record at it, so moving it returns `400` with
+`"the site already has coordinates"` on both fields.
 
 Only a record with `verification_status = changes_requested` can be updated.
 The change applies to the record, an `update` revision attributed to the
