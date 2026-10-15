@@ -165,6 +165,9 @@ router.patch('/contributions/:id', async (req, res, next) => {
       case 'site_located':
         res.status(400).json({ error: 'invalid update', fields: { latitude: 'the site already has coordinates', longitude: 'the site already has coordinates' } })
         return
+      case 'site_shared':
+        res.status(400).json({ error: 'invalid update', fields: { latitude: 'the site is shared with other records, so an administrator sets its location', longitude: 'the site is shared with other records, so an administrator sets its location' } })
+        return
       case 'updated':
         res.status(200).json({ id: outcome.id, verification_status: outcome.verificationStatus })
     }

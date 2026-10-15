@@ -118,6 +118,7 @@ interface ContributionStatusDto {
 interface OwnContributionDto extends ContributionStatusDto {
   latitude: number | null
   longitude: number | null
+  site_shared: boolean
   region: string | null
   commodity: string | null
   machine_model_variant: string | null
@@ -164,6 +165,7 @@ export async function getOwnContribution(id: number, key: string): Promise<OwnCo
     ...toStatus(dto),
     latitude: dto.latitude,
     longitude: dto.longitude,
+    siteShared: dto.site_shared,
     countryCode: dto.country_code,
     region: dto.region,
     commodity: dto.commodity,

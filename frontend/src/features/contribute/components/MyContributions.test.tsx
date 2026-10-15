@@ -171,7 +171,7 @@ describe('My contributions', () => {
       'GET /api/contributions/20412': () => Response.json({
         ...statusItem({ verification_status: 'changes_requested' }),
         environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
-        commissioning_date: '2021', evidence_urls: ['https://example.com/announcement'], latitude: null, longitude: null,
+        commissioning_date: '2021', evidence_urls: ['https://example.com/announcement'], latitude: null, longitude: null, site_shared: false,
       }),
       'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
       'PATCH /api/contributions/20412': () => Response.json({ id: 20412, verification_status: 'pending_review' }),
@@ -191,6 +191,26 @@ describe('My contributions', () => {
     expect(await within(row).findByText(/Sent for review/)).toBeInTheDocument()
     const patch = calls.find((call) => call.key === 'PATCH /api/contributions/20412')
     expect(JSON.parse(String(patch?.init?.body))).toEqual({ latitude: -22.3, longitude: 118.7, disclosure_accepted: true })
+  })
+
+  test('leaves the location of a site other records share to an administrator', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [statusItem({ verification_status: 'changes_requested' })] }),
+      'GET /api/contributions/20412': () => Response.json({
+        ...statusItem({ verification_status: 'changes_requested' }),
+        environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
+        commissioning_date: '2021', evidence_urls: [], latitude: null, longitude: null, site_shared: true,
+      }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    await user.click(await within(row).findByRole('button', { name: 'Update submission' }))
+    expect(await within(row).findByText(/Other records name the same site, so an administrator adds its location/)).toBeInTheDocument()
+    expect(within(row).queryByRole('textbox', { name: 'Latitude' })).not.toBeInTheDocument()
   })
 
   test('shows a rejection with its reason, a verified record with a link, and one the site no longer reports', async () => {

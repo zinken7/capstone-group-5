@@ -197,8 +197,11 @@ function UpdateForm({ item, onSent, onCancel, onStale }: UpdateFormProps) {
           <input id={`${prefix}-commissioning_date`} placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={(event) => set('commissioningDate', event.target.value)} {...field('commissioning_date')} />
           {error('commissioning_date')}
         </div>
-        {/* Approval needs the site's location; a site that has one is shared, so it is not changed here */}
-        {contribution.latitude === null && (
+        {/* Approval needs the site's location; a site that has one, or that another record shares, is placed by an administrator */}
+        {contribution.latitude === null && contribution.siteShared && (
+          <p className="form-help form-field--wide">The site has no location yet. Other records name the same site, so an administrator adds its location.</p>
+        )}
+        {contribution.latitude === null && !contribution.siteShared && (
           <fieldset className="form-field--wide my-contribution__location">
             <legend>Site location</legend>
             <p className="form-help">The site has no location yet, and a submission needs one before it can be approved.</p>
