@@ -8,8 +8,8 @@ against its evidence, so every record you see is verified.
 
 The site is at https://capstone-group-5.vercel.app/. The four tabs in the
 header are **Map**, **Equipment**, **Analytics** and **Contribute**.
-The data is licensed CC BY 4.0; **About the data** in the footer says where it
-comes from. Reviewers have their own guide: [`admin-guide.md`](admin-guide.md).
+The data is licensed CC BY 4.0, and public pages show verified records only,
+as the footer says. Reviewers have their own guide: [`admin-guide.md`](admin-guide.md).
 
 ## Map
 
