@@ -38,6 +38,9 @@ erDiagram
     DEPLOYMENT ||--o{ DEPLOYMENT_CORRECTION : "has proposed"
     CONTRIBUTOR o|--o{ DEPLOYMENT_CORRECTION : proposes
     DEPLOYMENT_CORRECTION o|--o{ VERIFICATION_REVIEW : "is decided by"
+    DEPLOYMENT ||--o| CONTRIBUTION_KEY : "is followed with"
+    DEPLOYMENT ||--o| RESUBMISSION : "replaces a rejected record through"
+    DEPLOYMENT ||--o{ RESUBMISSION : "is replaced through"
 
     COMPANY {
         bigint id PK
@@ -146,6 +149,15 @@ erDiagram
         correction_status status
         timestamptz submitted_at
     }
+    CONTRIBUTION_KEY {
+        bigint deployment_id PK,FK
+        text key_hash
+        timestamptz created_at
+    }
+    RESUBMISSION {
+        bigint deployment_id PK,FK
+        bigint previous_deployment_id FK
+    }
     REVISION {
         bigint id PK
         bigint deployment_id FK
@@ -199,7 +211,7 @@ free text:
 | `mining_environment`    | `surface`, `underground`, `both`                                                                                                                                                                                                         |
 | `installation_type`     | `factory_installed`, `retrofit`, `unknown`                                                                                                                                                                                               |
 | `deployment_status`     | `announced`, `commissioning`, `operational`, `decommissioned`                                                                                                                                                                            |
-| `verification_status`   | `unverified`, `pending_review`, `verified`, `rejected`                                                                                                                                                                                   |
+| `verification_status`   | `unverified`, `pending_review`, `changes_requested`, `verified`, `rejected`. `changes_requested` waits on the contributor after a `needs_changes` decision; `unverified` marks records loaded without review (migrations 006 and 007, #204) |
 | `verification_decision` | `approved`, `rejected`, `needs_changes`                                                                                                                                                                                                  |
 | `evidence_type`         | `company_release`, `news`, `academic`, `government`, `report`, `other`                                                                                                                                                                   |
 | `revision_action`       | `create`, `update`, `verification_change`                                                                                                                                                                                                |
@@ -270,6 +282,8 @@ until #62 confirms that meaning.
 - `admin_user.email` is unique and stored in lower case. Store only a strong password hash (the backend uses scrypt), never a plaintext password.
 - `admin_user.role` is `root` or `admin`. Root accounts are created only from the command line (`npm run admin:create -- --root`) and manage administrator accounts; administrators review submissions.
 - `admin_user.must_change_password` is true while an account still has a generated temporary password; every other administrator action is refused until it is changed.
+- A submission's private key (FR-59, #205) is held only as a SHA-256 hash in `contribution_key`, one row per submitted deployment, so public reads of `deployment` never carry it. The key is returned once when the submission is made; it lets the contributor follow the submission and answer a request for changes without an account. Deployments loaded without review have no row and are never reachable through the contributor API. The hash is 64 lowercase hex characters (`contribution_key_hash_format`).
+- A resubmission (FR-60, #207) links a new deployment to the rejected deployment it replaces: one `resubmission` row per new deployment, while a rejected deployment may be replaced more than once. The rejected deployment stays closed; the link shows the reviewer the earlier decision and lets each record's history point to the other. It is accepted only with the rejected submission's key. `resubmission_not_itself` keeps a deployment from replacing itself.
 - The MVP collects from a contributor only an optional email address and, where offered, an organisation (NFR-09). The legacy `display_name` column is retained but is not populated by MVP contribution flows. No domain-affiliation flag is held in the MVP; one arrives only if FR-52 and FR-53 are taken up.
 - `company.name` is unique.
 - `region` is unique on `(name, country_code)`.

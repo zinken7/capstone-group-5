@@ -3,8 +3,9 @@ import { Router } from 'express'
 import { validateAdminCorrection, validateReview } from '../lib/admin-validation.js'
 import { parseId } from '../lib/ids.js'
 import { currentAdmin, requireAdmin } from '../middleware/require-admin.js'
-import { SUBMISSION_HISTORY_SORTS } from '../repositories/moderation.js'
+import { SUBMISSION_HISTORY_SORTS, VERIFICATION_STATUSES } from '../repositories/moderation.js'
 import type { SubmissionHistorySort } from '../repositories/moderation.js'
+import type { VerificationStatus } from '../types.js'
 import { correctAsAdministrator, decide, decideCorrection, getReviewRecord, getSubmissionHistory, listQueue } from '../services/moderation.js'
 
 const router = Router()
@@ -55,9 +56,16 @@ router.get('/admin/submissions', ...requireAdmin(), async (req, res, next) => {
     return
   }
 
+  // One verification status, for example the records waiting on their contributor
+  const status = req.query.status
+  if (status !== undefined && (typeof status !== 'string' || !(VERIFICATION_STATUSES as readonly string[]).includes(status))) {
+    res.status(400).json({ error: 'invalid status parameter' })
+    return
+  }
+
   try {
     res.status(200).json({
-      items: await getSubmissionHistory({ limit, offset, deploymentId: id, query, sort: sort as SubmissionHistorySort, order }),
+      items: await getSubmissionHistory({ limit, offset, deploymentId: id, query, sort: sort as SubmissionHistorySort, order, status: status as VerificationStatus | undefined }),
     })
   } catch (error) {
     next(error)
@@ -100,7 +108,10 @@ router.post('/admin/deployments/:id/reviews', ...requireAdmin(), async (req, res
         res.status(404).json({ error: 'deployment not found' })
         return
       case 'not_pending':
-        res.status(409).json({ error: 'only records pending review can be decided', verification_status: outcome.verificationStatus })
+        res.status(409).json({ error: 'only records pending review or with changes requested can be decided', verification_status: outcome.verificationStatus })
+        return
+      case 'stale':
+        res.status(409).json({ error: 'the record changed since you opened it', updated_at: outcome.updatedAt })
         return
       case 'missing_evidence':
         res.status(409).json({ error: 'at least one evidence URL is required before the record can be verified' })
@@ -164,6 +175,10 @@ router.patch('/admin/deployments/:id', ...requireAdmin(), async (req, res, next)
     const outcome = await correctAsAdministrator(id, currentAdmin(res).id, result.value)
     if (outcome.kind === 'not_found') {
       res.status(404).json({ error: 'deployment not found' })
+      return
+    }
+    if (outcome.kind === 'closed') {
+      res.status(409).json({ error: 'a rejected record is closed and cannot be corrected' })
       return
     }
     if (outcome.kind === 'unchanged') {

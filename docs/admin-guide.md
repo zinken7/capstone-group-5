@@ -49,16 +49,42 @@ a deactivated account is signed out immediately.
 
 | Decision | Result |
 |---|---|
-| Approve | The record is verified and appears in public views. It needs a technology product and at least one evidence URL. |
-| Reject | The record stays out of public views for good. The contributor can submit it again as a new contribution. A note is required. |
+| Approve | The record is verified and appears in public views. It needs at least one evidence URL and site coordinates. |
+| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it under **My contributions** on the Contribute page, in the browser they submitted from. When they update the record, it returns to the queue marked **Changes made**, and its page shows your request beside what they changed. |
+| Reject | The record is closed: it stays out of public views and can no longer be corrected or decided. The contributor can submit it again as a new contribution. A note is required, and the contributor sees it. |
 
-**Needs changes** is not offered for a record until #204 is built: a record
-sent back for changes could not return to the queue or be decided again.
-Reject it instead. A record sent back earlier stays out of the queue until then.
+A record needs at least one evidence URL and site coordinates before it can
+be approved, and a contributor may leave both out when submitting. When either
+is missing, the decision panel says **Not ready to approve**, Approve is
+unavailable, and **Needs changes** is selected with a note asking for what is
+missing. Add it yourself with **Edit record**, or send the request.
 
-Decisions apply only to records pending review. Each one is kept, with your
-email, the note and the time, in the record's history, together with every
-correction and the contributor's original submission.
+A contributor can also change a record while it waits for review, for example
+to add a source; the queue then marks it **Updated while waiting**. If they
+change it while you have it open, your decision is not recorded: the page
+reloads with the latest version and says so, and you decide again.
+
+A contributor whose record you reject can resubmit it from **My contributions**:
+the form opens with what they sent, and the new record is linked to the rejected
+one. The queue marks it **Resubmission**, its page shows the record it replaces
+with your reason, and the rejected record's page links to the new one. The
+earlier attempt also appears among the possible duplicates, labelled
+**Rejected**.
+
+When the contributor left an email address, the **Contributor** panel on the
+record page offers **Email contributor**, which opens your email app with the
+record's number in the subject, for anything the decision note cannot cover.
+
+Decisions apply to records pending review and to records with changes
+requested. If you fix a record with changes requested yourself, approve it from
+its page: it does not need to go back through the queue. To find the records
+waiting on their contributors, filter **Submission history** by
+**Changes requested**; *Last updated* shows when each was sent back and how many days it has waited. Reject one
+whose changes never arrive, with a note such as "No reply after 30 days".
+
+Each decision is kept, with your email, the note and the time, in the record's
+history, together with every correction and the contributor's original
+submission.
 
 ## Reviewing a proposed correction
 

@@ -7,6 +7,7 @@ import AdminSubmissionHistoryPage from './features/admin/pages/AdminSubmissionHi
 import AdminUsersPage from './features/admin/pages/AdminUsersPage'
 import { AdminSessionProvider, RequireAdminSession } from './features/admin/session'
 import AnalyticsPage from './features/analytics/pages/AnalyticsPage'
+import { MyContributionsProvider } from './features/contribute/my-contributions'
 import ContributePage from './features/contribute/pages/ContributePage'
 import EquipmentPage from './features/equipment/pages/EquipmentPage'
 import MapPage from './features/map/pages/MapPage'
@@ -15,6 +16,8 @@ import AppLayout from './layouts/AppLayout'
 
 function App() {
   return (
+    // Outside the layout, so its navigation can show the contributor's own submissions too
+    <MyContributionsProvider>
     <AppLayout>
       <AdminSessionProvider>
         <Routes>
@@ -34,6 +37,7 @@ function App() {
         </Routes>
       </AdminSessionProvider>
     </AppLayout>
+    </MyContributionsProvider>
   )
 }
 

@@ -13,7 +13,7 @@ export const miningEnvironment = pgEnum("mining_environment", ['surface', 'under
 export const revisionAction = pgEnum("revision_action", ['create', 'update', 'verification_change'])
 export const siteStatus = pgEnum("site_status", ['operating', 'commissioning'])
 export const verificationDecision = pgEnum("verification_decision", ['approved', 'rejected', 'needs_changes'])
-export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'verified', 'rejected'])
+export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'changes_requested', 'verified', 'rejected'])
 
 
 export const region = pgTable("region", {
@@ -324,4 +324,38 @@ export const deploymentCorrection = pgTable("deployment_correction", {
 	unique("deployment_correction_id_deployment_unique").on(table.id, table.deploymentId),
 	check("deployment_correction_values_are_objects", sql`(jsonb_typeof(proposed_values) = 'object'::text) AND (jsonb_typeof(base_values) = 'object'::text)`),
 	check("deployment_correction_changes_something", sql`(proposed_values <> '{}'::jsonb) OR (cardinality(evidence_urls) > 0)`),
+]);
+
+export const contributionKey = pgTable("contribution_key", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	keyHash: text("key_hash").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "contribution_key_deployment_id_fkey"
+		}).onDelete("cascade"),
+	check("contribution_key_hash_format", sql`key_hash ~ '^[0-9a-f]{64}$'::text`),
+]);
+
+export const resubmission = pgTable("resubmission", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	previousDeploymentId: bigint("previous_deployment_id", { mode: "number" }).notNull(),
+}, (table) => [
+	index("resubmission_previous_deployment_id_idx").using("btree", table.previousDeploymentId.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_deployment_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.previousDeploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_previous_deployment_id_fkey"
+		}),
+	check("resubmission_not_itself", sql`deployment_id <> previous_deployment_id`),
 ]);

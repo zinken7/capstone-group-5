@@ -40,7 +40,6 @@
 .register-results-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.75rem; }
 .register-results-bar label { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-strong); font-size: var(--label-font-size); font-weight: 600; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.75rem 0; color: var(--text-muted); }
-.form-summary-success { margin: 0; padding: 0.8rem 1rem; border: 1px solid #86efac; border-radius: 0.6rem; color: #166534; background: #f0fdf4; }
 .table-link {
   display: inline-flex;
   align-items: center;
@@ -80,7 +79,6 @@
 .correction-record-summary dd { margin: 0.2rem 0 0; color: var(--text-strong); font-size: 0.86rem; font-weight: 650; }
 .correction-record-summary dd small { display: block; margin-top: 0.2rem; color: var(--text-muted); font-size: 0.78rem; font-weight: 400; }
 .correction-warning { margin: 0; padding: 0.75rem 1rem; border: 1px solid #f2c078; border-radius: 0.6rem; color: #8a3c0b; background: #fff8e6; font-size: 0.88rem; line-height: 1.45; }
-.field-error { color: #b42318; font-size: 0.78rem; font-weight: 600; }
 .form-help-inline { color: var(--text-muted); font-weight: 400; }
 .correction-dialog__actions { flex: none; justify-content: flex-end; padding: 1rem var(--dialog-pad); border-top: 1px solid var(--border); }
 /* An administrator's confirmation sits over the correction dialog, which stays in view behind it */

@@ -24,6 +24,8 @@ const recordDto = (overrides: Record<string, unknown> = {}) => ({
   model_variant: null,
   machine_type: 'lhd',
   quantity: 8,
+  latitude: -30.78,
+  longitude: 121.5,
   technology_supplier: 'Sandvik',
   technology_product: 'AutoMine',
   automation_level: 'semi_autonomous',
@@ -167,6 +169,68 @@ describe('review queue', () => {
     expect(within(row).getByText('Not recorded')).toBeInTheDocument()
     expect(within(row).getByRole('link', { name: /review kalgoorlie super pit record 12/i })).toHaveAttribute('href', '/admin/deployments/12')
   })
+
+  test('marks a record its contributor changed while it waited', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: 'Sandvik', technology_product: null, evidence_count: 2, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'correction', correction_id: null, changed_fields: ['evidence_urls'], after_changes_requested: false, updated_while_pending: true,
+          resubmission_of: null, contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Updated while waiting')).toHaveClass('admin-kind--changes')
+  })
+
+  test('marks a resubmission of a rejected record', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 14, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: 'Sandvik', technology_product: null, evidence_count: 1, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'submission', correction_id: null, changed_fields: [], after_changes_requested: false, resubmission_of: 12,
+          contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Resubmission')).toHaveClass('admin-kind--resubmission')
+    expect(within(row).getByText('Replaces rejected record 12')).toBeInTheDocument()
+  })
+
+  test('marks a record its contributor updated after a request for changes', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 10,
+          technology_supplier: 'Sandvik', technology_product: 'AutoMine', evidence_count: 2, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'correction', correction_id: null, changed_fields: ['quantity'], after_changes_requested: true,
+          contributor_email: 'field@example.com', contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Changes made')).toHaveClass('admin-kind--changes')
+    expect(within(row).getByText('Quantity')).toBeInTheDocument()
+  })
 })
 
 describe('proposed corrections', () => {
@@ -257,6 +321,140 @@ describe('proposed corrections', () => {
 })
 
 describe('record review', () => {
+  test('shows the request a record with changes requested waits on, and still lets the administrator decide', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'changes_requested',
+        reviews: [{ decision: 'needs_changes', note: 'Add the operator announcement', administrator: 'lead@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
+      })),
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 2, verification_status: 'verified' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    const waiting = await screen.findByRole('region', { name: 'Waiting for the contributor' })
+    expect(waiting).toHaveTextContent('Changes requested by lead@example.com')
+    expect(waiting).toHaveTextContent('Add the operator announcement')
+    expect(screen.getByText('Changes requested', { selector: '.status-badge' })).toBeInTheDocument()
+    // Fixing it and approving it here does not need the queue
+    expect(screen.getByRole('button', { name: 'Edit record' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'approved', note: null, version: '2026-10-02T00:00:00Z' })
+  })
+
+  test('starts a record that lacks evidence and coordinates on asking the contributor for them', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ evidence: [], latitude: null, longitude: null })),
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 3, verification_status: 'changes_requested' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('Not ready to approve')).toBeInTheDocument()
+    expect(screen.getByText('No evidence URL')).toBeInTheDocument()
+    expect(screen.getByText('No site coordinates')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Approve/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Needs changes/)).toBeChecked()
+    expect(screen.getByLabelText(/^Note/)).toHaveValue("Before this can be approved, please add a link to a public source (such as the operator's announcement) and the site's latitude and longitude.")
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual(expect.objectContaining({ decision: 'needs_changes' }))
+  })
+
+  test('offers an email to the contributor who submitted the record, when they gave one', async () => {
+    const created = { action: 'create', previous_values: {}, change_note: null, administrator: null, changed_at: '2026-10-01T00:00:00Z' }
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        revisions: [{ ...created, contributor_email: 'field@example.com', contributor_organisation: 'Example Mining' }],
+      })),
+      'GET /api/admin/deployments/13': () => Response.json(recordDto({
+        id: 13,
+        revisions: [{ ...created, contributor_email: null, contributor_organisation: null }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const { unmount } = renderAt('/admin/deployments/12')
+
+    const panel = await screen.findByRole('region', { name: 'Contributor' })
+    expect(panel).toHaveTextContent('field@example.com · Example Mining')
+    const link = within(panel).getByRole('link', { name: 'Email contributor' })
+    expect(link.getAttribute('href')).toMatch(/^mailto:field@example\.com\?subject=Your%20Mining%20Market%20Map%20submission%20\(record%2012\)&body=/)
+    unmount()
+
+    renderAt('/admin/deployments/13')
+    expect(await screen.findByText(/No contact email was given/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Email contributor' })).not.toBeInTheDocument()
+  })
+
+  test('shows the rejected record a resubmission replaces, and links back from it', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/14': () => Response.json(recordDto({
+        id: 14,
+        resubmission_of: { id: 12, verification_status: 'rejected', decision: 'rejected', note: 'Wrong site', administrator: 'lead@example.com', reviewed_at: '2026-10-04T01:00:00Z' },
+        resubmitted_as: [],
+      })),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'rejected',
+        resubmission_of: null,
+        resubmitted_as: [{ id: 14, verification_status: 'pending_review' }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/14')
+
+    const panel = await screen.findByRole('region', { name: 'Resubmission of a rejected record' })
+    expect(panel).toHaveTextContent('rejected by lead@example.com')
+    expect(panel).toHaveTextContent('Wrong site')
+    await user.click(within(panel).getByRole('link', { name: 'record 12' }))
+
+    expect(await screen.findByText(/Resubmitted as/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'record 14' })).toHaveAttribute('href', '/admin/deployments/14')
+  })
+
+  test('reloads the record instead of deciding on a version the contributor has since changed', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': [
+        () => Response.json(recordDto()),
+        () => Response.json(recordDto({ quantity: 10, updated_at: '2026-10-03T00:00:00Z' })),
+      ],
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ error: 'the record changed since you opened it', updated_at: '2026-10-03T00:00:00Z' }, { status: 409 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    await screen.findByRole('heading', { name: 'Kalgoorlie Super Pit' })
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+
+    expect(await screen.findByText(/changed this record while you had it open/)).toBeInTheDocument()
+    expect(screen.getByText('10', { selector: 'dd' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record decision' })).toBeEnabled()
+  })
+
+  test('closes a rejected record: no decision and no editing', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'rejected',
+        reviews: [{ decision: 'rejected', note: 'Duplicate', administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
+      })),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText(/This record is rejected and closed/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit record' })).not.toBeInTheDocument()
+  })
+
   test('shows the record, opens evidence safely, and records a rejection with a note', async () => {
     const calls = stubApi({
       'GET /api/admin/session': () => profile(),
@@ -278,8 +476,9 @@ describe('record review', () => {
     const evidence = screen.getByRole('link', { name: 'https://example.com/evidence/12' })
     expect(evidence).toHaveAttribute('target', '_blank')
     expect(evidence).toHaveAttribute('rel', 'noopener noreferrer')
-    // Not offered until the changes requested status (#204): a record sent back could never be decided again
-    expect(screen.queryByLabelText(/^Needs changes/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Needs changes/)).toBeInTheDocument()
+    // The contributor reads the decision on their own submission
+    expect(screen.getByLabelText(/^Note/)).toHaveAccessibleDescription('Shown to the contributor.')
 
     await user.click(screen.getByLabelText(/^Reject/))
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
@@ -292,7 +491,7 @@ describe('record review', () => {
     expect(screen.getByText('Rejected', { selector: '.status-badge' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
     expect(screen.getByText(/by reviewer@example.com/)).toBeInTheDocument()
-    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate' })
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate', version: '2026-10-02T00:00:00Z' })
   })
 
   test('shows possible duplicate deployments with a link to the matching record', async () => {
@@ -428,7 +627,36 @@ describe('record review', () => {
 
     expect(await screen.findByText('What changed')).toBeInTheDocument()
     expect(screen.getByText('Proposed: https://example.com/new-evidence')).toBeInTheDocument()
-    expect(screen.getByText('Proposed: pending_review')).toBeInTheDocument()
+    // The status it came back from is not a field the contributor changed
+    expect(screen.queryByText('Proposed: pending_review')).not.toBeInTheDocument()
+  })
+
+  test('shows the request for changes an update answers', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        quantity: 10,
+        reviews: [{ decision: 'needs_changes', note: 'Check the fleet size', administrator: 'lead@example.com', reviewed_at: '2026-10-04T01:00:00Z', correction_id: null }],
+        revisions: [{
+          action: 'update',
+          previous_values: { quantity: 8, verification_status: 'changes_requested' },
+          change_note: 'Two more since June',
+          contributor_email: 'field@example.com',
+          contributor_organisation: null,
+          administrator: null,
+          changed_at: '2026-10-05T02:00:00Z',
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    const panel = await screen.findByRole('region', { name: 'Changes made on request' })
+    expect(panel).toHaveTextContent('Answers the request from lead@example.com')
+    expect(panel).toHaveTextContent('Check the fleet size')
+    expect(panel).toHaveTextContent("The contributor's note: Two more since June")
+    expect(panel).toHaveTextContent('Before: 8')
+    expect(panel).not.toHaveTextContent('Verification status')
   })
 
   test('says when a record does not exist', async () => {
@@ -445,10 +673,10 @@ describe('buildCorrection', () => {
   const record = {
     id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
-    technologySupplier: null, technologyProduct: null, possibleDuplicates: [],
+    technologySupplier: null, technologyProduct: null, possibleDuplicates: [], resubmissionOf: null, resubmittedAs: [],
     automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
-    validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],
+    validFrom: null, validTo: null, updatedAt: '2026-10-02T00:00:00.000Z', evidence: [], reviews: [], revisions: [], corrections: [],
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',

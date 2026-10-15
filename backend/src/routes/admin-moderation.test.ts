@@ -227,12 +227,29 @@ describe('GET /api/admin/submissions', () => {
     expect(reviewed).toEqual([...reviewed].sort().reverse())
   })
 
+  it('filters by verification status, so the records waiting on their contributor are easy to find', async () => {
+    const waiting = await contribute()
+    expect((await review(waiting, { decision: 'needs_changes', note: 'Add the operator announcement' })).status).toBe(201)
+    await contribute()
+
+    const response = await request(app).get('/api/admin/submissions?status=changes_requested').set('Cookie', cookie)
+    expect(response.status).toBe(200)
+    expect(response.body.items).toEqual([expect.objectContaining({
+      id: waiting,
+      verification_status: 'changes_requested',
+      latest_decision: 'needs_changes',
+      latest_decision_is_correction: false,
+    })])
+  })
+
   it.each([
     ['sort=country', 'invalid sort parameter'],
     ['sort=', 'invalid sort parameter'],
     ['order=up', 'invalid order parameter'],
     ['sort=id&order=ASC', 'invalid order parameter'],
-  ])('rejects an invalid sort: %s', async (query, error) => {
+    ['status=needs_changes', 'invalid status parameter'],
+    ['status=', 'invalid status parameter'],
+  ])('rejects an invalid sort or filter: %s', async (query, error) => {
     const response = await request(app).get(`/api/admin/submissions?${query}`).set('Cookie', cookie)
 
     expect(response.status).toBe(400)
@@ -479,12 +496,24 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
 
     const again = await review(12, { decision: 'approved' })
     expect(again.status).toBe(409)
-    expect(again.body).toEqual({ error: 'only records pending review can be decided', verification_status: 'rejected' })
+    expect(again.body).toEqual({ error: 'only records pending review or with changes requested can be decided', verification_status: 'rejected' })
   })
 
-  it('asks for changes, and a public correction cannot return the record to the queue', async () => {
+  it('closes a rejected record: an administrator cannot correct it', async () => {
+    expect((await review(12, { decision: 'rejected', note: 'Not an autonomous fleet' })).status).toBe(201)
+
+    const refused = await correct(12, { quantity: 9, change_note: 'Late fix' })
+    expect(refused.status).toBe(409)
+    expect(refused.body).toEqual({ error: 'a rejected record is closed and cannot be corrected' })
+    const [row] = await query<{ quantity: number; verification_status: string }>('SELECT quantity, verification_status::text FROM deployment WHERE id = 12')
+    expect(row).toEqual({ quantity: 8, verification_status: 'rejected' })
+    expect(await query("SELECT id FROM revision WHERE deployment_id = 12 AND action = 'update'")).toEqual([])
+  })
+
+  it('asks for changes: the record waits on its contributor, out of the queue, and a public correction cannot return it', async () => {
     const asked = await review(12, { decision: 'needs_changes', note: 'Please add a source' })
-    expect(asked.body.verification_status).toBe('unverified')
+    expect(asked.status).toBe(201)
+    expect(asked.body.verification_status).toBe('changes_requested')
     expect(await queueIds()).toEqual([])
 
     const corrected = await request(app).patch('/api/deployments/12').send({
@@ -493,6 +522,48 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
     })
     expect(corrected.status).toBe(403)
     expect(await queueIds()).toEqual([])
+
+    const record = await request(app).get('/api/admin/deployments/12').set('Cookie', cookie)
+    expect(record.body.verification_status).toBe('changes_requested')
+    expect(record.body.revisions.at(-1)).toEqual(expect.objectContaining({
+      action: 'verification_change',
+      previous_values: { verification_status: 'pending_review' },
+      change_note: 'Please add a source',
+    }))
+  })
+
+  it('lets an administrator fix a record with changes requested and approve it, without the queue', async () => {
+    expect((await review(12, { decision: 'needs_changes', note: 'Please add a source' })).status).toBe(201)
+
+    const fixed = await correct(12, { evidence_urls: ['https://example.com/evidence/12'], change_note: 'Found the announcement' })
+    expect(fixed.status).toBe(200)
+    // An administrator's correction never changes the status (FR-46)
+    expect(fixed.body.verification_status).toBe('changes_requested')
+
+    const approved = await review(12, { decision: 'approved' })
+    expect(approved.status).toBe(201)
+    expect(approved.body.verification_status).toBe('verified')
+
+    const reviews = await query<{ decision: string }>('SELECT decision::text FROM verification_review WHERE deployment_id = 12 ORDER BY id')
+    expect(reviews.map((row) => row.decision)).toEqual(['needs_changes', 'approved'])
+  })
+
+  it('rejects a record whose requested changes never arrive', async () => {
+    expect((await review(12, { decision: 'needs_changes', note: 'Please add a source' })).status).toBe(201)
+
+    const closed = await review(12, { decision: 'rejected', note: 'No reply after 30 days' })
+    expect(closed.status).toBe(201)
+    expect(closed.body.verification_status).toBe('rejected')
+  })
+
+  it('asks for changes again on a record that already has changes requested, keeping both notes', async () => {
+    expect((await review(12, { decision: 'needs_changes', note: 'Please add a source' })).status).toBe(201)
+
+    const again = await review(12, { decision: 'needs_changes', note: 'The source must name the site' })
+    expect(again.status).toBe(201)
+    expect(again.body.verification_status).toBe('changes_requested')
+    const notes = await query<{ review_note: string }>('SELECT review_note FROM verification_review WHERE deployment_id = 12 ORDER BY id')
+    expect(notes.map((row) => row.review_note)).toEqual(['Please add a source', 'The source must name the site'])
   })
 
   it.each([

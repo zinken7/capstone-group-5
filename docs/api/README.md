@@ -365,10 +365,21 @@ Submits one deployment record. No account is required.
 ### Response — `201 Created`
 
 ```json
-{ "id": 42, "verification_status": "pending_review" }
+{ "id": 42, "verification_status": "pending_review", "key": "Xr7…43 characters" }
 ```
 
 The record stays out of public map, site detail, register and analytics responses until an administrator verifies it.
+
+A submission that replaces a rejected one names it with
+`"resubmission_of": {"id": 41, "key": "…"}` (FR-60). The link is stored only when
+the key opens that submission and it is `rejected`; otherwise the request returns
+`400 {"error":"invalid contribution","fields":{"resubmission_of":"is not a
+rejected submission of yours"}}` and nothing is stored.
+
+`key` is the submission's private key (FR-59): 43 URL-safe characters, returned
+this once and never again. Only its SHA-256 hash is stored. The contributor's
+browser keeps it to follow and update the submission without an account; see
+[Following one's own submissions](#following-ones-own-submissions).
 
 ### Errors
 
@@ -407,7 +418,7 @@ At least one correctable field or evidence URL must be supplied.
 
 Only a verified record can be corrected (#114). The correction is stored as a proposal and the record is not changed. It stays in public views with its current values until an administrator decides the correction (`POST /api/admin/corrections/{id}/reviews`). Only the fields that differ from the current record are kept, together with their values at submission time. New evidence URLs are kept with the proposal and are added to the record only if it is approved.
 
-A record in any other status (`pending_review`, `unverified`, `rejected`) returns `403 {"error":"only verified records can be corrected"}` and nothing is stored. Before verification only a record's contributor may change it (FR-46), which needs the submission key (#205).
+A record in any other status (`pending_review`, `changes_requested`, `unverified`, `rejected`) returns `403 {"error":"only verified records can be corrected"}` and nothing is stored. Before verification only a record's contributor may change it (FR-46), which needs the submission key (#205).
 
 ### Response — `202 Accepted`
 
@@ -418,6 +429,73 @@ A record in any other status (`pending_review`, `unverified`, `rejected`) return
 Invalid corrections return `400`, a filled `website` field returns `400 {"error":"invalid correction"}` with no `fields` and stores nothing, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
 
 ---
+
+## Following one's own submissions
+
+A contributor follows their submissions with the key each one was given (FR-59).
+A wrong key, a missing key and an unknown or keyless record all look the same
+from outside: the item is left out, or the request answers `404`. Records loaded
+without review have no key and are never reachable here. Keys travel in the
+request body or the `X-Contribution-Key` header, never in a URL that reaches the
+server. The site's private tracking link (FR-61) carries the id and key after
+`#` (`/contribute?tab=mine#track=<id>.<key>`): browsers never send the fragment,
+and the page removes it from the address bar as soon as it has read it.
+
+### `POST /api/contributions/status`
+
+Request: `{"items": [{"id": 42, "key": "…"}, …]}`, 1 to 50 pairs.
+
+`200 {"items": [...]}`: one item for each pair whose key matches, ordered by
+`id`. Each item has `id`, `verification_status`, `site_id`, `site_name`,
+`country_code`, `machine_manufacturer`, `machine_model`, `machine_type`,
+`quantity`, `submitted_at`, `updated_at`, `decision`, `resubmission_of` (the
+rejected submission this one replaces) and `resubmitted_as` (the latest
+submission that replaced this one), each an id or `null`. `decision` is the
+latest decision on the record itself, `{"decision", "note", "decided_at"}`, or
+`null` before any; decisions on proposed corrections are not included. The note
+is what the administrator wrote for the contributor.
+
+Anything other than 1 to 50 pairs, each with a positive integer `id` and a
+well-formed `key`, returns `400 {"error":"items must hold 1 to 50 submissions,
+each with its id and key"}`.
+
+### `GET /api/contributions/{id}`
+
+With the key in `X-Contribution-Key`: `200` with the status item above, plus
+the values the update form needs: the site's `latitude` and `longitude`
+(`null` when it has none), `region`, `commodity`, `machine_model_variant`,
+`technology_supplier`, `technology_product` (so a rejected submission can be
+resubmitted from it), `environment`, `deployment_status`,
+`automation_level`, `installation_type`, `commissioning_date` (a date, or the
+year alone) and `evidence_urls`. Otherwise `404 {"error":"contribution not found"}`.
+
+### `PATCH /api/contributions/{id}`
+
+With the key in `X-Contribution-Key`, the contributor answers a request for
+changes (FR-46). The body is the same as for
+[`PATCH /api/deployments/{id}`](#patch-apideploymentsid): the correctable
+fields, new evidence URLs, `change_note` and `disclosure_accepted`; contact
+details are ignored, since the original submission already names the
+contributor. `latitude` and `longitude`, given together, supply the location
+of a site that has none, which approval needs (FR-04). A site that already has
+coordinates is shared by every record at it, so moving it returns `400` with
+`"the site already has coordinates"` on both fields.
+
+A record that is `pending_review` or `changes_requested` can be updated: while
+it waits, so a contributor can add a source before anyone looks, and when
+changes are requested. The change applies to the record, an `update` revision
+attributed to the original contributor keeps the previous values, the previous
+status and, when evidence is added, the previous evidence list, and the record
+is `pending_review`. A decision then made on the version before the change is
+refused (see `version` below). The validity window follows the change as it does for an
+administrator's correction (#156).
+
+| Status | Body |
+|---|---|
+| `200` | `{"id": 42, "verification_status": "pending_review"}` |
+| `400` | `{"error": "invalid update", "fields": {...}}`, `{"error": "update does not change the submission"}`, or `{"error": "invalid update"}` when the hidden `website` field is filled |
+| `404` | `{"error": "contribution not found"}` |
+| `409` | `{"error": "only a submission waiting for review or with changes requested can be updated", "verification_status": "…"}` |
 
 ## Administrator sign-in
 
@@ -482,6 +560,11 @@ every deployment with `verification_status = pending_review` (`kind:
 - `kind` and `correction_id` (`null` for a submission);
 - `changed_fields`: the API field names a correction would change, plus
   `evidence_urls` when it adds sources (`[]` for a submission);
+- `after_changes_requested`: `true` when the contributor's update answers an
+  administrator's request for changes;
+- `updated_while_pending`: `true` when the contributor changed the record while
+  it waited for review;
+- `resubmission_of`: the rejected record this submission replaces, or `null`;
 - `evidence_count`: the record's evidence for a submission, or the sources
   supplied with a correction;
 - `contributor_email`, `contributor_organisation`: whoever submitted it, when
@@ -503,6 +586,7 @@ Query parameters:
 | `q` | Omitted | Free text: deployments whose ID starts with these digits, or whose site name contains the text (case-insensitive; `%` and `_` match themselves). Blank means no search |
 | `sort` | `updated` | `id`, `site`, `decision`, `status` or `updated`. `decision` and `status` sort by their stored value, which follows their labels; records without a decision come last in either order. Ties go to the newest record |
 | `order` | `desc` for `updated`, otherwise `asc` | `asc` or `desc` |
+| `status` | Omitted | One verification status: `unverified`, `pending_review`, `changes_requested`, `verified` or `rejected`. `changes_requested` lists the records waiting on their contributor; `updated_at` is when they were sent back |
 
 Success: `200 OK`, returning `{"items": [...]}`. Each item includes
 `id`, `site_name`, `country_code`, `verification_status`,
@@ -518,7 +602,8 @@ Invalid parameters return `400 Bad Request` with
 `{"error":"invalid pagination or submission ID"}`.
 Examples: `limit=0`, `limit=101`, `offset=-1`, `id=0`, `id=abc`.
 A repeated `q` returns `{"error":"invalid q parameter"}`. An unknown `sort` returns `{"error":"invalid sort parameter"}` and an unknown
-`order` returns `{"error":"invalid order parameter"}`, both with `400`.
+`order` returns `{"error":"invalid order parameter"}`, and an unknown `status` returns
+`{"error":"invalid status parameter"}`, all with `400`.
 
 Unauthenticated requests return `401 Unauthorized`.
 
@@ -552,22 +637,39 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
 
   A possible duplicate must belong to the same site, have the same
   deployment-level technology supplier, and match either the machine model
-  or machine type. Only deployments with verification status `pending_review`
-  or `verified` are considered. The current deployment is excluded.
+  or machine type. Deployments that are `pending_review`, `changes_requested`,
+  `verified` or `rejected` are considered, so a resubmission shows the earlier
+  attempt. The current deployment is excluded.
+- `resubmission_of`: the rejected record this one replaces, `{"id",
+  "verification_status", "decision", "note", "administrator", "reviewed_at"}`
+  with the decision that closed it, or `null` (FR-60).
+- `resubmitted_as`: the records submitted to replace this one, each
+  `{"id", "verification_status"}`.
   Technology products do not need to match and may be `null`.
 
 `404` for an unknown or malformed id.
 
 ### `POST /api/admin/deployments/{id}/reviews`
 
-Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`.
-The note (up to 2,000 characters) is required unless approving.
+Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…", "version": "…"}`.
+The note (up to 2,000 characters) is required unless approving, and is shown to
+the contributor (FR-45). `version` is the record's `updated_at` as the
+administrator opened it. A contributor may change a record while it waits, so
+when `version` is given and the record has changed since, the decision is
+refused with `409 {"error": "the record changed since you opened it",
+"updated_at": "…"}` and nothing is recorded. The administration interface
+always sends it.
+
+A decision can be recorded on a record that is `pending_review` or
+`changes_requested` (FR-45). An administrator who fixes a record with changes
+requested can approve it without sending it back to the queue, and one whose
+changes never arrive can be rejected.
 
 | Decision | New `verification_status` |
 |---|---|
 | `approved` | `verified` |
-| `rejected` | `rejected` |
-| `needs_changes` | `unverified`; the record leaves the queue, and nothing returns it to `pending_review` until #204. The administration interface does not offer this decision meanwhile |
+| `rejected` | `rejected`. The record is closed: it cannot be decided or corrected again |
+| `needs_changes` | `changes_requested`. The record leaves the queue and waits on its contributor |
 
 The review row, the new status and a `verification_change` revision holding the
 previous status are written in one transaction.
@@ -580,7 +682,8 @@ present, since every deployment carries them.
 | `201` | `{"id": <review id>, "verification_status": "verified"}` |
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "deployment not found"}` |
-| `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "only records pending review or with changes requested can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "the record changed since you opened it", "updated_at": "…"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
 | `409` | `{"error": "site coordinates are required before the record can be verified"}` |
 
@@ -628,9 +731,10 @@ The automation level can be corrected but not cleared:
 level (FR-57).
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
-status does not change. Responses: `200 {"id",
-"verification_status"}`, `400` for invalid input or a correction that changes
-nothing, `404` for an unknown record.
+status does not change. A rejected record is closed and returns `409
+{"error": "a rejected record is closed and cannot be corrected"}` (FR-45).
+Other responses: `200 {"id", "verification_status"}`, `400` for invalid input
+or a correction that changes nothing, `404` for an unknown record.
 
 ### Validity window on corrections (#156)
 
