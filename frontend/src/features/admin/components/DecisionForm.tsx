@@ -6,10 +6,10 @@ import type { ReviewDecision } from '../types'
 
 type DecisionOptions = readonly [ReviewDecision, string, string][]
 
+// Needs changes returns with the changes requested status (#204); until then a record sent back could never be decided again
 export const RECORD_DECISIONS: DecisionOptions = [
   ['approved', 'Approve', 'The record is verified and appears in public views.'],
-  ['needs_changes', 'Needs changes', 'The record leaves the queue until a correction is submitted.'],
-  ['rejected', 'Reject', 'The record stays out of public views.'],
+  ['rejected', 'Reject', 'The record stays out of public views. The contributor can submit it again as a new contribution.'],
 ]
 
 export const CORRECTION_DECISIONS: DecisionOptions = [

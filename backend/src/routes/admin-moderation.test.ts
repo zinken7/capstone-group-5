@@ -264,13 +264,15 @@ describe('GET /api/admin/reviews', () => {
   })
 
   it('identifies a contributor correction and exposes its changed fields', async () => {
-    await request(app).patch('/api/deployments/12').send({
-      quantity: 9,
-      evidence_urls: ['https://example.com/correction/12'],
-      contributor_email: 'field@example.com',
-      organisation: 'Example Mining',
-      disclosure_accepted: true,
-    }).expect(200)
+    // Stored as the public route stored one before it refused records that are not verified
+    const [contributor] = await query<{ id: number }>(
+      "INSERT INTO contributor (email, organisation) VALUES ('field@example.com', 'Example Mining') RETURNING id::int",
+    )
+    await query(
+      `INSERT INTO revision (deployment_id, contributor_id, action, previous_values)
+       VALUES (12, $1, 'update', '{"quantity": 8, "evidence_urls": [], "verification_status": "pending_review"}')`,
+      [contributor?.id],
+    )
 
     const response = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
     expect(response.status).toBe(200)
@@ -480,7 +482,7 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
     expect(again.body).toEqual({ error: 'only records pending review can be decided', verification_status: 'rejected' })
   })
 
-  it('asks for changes, and a contributor correction returns the record to the queue', async () => {
+  it('asks for changes, and a public correction cannot return the record to the queue', async () => {
     const asked = await review(12, { decision: 'needs_changes', note: 'Please add a source' })
     expect(asked.body.verification_status).toBe('unverified')
     expect(await queueIds()).toEqual([])
@@ -489,8 +491,8 @@ describe('POST /api/admin/deployments/:id/reviews', () => {
       evidence_urls: ['https://example.com/evidence/12'],
       disclosure_accepted: true,
     })
-    expect(corrected.status).toBe(200)
-    expect(await queueIds()).toEqual([12])
+    expect(corrected.status).toBe(403)
+    expect(await queueIds()).toEqual([])
   })
 
   it.each([

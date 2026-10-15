@@ -60,44 +60,9 @@ async function concurrently<T>(id: number, run: () => Promise<T>[]): Promise<T[]
   }
 }
 
-// Deployment 12 is pending review, so it is corrected directly; 10 is verified, so it gets proposals
+// Deployment 10 is verified, so it gets proposals; a record that is not verified is refused (routes/deployments.test.ts)
 describe('correctDeployment', () => {
-  it('rolls back the revision, contributor and evidence when the update fails', async () => {
-    const correction = input({
-      quantity: 5,
-      evidence_urls: ['https://example.com/new'],
-      contributor_email: 'analyst@example.com',
-      change_note: 'Fleet reduced',
-    })
-
-    // Bypasses validation so the deployment CHECK (quantity > 0) fails after the contributor and revision inserts
-    await expect(correctDeployment(12, { ...correction, changes: { quantity: 0 } })).rejects.toThrow('deployment_quantity_check')
-
-    expect(await deployment(12)).toEqual({ quantity: 8, verification_status: 'pending_review' })
-    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
-    expect(await query('SELECT id FROM contributor')).toEqual([])
-    expect(await query('SELECT url FROM evidence WHERE deployment_id = 12')).toEqual([])
-  })
-
-  it('applies concurrent corrections one after another without losing either', async () => {
-    const outcomes = await concurrently(12, () => [
-      correctDeployment(12, input({ quantity: 100 })),
-      correctDeployment(12, input({ quantity: 120 })),
-    ])
-    expect(outcomes.map((outcome) => outcome.kind)).toEqual(['updated', 'updated'])
-
-    const revisions = await query<{ previous_values: { quantity: number; verification_status: string } }>(
-      'SELECT previous_values FROM revision WHERE deployment_id = 12 ORDER BY id',
-    )
-    const final = (await deployment(12))?.quantity
-    // The second revision must see the first correction's value, not the original 8
-    expect(revisions.map((revision) => revision.previous_values)).toEqual([
-      { quantity: 8, verification_status: 'pending_review' },
-      { quantity: final === 100 ? 120 : 100, verification_status: 'pending_review' },
-    ])
-    // Longer than the 10 s lock-wait poll, so a slow database fails with its message instead of a timeout
-  }, 15_000)
-
+  // Longer than the 10 s lock-wait poll, so a slow database fails with its message instead of a timeout
   it('keeps concurrent corrections to a verified record as separate proposals', async () => {
     const outcomes = await concurrently(10, () => [
       correctDeployment(10, input({ quantity: 100 })),

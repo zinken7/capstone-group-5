@@ -62,14 +62,6 @@ describe('decommissioning closes the validity window (#156)', () => {
     expect(await mapSiteIds(year, true)).toEqual([1])
   })
 
-  it('ends the window when a public correction decommissions a record that is not verified', async () => {
-    const { date } = await today()
-    const response = await request(app).patch('/api/deployments/12').send({ deployment_status: 'decommissioned', disclosure_accepted: true })
-
-    expect(response.status).toBe(200)
-    expect((await validity(12))?.valid_to).toBe(date)
-  })
-
   it('ends the window only when a proposal to decommission a verified record is approved', async () => {
     const { date } = await today()
     const proposed = await request(app).patch('/api/deployments/10').send({ deployment_status: 'decommissioned', disclosure_accepted: true })
@@ -146,21 +138,6 @@ describe('a commissioning date past the end of the window is rejected (#156)', (
     const accepted = await adminCorrect(14, { commissioning_date: '2022-01-01', clear_valid_to: true })
     expect(accepted.status).toBe(200)
     expect(await validity(14)).toEqual({ status: 'decommissioned', valid_from: '2022-01-01', valid_to: null })
-  })
-
-  it('rejects a public correction that would do the same, storing nothing', async () => {
-    await query("UPDATE deployment SET commissioning_date = '2024-01-01', commissioning_year = 2024, valid_to = '2024-12-31' WHERE id = 12")
-
-    const response = await request(app).patch('/api/deployments/12').send({
-      commissioning_date: '2025-03-01',
-      contributor_email: 'late@example.com',
-      disclosure_accepted: true,
-    })
-    expect(response.status).toBe(400)
-    expect(response.body).toEqual({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } })
-    expect((await validity(12))?.valid_from).toBe('2024-01-01')
-    expect(await query('SELECT id FROM revision WHERE deployment_id = 12')).toEqual([])
-    expect(await query('SELECT id FROM contributor')).toEqual([])
   })
 
   it('refuses to approve a proposal that no longer fits the window, leaving it pending', async () => {

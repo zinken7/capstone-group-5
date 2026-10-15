@@ -231,6 +231,8 @@ describe('proposed corrections', () => {
     expect(screen.getByRole('link', { name: 'https://example.com/fleet-2026' })).toHaveAttribute('rel', 'noopener noreferrer')
     // A verified record has no decision of its own, only the correction's
     expect(screen.getAllByRole('button', { name: 'Record decision' })).toHaveLength(1)
+    // A proposal sent back leaves the record verified, so it keeps the option
+    expect(screen.getByLabelText(/^Needs changes/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
 
@@ -276,6 +278,8 @@ describe('record review', () => {
     const evidence = screen.getByRole('link', { name: 'https://example.com/evidence/12' })
     expect(evidence).toHaveAttribute('target', '_blank')
     expect(evidence).toHaveAttribute('rel', 'noopener noreferrer')
+    // Not offered until the changes requested status (#204): a record sent back could never be decided again
+    expect(screen.queryByLabelText(/^Needs changes/)).not.toBeInTheDocument()
 
     await user.click(screen.getByLabelText(/^Reject/))
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
