@@ -59,6 +59,10 @@ is missing, the decision panel says **Not ready to approve**, Approve is
 unavailable, and **Needs changes** is selected with a note asking for what is
 missing. Add it yourself with **Edit record**, or send the request.
 
+When the contributor left an email address, the **Contributor** panel on the
+record page offers **Email contributor**, which opens your email app with the
+record's number in the subject, for anything the decision note cannot cover.
+
 Decisions apply to records pending review and to records with changes
 requested. If you fix a record with changes requested yourself, approve it from
 its page: it does not need to go back through the queue. To find the records

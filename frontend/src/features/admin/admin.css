@@ -721,6 +721,16 @@
   margin: 0;
 }
 
+/* Who submitted the record, for following up by email */
+.admin-contact p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-contact .button {
+  justify-self: start;
+}
+
 /* A record with changes requested: the request it is waiting on */
 .admin-waiting p {
   margin: 0;

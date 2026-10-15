@@ -304,6 +304,32 @@ describe('record review', () => {
     expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual(expect.objectContaining({ decision: 'needs_changes' }))
   })
 
+  test('offers an email to the contributor who submitted the record, when they gave one', async () => {
+    const created = { action: 'create', previous_values: {}, change_note: null, administrator: null, changed_at: '2026-10-01T00:00:00Z' }
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        revisions: [{ ...created, contributor_email: 'field@example.com', contributor_organisation: 'Example Mining' }],
+      })),
+      'GET /api/admin/deployments/13': () => Response.json(recordDto({
+        id: 13,
+        revisions: [{ ...created, contributor_email: null, contributor_organisation: null }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const { unmount } = renderAt('/admin/deployments/12')
+
+    const panel = await screen.findByRole('region', { name: 'Contributor' })
+    expect(panel).toHaveTextContent('field@example.com · Example Mining')
+    const link = within(panel).getByRole('link', { name: 'Email contributor' })
+    expect(link.getAttribute('href')).toMatch(/^mailto:field@example\.com\?subject=Your%20Mining%20Market%20Map%20submission%20\(record%2012\)&body=/)
+    unmount()
+
+    renderAt('/admin/deployments/13')
+    expect(await screen.findByText(/No contact email was given/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Email contributor' })).not.toBeInTheDocument()
+  })
+
   test('closes a rejected record: no decision and no editing', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),

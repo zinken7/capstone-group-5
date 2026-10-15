@@ -109,6 +109,13 @@ function EditRecordPanel({ record, onCorrected }: { record: ReviewRecord; onCorr
 /** Statuses a decision can be recorded on (FR-45): changes requested too, so a record fixed here can be approved or a silent one closed */
 const DECIDABLE = ['pending_review', 'changes_requested']
 
+/** An email to the contributor, about this record */
+function contactLink(email: string, record: ReviewRecord): string {
+  const subject = `Your Mining Market Map submission (record ${record.id})`
+  const body = `Hello,\n\nAbout your submission for ${record.siteName} (record ${record.id}):\n\n`
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
 /** What happens next for a record no decision can be made on */
 function closedNotice(status: string): string {
   if (status === 'verified') return 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
@@ -135,6 +142,8 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]
   const decidable = DECIDABLE.includes(record.verificationStatus)
+  // Who submitted it, for following up by email (FR-40, Section 7)
+  const submitter = record.revisions.find((revision) => revision.action === 'create')
   // What approval needs (FR-44, FR-04) that a submission may lack, since both are optional when submitting (FR-07)
   const approvalBlockers: ApprovalBlocker[] = [
     ...(record.evidence.length === 0 ? [{ label: 'No evidence URL', request: 'a link to a public source (such as the operator\'s announcement)' }] : []),
@@ -265,6 +274,19 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
           )}
           {!decidable && pendingCorrections.length === 0 && (
             <p className="admin-notice">{closedNotice(record.verificationStatus)}</p>
+          )}
+          {submitter && (
+            <section className="admin-panel admin-contact" aria-labelledby="contact-heading">
+              <h2 id="contact-heading">Contributor</h2>
+              {submitter.contributorEmail ? (
+                <>
+                  <p>{[submitter.contributorEmail, submitter.contributorOrganisation].filter(Boolean).join(' · ')}</p>
+                  <a className="button button--secondary" href={contactLink(submitter.contributorEmail, record)}>Email contributor</a>
+                </>
+              ) : (
+                <p className="form-help">No contact email was given{submitter.contributorOrganisation ? ` (organisation: ${submitter.contributorOrganisation})` : ''}. The contributor sees your decisions under My contributions, in the browser they submitted from.</p>
+              )}
+            </section>
           )}
           {/* A rejected record is closed (FR-45) */}
           {record.verificationStatus !== 'rejected' && <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />}
