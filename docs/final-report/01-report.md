@@ -68,7 +68,7 @@ All 15 planned must-haves are delivered, and staging goes beyond them with the c
 **Open issues at submission:**
 
 - \#83 and \#69: the evidence check works as a separate module (PRs #84 and #85) but is not connected to the review screen. Connecting it needs the client's decision, a rebase onto main, a guard on outbound requests, and a background worker, which the current serverless host cannot run.
-- Rate limiting **\[#NNN\]**: a hidden honeypot field stops simple bots (FR-51), but the public forms have no rate limiting, so a script could still flood the review queue.
+- Rate limiting **\[#NNN\]**: a hidden honeypot field stops simple bots (FR-51, PR #165), but the public forms have no rate limiting, so a script could still flood the review queue.
 - *Should* requirements not delivered **\[#NNN\]**: FR-12 in part, FR-13, FR-32, FR-33, FR-38, FR-49 and FR-50, each recorded in Section 7 of the specification \[1\].
 - Staging deployment **\[#NNN; CONFIRM still open after #231\]**: the frontend and backend decide separately whether to deploy, so after a failed or cancelled run they can end up on different commits.
 
