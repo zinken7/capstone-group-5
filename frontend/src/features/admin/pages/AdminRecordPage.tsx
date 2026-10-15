@@ -157,6 +157,12 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
   const latestCorrection = record.verificationStatus === 'pending_review'
     ? [...record.revisions].reverse().find((revision) => revision.action !== 'verification_change' && revision.administrator === null)
     : undefined
+  // The status it came back from is shown by the heading, not as a changed field
+  const changedEntries = Object.entries(latestCorrection?.previousValues ?? {}).filter(([field]) => field !== 'verification_status')
+  // The request for changes this update answers
+  const answered = latestCorrection?.previousValues?.verification_status === 'changes_requested'
+    ? [...record.reviews].reverse().find((review) => review.correctionId === null && review.decision === 'needs_changes')
+    : undefined
 
   return (
     <>
@@ -177,10 +183,14 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
           ))}
 
           {latestCorrection?.action === 'update' && latestCorrection.previousValues && <section className="admin-panel change-panel admin-record__lead" aria-labelledby="changes-heading">
-            <h2 id="changes-heading">What changed</h2>
-            {latestCorrection.changeNote && <p className="form-help">{latestCorrection.changeNote}</p>}
+            <h2 id="changes-heading">{answered ? 'Changes made on request' : 'What changed'}</h2>
+            {answered && <>
+              <p className="form-help">Answers the request from {answered.administrator}, {formatDateTime(answered.reviewedAt)}:</p>
+              {answered.note && <blockquote>{answered.note}</blockquote>}
+            </>}
+            {latestCorrection.changeNote && <p className="form-help">{answered ? `The contributor's note: ${latestCorrection.changeNote}` : latestCorrection.changeNote}</p>}
             <dl className="change-list">
-              {Object.entries(latestCorrection.previousValues).map(([field, before]) => (
+              {changedEntries.map(([field, before]) => (
                 <div key={field}>
                   <dt>{formatEnumLabel(field)}</dt>
                   <dd><span>Before: {describeChangedValue(before)}</span><span>Proposed: {describeChangedValue(currentValueForField(record, field))}</span></dd>

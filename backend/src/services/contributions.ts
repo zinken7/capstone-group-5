@@ -1,4 +1,5 @@
 import { withTransaction } from '../database.js'
+import { createContributionKey } from '../lib/contribution-key.js'
 import type { ContributionInput } from '../lib/contribution-validation.js'
 import {
   findOrCreateCompany,
@@ -6,6 +7,7 @@ import {
   findOrCreateRegion,
   findOrCreateSite,
   findOrCreateTechnologyProduct,
+  insertContributionKey,
   insertContributor,
   insertDeployment,
   insertEvidence,
@@ -15,6 +17,8 @@ import {
 export interface ContributionResult {
   id: number
   verificationStatus: string
+  /** The submission's private key, returned once; only its hash is stored (FR-59) */
+  key: string
 }
 
 /** The submission as received, minus contact details, kept on the create revision (FR-47). */
@@ -69,6 +73,7 @@ export async function createContribution(input: ContributionInput): Promise<Cont
 
     // Each revision names exactly one actor, so an anonymous submission still gets a contributor row
     const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
+    const { key, hash } = createContributionKey()
 
     const deployment = await insertDeployment(tx, {
       siteId,
@@ -83,6 +88,7 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       commissioningDate: input.commissioning?.date ?? null,
       commissioningYear: input.commissioning?.year ?? null,
     })
+    await insertContributionKey(tx, deployment.id, hash)
 
     await insertEvidence(tx, deployment.id, input.evidenceUrls)
     await insertRevision(tx, {
@@ -93,6 +99,6 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       changeNote: null,
     })
 
-    return deployment
+    return { ...deployment, key }
   })
 }

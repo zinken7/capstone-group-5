@@ -74,6 +74,7 @@ interface QueueItemDto {
   kind: 'submission' | 'correction'
   correction_id: number | null
   changed_fields: string[]
+  after_changes_requested: boolean
   contributor_email: string | null
   contributor_organisation: string | null
 }
@@ -96,6 +97,7 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     kind: item.kind,
     correctionId: item.correction_id,
     changedFields: item.changed_fields,
+    afterChangesRequested: item.after_changes_requested,
     contributorEmail: item.contributor_email,
     contributorOrganisation: item.contributor_organisation,
   }))

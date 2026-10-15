@@ -416,6 +416,12 @@
   background: var(--color-info-surface);
 }
 
+/* The contributor answered a request for changes; back on the administrator's side */
+.admin-kind--changes {
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
 .admin-state {
   color: var(--text-muted);
   font-weight: 600;
@@ -739,12 +745,13 @@
   justify-self: start;
 }
 
-/* A record with changes requested: the request it is waiting on */
+/* A record with changes requested: the request it is waiting on, or the one an update answers */
 .admin-waiting p {
   margin: 0;
 }
 
-.admin-waiting blockquote {
+.admin-waiting blockquote,
+.change-panel blockquote {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border-left: 3px solid var(--color-info);

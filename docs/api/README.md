@@ -365,10 +365,15 @@ Submits one deployment record. No account is required.
 ### Response — `201 Created`
 
 ```json
-{ "id": 42, "verification_status": "pending_review" }
+{ "id": 42, "verification_status": "pending_review", "key": "Xr7…43 characters" }
 ```
 
 The record stays out of public map, site detail, register and analytics responses until an administrator verifies it.
+
+`key` is the submission's private key (FR-59): 43 URL-safe characters, returned
+this once and never again. Only its SHA-256 hash is stored. The contributor's
+browser keeps it to follow and update the submission without an account; see
+[Following one's own submissions](#following-ones-own-submissions).
 
 ### Errors
 
@@ -418,6 +423,64 @@ A record in any other status (`pending_review`, `changes_requested`, `unverified
 Invalid corrections return `400`, a filled `website` field returns `400 {"error":"invalid correction"}` with no `fields` and stores nothing, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
 
 ---
+
+## Following one's own submissions
+
+A contributor follows their submissions with the key each one was given (FR-59).
+A wrong key, a missing key and an unknown or keyless record all look the same
+from outside: the item is left out, or the request answers `404`. Records loaded
+without review have no key and are never reachable here. Keys travel in the
+request body or the `X-Contribution-Key` header, never in a URL.
+
+### `POST /api/contributions/status`
+
+Request: `{"items": [{"id": 42, "key": "…"}, …]}`, 1 to 50 pairs.
+
+`200 {"items": [...]}`: one item for each pair whose key matches, ordered by
+`id`. Each item has `id`, `verification_status`, `site_id`, `site_name`,
+`country_code`, `machine_manufacturer`, `machine_model`, `machine_type`,
+`quantity`, `submitted_at`, `updated_at` and `decision`. `decision` is the
+latest decision on the record itself, `{"decision", "note", "decided_at"}`, or
+`null` before any; decisions on proposed corrections are not included. The note
+is what the administrator wrote for the contributor.
+
+Anything other than 1 to 50 pairs, each with a positive integer `id` and a
+well-formed `key`, returns `400 {"error":"items must hold 1 to 50 submissions,
+each with its id and key"}`.
+
+### `GET /api/contributions/{id}`
+
+With the key in `X-Contribution-Key`: `200` with the status item above, plus
+the values the update form needs: the site's `latitude` and `longitude`
+(`null` when it has none), `environment`, `deployment_status`,
+`automation_level`, `installation_type`, `commissioning_date` (a date, or the
+year alone) and `evidence_urls`. Otherwise `404 {"error":"contribution not found"}`.
+
+### `PATCH /api/contributions/{id}`
+
+With the key in `X-Contribution-Key`, the contributor answers a request for
+changes (FR-46). The body is the same as for
+[`PATCH /api/deployments/{id}`](#patch-apideploymentsid): the correctable
+fields, new evidence URLs, `change_note` and `disclosure_accepted`; contact
+details are ignored, since the original submission already names the
+contributor. `latitude` and `longitude`, given together, supply the location
+of a site that has none, which approval needs (FR-04). A site that already has
+coordinates is shared by every record at it, so moving it returns `400` with
+`"the site already has coordinates"` on both fields.
+
+Only a record with `verification_status = changes_requested` can be updated.
+The change applies to the record, an `update` revision attributed to the
+original contributor keeps the previous values, the previous status and, when
+evidence is added, the previous evidence list, and the record returns to
+`pending_review`. The validity window follows the change as it does for an
+administrator's correction (#156).
+
+| Status | Body |
+|---|---|
+| `200` | `{"id": 42, "verification_status": "pending_review"}` |
+| `400` | `{"error": "invalid update", "fields": {...}}`, `{"error": "update does not change the submission"}`, or `{"error": "invalid update"}` when the hidden `website` field is filled |
+| `404` | `{"error": "contribution not found"}` |
+| `409` | `{"error": "only a submission with changes requested can be updated", "verification_status": "…"}` |
 
 ## Administrator sign-in
 
@@ -482,6 +545,8 @@ every deployment with `verification_status = pending_review` (`kind:
 - `kind` and `correction_id` (`null` for a submission);
 - `changed_fields`: the API field names a correction would change, plus
   `evidence_urls` when it adds sources (`[]` for a submission);
+- `after_changes_requested`: `true` when the contributor's update answers an
+  administrator's request for changes;
 - `evidence_count`: the record's evidence for a submission, or the sources
   supplied with a correction;
 - `contributor_email`, `contributor_organisation`: whoever submitted it, when

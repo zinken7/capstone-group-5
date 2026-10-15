@@ -38,6 +38,7 @@ erDiagram
     DEPLOYMENT ||--o{ DEPLOYMENT_CORRECTION : "has proposed"
     CONTRIBUTOR o|--o{ DEPLOYMENT_CORRECTION : proposes
     DEPLOYMENT_CORRECTION o|--o{ VERIFICATION_REVIEW : "is decided by"
+    DEPLOYMENT ||--o| CONTRIBUTION_KEY : "is followed with"
 
     COMPANY {
         bigint id PK
@@ -145,6 +146,11 @@ erDiagram
         text change_note
         correction_status status
         timestamptz submitted_at
+    }
+    CONTRIBUTION_KEY {
+        bigint deployment_id PK,FK
+        text key_hash
+        timestamptz created_at
     }
     REVISION {
         bigint id PK
@@ -270,6 +276,7 @@ until #62 confirms that meaning.
 - `admin_user.email` is unique and stored in lower case. Store only a strong password hash (the backend uses scrypt), never a plaintext password.
 - `admin_user.role` is `root` or `admin`. Root accounts are created only from the command line (`npm run admin:create -- --root`) and manage administrator accounts; administrators review submissions.
 - `admin_user.must_change_password` is true while an account still has a generated temporary password; every other administrator action is refused until it is changed.
+- A submission's private key (FR-59, #205) is held only as a SHA-256 hash in `contribution_key`, one row per submitted deployment, so public reads of `deployment` never carry it. The key is returned once when the submission is made; it lets the contributor follow the submission and answer a request for changes without an account. Deployments loaded without review have no row and are never reachable through the contributor API. The hash is 64 lowercase hex characters (`contribution_key_hash_format`).
 - The MVP collects from a contributor only an optional email address and, where offered, an organisation (NFR-09). The legacy `display_name` column is retained but is not populated by MVP contribution flows. No domain-affiliation flag is held in the MVP; one arrives only if FR-52 and FR-53 are taken up.
 - `company.name` is unique.
 - `region` is unique on `(name, country_code)`.

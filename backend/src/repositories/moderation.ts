@@ -39,6 +39,8 @@ export interface QueueItem {
   correction_id: number | null
   /** API field names changed by the correction; empty for a new submission. */
   changed_fields: string[]
+  /** The contributor's update answers an administrator's request for changes (FR-59) */
+  after_changes_requested: boolean
   contributor_email: string | null
   contributor_organisation: string | null
 }
@@ -105,6 +107,7 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
       kind: revision?.action === 'update' ? 'correction' : 'submission',
       correction_id: null,
       changed_fields: changedFields,
+      after_changes_requested: revision?.action === 'update' && revision.previous_values?.verification_status === 'changes_requested',
       contributor_email: revision?.contributor_email ?? null,
       contributor_organisation: revision?.contributor_organisation ?? null,
     }
@@ -240,6 +243,7 @@ export async function listPendingCorrections(): Promise<QueueItem[]> {
     ...row,
     kind: 'correction',
     changed_fields: [...Object.keys(proposed_values), ...(row.evidence_count > 0 ? ['evidence_urls'] : [])],
+    after_changes_requested: false,
   }))
 }
 
