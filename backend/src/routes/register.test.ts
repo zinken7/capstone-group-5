@@ -60,6 +60,34 @@ describe('GET /api/register', () => {
     expect(itemIds(searched.body)).toEqual([11])
   })
 
+  it.each([
+    ['a site name', 'whale', [11]],
+    ['a machine model name', '793', [10]],
+    ['a manufacturer name', 'sandvik', [11]],
+    ['a supplier name', 'rct', [11]],
+    ['a technology product name', 'unclassified', [14]],
+    ['text no name holds', 'zzz', []],
+    ['a literal %', '%', []],
+    ['a literal _', '_', []],
+  ])('searches %s, ignoring case', async (_label, q, ids) => {
+    const response = await request(app).get(`/api/register?q=${encodeURIComponent(q)}&sort=quantity&order=desc`)
+    expect(response.status).toBe(200)
+    expect(itemIds(response.body)).toEqual(ids)
+    expect(response.body.total).toBe(ids.length)
+  })
+
+  it('filters by commissioning year, whether a date or only a year is recorded', async () => {
+    // 10 has a 2021 date, 14 a 2015 date; 11 gets a year without a date
+    await query('UPDATE deployment SET commissioning_year = 2019 WHERE id = 11')
+
+    const from = await request(app).get('/api/register?commissioned_from=2016&sort=quantity&order=desc')
+    expect(itemIds(from.body)).toEqual([10, 11])
+    const to = await request(app).get('/api/register?commissioned_to=2019&sort=quantity&order=desc')
+    expect(itemIds(to.body)).toEqual([14, 11])
+    const both = await request(app).get('/api/register?commissioned_from=2015&commissioned_to=2019&sort=quantity&order=desc')
+    expect(itemIds(both.body)).toEqual([14, 11])
+  })
+
   it('restricts the register to one exact site with site_id', async () => {
     const response = await request(app).get('/api/register?site_id=1')
 
