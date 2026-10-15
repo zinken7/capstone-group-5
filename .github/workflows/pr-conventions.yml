@@ -8,10 +8,13 @@ on:
       - synchronize
       - reopened
 
+# The checks read only the event payload, so the token needs no access
+permissions: {}
+
 jobs:
   validate:
     name: Validate branch and PR title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Validate branch name
