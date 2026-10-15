@@ -63,6 +63,14 @@ The SQL files in `migrations/` remain the only migration authority, for fresh an
 
 Constraints the typed schema cannot represent stay database-native and live only in the migrations: the `updated_at` maintenance, append-only history, active-admin review, evidence/deployment locking and verified-requires-evidence triggers and functions.
 
+### Time limits
+
+The pool gives up on a connection after 10 seconds. The server ends any statement after 15 seconds and any transaction left idle for 60 seconds (`src/session-limits.ts`). These limits are stored on the server rather than sent as connection parameters, so they also hold behind a connection pooler such as Neon's, which may refuse them as parameters. Staging's API connects through Neon's pooled endpoint, and migrations through the direct one ([`docs/staging.md`](../docs/staging.md)).
+
+`npm run db:migrate` sets the limits on every run and lifts the statement limit for its own session. They are not a numbered migration because `pg_dump` without `--create` leaves them out: after restoring a backup, run `npm run db:migrate` to put them back. Only the database owner can set them for the whole database. Any other role sets them for itself and the migration prints a warning; the API must then connect as that same role.
+
+To lift them for one maintenance session, for example a long query in `psql`, first run `SET statement_timeout = 0;` and `SET idle_in_transaction_session_timeout = 0;`. They apply again from the next session. Connect through the direct endpoint, because behind a pooler a `SET` may reach a different server connection.
+
 ### Raw SQL rule
 
 Drizzle is the default data-access path for feature code. Raw SQL is allowed only where PostGIS or complex SQL is materially clearer, must run through Drizzle's parameterised `sql` template (never string concatenation), and needs a justifying comment — the spatial map query in `src/repositories/sites.ts` is the canonical example. The `query()` helper in `src/database.ts` remains for tests and fixtures; do not add new direct `pg` query strings in feature code.
