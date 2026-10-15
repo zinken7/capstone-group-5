@@ -38,6 +38,8 @@ export const site = pgTable("site", {
 	point4326: geometry("point_4326", { type: "point", srid: 4326 }),
 }, (table) => [
 	index("site_country_code_idx").using("btree", table.countryCode.asc().nullsLast().op("text_ops")),
+	index("site_name_idx").using("btree", table.name.asc().nullsLast().op("text_ops")),
+	index("site_name_trgm_idx").using("gin", table.name.asc().nullsLast().op("gin_trgm_ops")),
 	index("site_point_4326_gist_idx").using("gist", table.point4326.asc().nullsLast().op("gist_geometry_ops_2d")),
 	index("site_region_id_idx").using("btree", table.regionId.asc().nullsLast().op("int8_ops")),
 	foreignKey({
@@ -76,6 +78,7 @@ export const company = pgTable("company", {
 	countryCode: text("country_code"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
+	index("company_name_trgm_idx").using("gin", table.name.asc().nullsLast().op("gin_trgm_ops")),
 	unique("company_name_key").on(table.name),
 ]);
 
@@ -103,13 +106,9 @@ export const deployment = pgTable("deployment", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	technologySupplierId: bigint("technology_supplier_id", { mode: "number" }).notNull(),
 }, (table) => [
-	index("deployment_automation_level_idx").using("btree", table.automationLevel.asc().nullsLast().op("enum_ops")),
-	index("deployment_commissioning_date_idx").using("btree", table.commissioningDate.asc().nullsLast().op("date_ops")),
 	index("deployment_commissioning_year_idx").using("btree", table.commissioningYear.asc().nullsLast().op("int2_ops")),
-	index("deployment_installation_type_idx").using("btree", table.installationType.asc().nullsLast().op("enum_ops")),
 	index("deployment_machine_model_id_idx").using("btree", table.machineModelId.asc().nullsLast().op("int8_ops")),
 	index("deployment_site_id_idx").using("btree", table.siteId.asc().nullsLast().op("int8_ops")),
-	index("deployment_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
 	index("deployment_technology_product_id_idx").using("btree", table.technologyProductId.asc().nullsLast().op("int8_ops")),
 	index("deployment_technology_supplier_id_idx").using("btree", table.technologySupplierId.asc().nullsLast().op("int8_ops")),
 	index("deployment_verification_status_idx").using("btree", table.verificationStatus.asc().nullsLast().op("enum_ops")),
@@ -153,6 +152,7 @@ export const technologyProduct = pgTable("technology_product", {
 	automationLevel: automationLevel("automation_level"),
 	levelBasis: text("level_basis"),
 }, (table) => [
+	index("technology_product_name_trgm_idx").using("gin", table.productName.asc().nullsLast().op("gin_trgm_ops")),
 	foreignKey({
 			columns: [table.supplierId],
 			foreignColumns: [company.id],
@@ -265,6 +265,7 @@ export const machineModel = pgTable("machine_model", {
 }, (table) => [
 	uniqueIndex("machine_model_manufacturer_model_variant_unique").using("btree", sql`manufacturer_id`, sql`model_name`, sql`COALESCE(lower(model_variant), ''::text)`).where(sql`(model_name IS NOT NULL)`),
 	uniqueIndex("machine_model_manufacturer_type_variant_unnamed_unique").using("btree", sql`manufacturer_id`, sql`machine_type`, sql`COALESCE(lower(model_variant), ''::text)`).where(sql`(model_name IS NULL)`),
+	index("machine_model_name_trgm_idx").using("gin", table.modelName.asc().nullsLast().op("gin_trgm_ops")),
 	foreignKey({
 			columns: [table.manufacturerId],
 			foreignColumns: [company.id],
