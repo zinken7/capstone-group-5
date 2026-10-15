@@ -86,6 +86,8 @@ All 15 planned must-haves are delivered, and staging goes beyond them with the c
 4. Replace the placeholder data with real records from industry contributors.
 5. Move hosting to a UWA environment and confirm the licences.
 
+\newpage
+
 # Use of generative AI
 
 We used generative AI in documents, code and review, under two team rules.
