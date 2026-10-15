@@ -11,6 +11,8 @@ type SessionState =
   | { status: 'unknown' }
   | { status: 'signed-out' }
   | { status: 'signed-in'; profile: AdminProfile }
+  /** Signing out on purpose: administration pages wait instead of asking for a new sign-in */
+  | { status: 'signing-out' }
   | { status: 'error' }
 
 interface AdminSessionValue {
@@ -24,8 +26,50 @@ interface AdminSessionValue {
 
 const AdminSessionContext = createContext<AdminSessionValue | null>(null)
 
+/** Set while this browser has an administrator signed in, so public pages check the session only then, not for every visitor */
+const SIGNED_IN_KEY = 'mining-market-map.admin-signed-in'
+/** The public page this tab was on before it went into administration, to return to on signing out */
+const RETURN_TO_KEY = 'mining-market-map.admin-return-to'
+
+/** Whether an administrator was signed in here when last known; storage that cannot be read counts as no */
+export function mayBeSignedIn(): boolean {
+  try {
+    return window.localStorage.getItem(SIGNED_IN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function rememberPublicPage(path: string) {
+  try {
+    window.sessionStorage.setItem(RETURN_TO_KEY, path)
+  } catch {
+    // Without storage, signing out returns to the map
+  }
+}
+
+/** Where signing out from administration goes: the public page this tab came from, or the map */
+export function publicPageToReturnTo(): string {
+  try {
+    const path = window.sessionStorage.getItem(RETURN_TO_KEY)
+    // Only a path on this site, never another origin
+    return path?.startsWith('/') && !path.startsWith('//') ? path : '/map'
+  } catch {
+    return '/map'
+  }
+}
+
 export function AdminSessionProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<SessionState>({ status: 'unknown' })
+
+  useEffect(() => {
+    try {
+      if (state.status === 'signed-in') window.localStorage.setItem(SIGNED_IN_KEY, '1')
+      if (state.status === 'signed-out') window.localStorage.removeItem(SIGNED_IN_KEY)
+    } catch {
+      // Without storage, public pages do not show the session until a correction checks it
+    }
+  }, [state.status])
 
   const load = useCallback(() => {
     getSession()
@@ -38,6 +82,7 @@ export function AdminSessionProvider({ children }: PropsWithChildren) {
   }, [])
 
   const signOut = useCallback(async () => {
+    setState({ status: 'signing-out' })
     try {
       await apiSignOut()
     } finally {
@@ -97,6 +142,10 @@ export function RequireAdminSession({ children, allowPendingPasswordChange = fal
   }
   if (state.status === 'error') {
     return <StateMessage variant="error" title="Administration unavailable" message="The administrator session could not be checked. Try again later." />
+  }
+  if (state.status === 'signing-out') {
+    // The sign-out control has already sent this tab back to the public site
+    return <StateMessage variant="loading" title="Signing out" message="One moment." />
   }
   if (state.status === 'signed-out') {
     return <Navigate replace to="/admin/login" state={{ from: location.pathname }} />

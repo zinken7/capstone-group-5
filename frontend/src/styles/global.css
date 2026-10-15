@@ -27,6 +27,7 @@ html {
     scrollbar-gutter: auto;
   }
 
+  html:has(.map-page) .admin-strip,
   html:has(.map-page) .site-header,
   html:has(.map-page) .site-footer {
     padding-right: calc(clamp(1rem, 4vw, 3rem) + var(--scrollbar-width, 0px));
@@ -142,6 +143,18 @@ a { color: inherit; }
 .site-footer p { margin: 0; }
 .site-footer__admin { color: var(--text-muted); font-weight: 600; text-underline-offset: 0.2em; }
 .site-footer__admin:hover { color: var(--text-strong); }
+/* A signed-in administrator on a public page: who is signed in, the way back to administration and out */
+.app-shell--administrator { grid-template-rows: auto auto 1fr auto; }
+.admin-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 1.5rem; padding: 0 clamp(1rem, 4vw, 3rem); color: white; background: var(--color-ink); font-size: 0.82rem; }
+.admin-strip p { display: flex; flex-wrap: wrap; gap: 0 0.6rem; margin: 0; padding: 0.35rem 0; }
+.admin-strip__email { overflow: hidden; color: rgb(255 255 255 / 75%); text-overflow: ellipsis; white-space: nowrap; }
+.admin-strip__short { display: none; }
+/* The links' text lines up with the navigation's below */
+.admin-strip__actions { display: flex; gap: 0.25rem; }
+.admin-strip__actions a, .admin-strip__actions button { display: inline-flex; min-height: 36px; align-items: center; padding: 0 0.8rem; border: 0; border-radius: 0.35rem; color: white; background: transparent; font-size: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.admin-strip__actions a:hover, .admin-strip__actions button:hover { background: rgb(255 255 255 / 12%); }
+.admin-strip :focus-visible { outline-color: var(--color-accent); }
+
 /* The header's administrator icon shows on phones only, in place of the footer link, which is a long scroll away there */
 .site-header__admin { display: none; }
 
@@ -285,5 +298,9 @@ code { font-family: var(--font-mono); }
   .site-header__admin { display: grid; grid-row: 1; grid-column: 2; width: 44px; height: 44px; place-items: center; border-radius: var(--control-radius); color: white; background: var(--brand); }
   .site-header__admin:hover { background: var(--brand-dark); }
   .site-footer__admin { display: none; }
+  .admin-strip { flex-wrap: nowrap; gap: 0.5rem; }
+  .admin-strip__long, .admin-strip__email { display: none; }
+  .admin-strip__short { display: inline; }
+  .admin-strip__actions { margin-right: -0.8rem; }
   .page-heading { align-items: flex-start; flex-direction: column; }
 }
