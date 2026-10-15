@@ -109,6 +109,8 @@ interface ContributionStatusDto {
 }
 
 interface OwnContributionDto extends ContributionStatusDto {
+  latitude: number | null
+  longitude: number | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -146,6 +148,8 @@ export async function getOwnContribution(id: number, key: string): Promise<OwnCo
   const dto = await requestJson<OwnContributionDto>(`contributions/${id}`, { headers: { 'X-Contribution-Key': key } })
   return {
     ...toStatus(dto),
+    latitude: dto.latitude,
+    longitude: dto.longitude,
     environment: dto.environment,
     deploymentStatus: dto.deployment_status,
     automationLevel: dto.automation_level,
@@ -170,6 +174,8 @@ export async function updateOwnContribution(id: number, key: string, update: Own
       commissioning_date: update.commissioningDate,
       evidence_urls: update.evidenceUrls,
       change_note: update.changeNote,
+      latitude: update.latitude,
+      longitude: update.longitude,
       disclosure_accepted: true,
     }),
   })

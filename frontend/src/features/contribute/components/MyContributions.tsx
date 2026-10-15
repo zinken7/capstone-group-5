@@ -23,6 +23,8 @@ interface UpdateValues {
   commissioningDate: string
   evidenceUrl: string
   changeNote: string
+  latitude: string
+  longitude: string
   disclosureAccepted: boolean
 }
 
@@ -36,6 +38,8 @@ function valuesOf(contribution: OwnContribution): UpdateValues {
     commissioningDate: contribution.commissioningDate ?? '',
     evidenceUrl: '',
     changeNote: '',
+    latitude: '',
+    longitude: '',
     disclosureAccepted: false,
   }
 }
@@ -49,6 +53,12 @@ function changesFrom(before: UpdateValues, values: UpdateValues): OwnContributio
   if (commissioning !== before.commissioningDate && commissioning && !/^\d{4}(-\d{2}-\d{2})?$/.test(commissioning)) errors.commissioning_date = 'Enter a year (2024) or a date (2024-03-01).'
   const url = values.evidenceUrl.trim()
   if (url && !/^https?:\/\/\S+$/i.test(url)) errors.evidence_urls = 'Enter an address that starts with http:// or https://.'
+  const latitude = values.latitude.trim()
+  const longitude = values.longitude.trim()
+  if (latitude || longitude) {
+    if (!latitude || !(Math.abs(Number(latitude)) <= 90)) errors.latitude = 'Enter a latitude between -90 and 90.'
+    if (!longitude || !(Math.abs(Number(longitude)) <= 180)) errors.longitude = 'Enter a longitude between -180 and 180.'
+  }
   if (!values.disclosureAccepted) errors.disclosure_accepted = 'Confirm the information before sending it.'
   if (Object.keys(errors).length > 0) return { errors, message: 'Check the highlighted fields.' }
 
@@ -60,6 +70,10 @@ function changesFrom(before: UpdateValues, values: UpdateValues): OwnContributio
   if (values.installationType !== before.installationType) update.installationType = values.installationType
   if (commissioning && commissioning !== before.commissioningDate) update.commissioningDate = commissioning
   if (url) update.evidenceUrls = [url]
+  if (latitude && longitude) {
+    update.latitude = Number(latitude)
+    update.longitude = Number(longitude)
+  }
   if (Object.keys(update).length === 0) return { errors: {}, message: 'Change at least one detail or add a source before sending.' }
   if (values.changeNote.trim()) update.changeNote = values.changeNote.trim()
   return update
@@ -177,6 +191,25 @@ function UpdateForm({ item, onSent, onCancel, onStale }: UpdateFormProps) {
           <input id={`${prefix}-commissioning_date`} placeholder="YYYY or YYYY-MM-DD" value={values.commissioningDate} onChange={(event) => set('commissioningDate', event.target.value)} {...field('commissioning_date')} />
           {error('commissioning_date')}
         </div>
+        {/* Approval needs the site's location; a site that has one is shared, so it is not changed here */}
+        {contribution.latitude === null && (
+          <fieldset className="form-field--wide my-contribution__location">
+            <legend>Site location</legend>
+            <p className="form-help">The site has no location yet, and a submission needs one before it can be approved.</p>
+            <div className="my-contribution__location-fields">
+              <div className="form-field">
+                <label htmlFor={`${prefix}-latitude`}>Latitude</label>
+                <input id={`${prefix}-latitude`} inputMode="decimal" placeholder="-22.3" value={values.latitude} onChange={(event) => set('latitude', event.target.value)} {...field('latitude')} />
+                {error('latitude')}
+              </div>
+              <div className="form-field">
+                <label htmlFor={`${prefix}-longitude`}>Longitude</label>
+                <input id={`${prefix}-longitude`} inputMode="decimal" placeholder="118.7" value={values.longitude} onChange={(event) => set('longitude', event.target.value)} {...field('longitude')} />
+                {error('longitude')}
+              </div>
+            </div>
+          </fieldset>
+        )}
         <div className="form-field form-field--wide">
           <label htmlFor={`${prefix}-evidence_urls`}>New source URL <span className="form-help-inline">(recommended)</span></label>
           <input id={`${prefix}-evidence_urls`} type="url" placeholder="https://" value={values.evidenceUrl} onChange={(event) => set('evidenceUrl', event.target.value)} {...field('evidence_urls')} />

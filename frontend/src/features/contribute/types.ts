@@ -134,6 +134,9 @@ export interface ContributionStatus {
 
 /** The values of one's own submission that the update form starts from */
 export interface OwnContribution extends ContributionStatus {
+  /** The site's location; null when it has none, which approval needs */
+  latitude: number | null
+  longitude: number | null
   environment: string | null
   deploymentStatus: string | null
   automationLevel: string
@@ -153,6 +156,9 @@ export interface OwnContributionUpdate {
   commissioningDate?: string
   evidenceUrls?: string[]
   changeNote?: string
+  /** Only for a site with no location yet */
+  latitude?: number
+  longitude?: number
 }
 
 export type ContributionSubmitter = (values: ContributionFormValues) => Promise<ContributionSubmissionResult | void>

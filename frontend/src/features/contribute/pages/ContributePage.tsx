@@ -209,7 +209,13 @@ function NewContribution({
       }
       setTracked(followed)
       setSubmitState('success')
-      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id, followed))
+      // Both are optional when submitting (FR-07) but needed for approval, so the contributor hears it now
+      const missing = [
+        ...(values.evidenceUrls.every((url) => !url.trim()) ? ['a source link'] : []),
+        ...(!values.latitude.trim() || !values.longitude.trim() ? ["the site's coordinates, unless the site is already on the map"] : []),
+      ]
+      const reminder = missing.length > 0 ? ` Before it can be approved it needs ${missing.join(' and ')}; the reviewer may ask you for ${missing.length > 1 ? 'them' : 'it'}.` : ''
+      setSubmitMessage(`${submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id, followed)}${reminder}`)
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'We could not submit your contribution. Please try again.')
@@ -265,7 +271,7 @@ function NewContribution({
     <>
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
-        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
+        <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. A submission can be approved only once it has at least one source link and, for a site not yet on the map, its coordinates. Add them now if you can; otherwise the reviewer will ask for them under My contributions. Contributions are checked before they become part of the public market map.</p>
       </aside>
 
       <form className="contribution-form" noValidate onSubmit={handleSubmit}>

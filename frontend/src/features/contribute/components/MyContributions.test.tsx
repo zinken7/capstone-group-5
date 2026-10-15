@@ -82,7 +82,9 @@ describe('My contributions', () => {
     await user.click(screen.getByLabelText(/authorised to disclose/i))
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
-    expect(await screen.findByText(/under My contributions in this browser/i)).toBeInTheDocument()
+    expect(await screen.findByText(/under My contributions in this browser/i)).toHaveTextContent(
+      "Before it can be approved it needs a source link and the site's coordinates, unless the site is already on the map; the reviewer may ask you for them.",
+    )
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([
       expect.objectContaining({ id: 20450, key: KEY, siteName: 'Roy Hill', machine: 'Caterpillar 793F' }),
     ])
@@ -125,7 +127,7 @@ describe('My contributions', () => {
       'GET /api/contributions/20412': () => Response.json({
         ...statusItem({ verification_status: 'changes_requested' }),
         environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
-        commissioning_date: '2021', evidence_urls: ['https://example.com/forum-post'],
+        commissioning_date: '2021', evidence_urls: ['https://example.com/forum-post'], latitude: -22.3, longitude: 118.7,
       }),
       'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
       'PATCH /api/contributions/20412': () => Response.json({ id: 20412, verification_status: 'pending_review' }),
@@ -153,6 +155,39 @@ describe('My contributions', () => {
     const patch = calls.find((call) => call.key === 'PATCH /api/contributions/20412')
     expect(new Headers(patch?.init?.headers).get('X-Contribution-Key')).toBe(KEY)
     expect(JSON.parse(String(patch?.init?.body))).toEqual({ quantity: 14, evidence_urls: ['https://example.com/annual-report'], disclosure_accepted: true })
+  })
+
+  test('asks for the site location when the site has none, and sends it with the update', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    const calls = stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [statusItem({
+        verification_status: 'changes_requested',
+        decision: { decision: 'needs_changes', note: "Please add the site's latitude and longitude.", decided_at: '2026-10-09T03:00:00.000Z' },
+      })] }),
+      'GET /api/contributions/20412': () => Response.json({
+        ...statusItem({ verification_status: 'changes_requested' }),
+        environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
+        commissioning_date: '2021', evidence_urls: ['https://example.com/announcement'], latitude: null, longitude: null,
+      }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'PATCH /api/contributions/20412': () => Response.json({ id: 20412, verification_status: 'pending_review' }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    await user.click(await within(row).findByRole('button', { name: 'Update submission' }))
+    const latitude = await within(row).findByRole('textbox', { name: 'Latitude' })
+    await user.type(latitude, '-22.3')
+    await user.click(within(row).getByLabelText(/i confirm that this information is accurate/i))
+    await user.click(within(row).getByRole('button', { name: 'Send for review' }))
+    expect(within(row).getByText('Enter a longitude between -180 and 180.')).toBeInTheDocument()
+
+    await user.type(within(row).getByRole('textbox', { name: 'Longitude' }), '118.7')
+    await user.click(within(row).getByRole('button', { name: 'Send for review' }))
+    expect(await within(row).findByText(/Sent for review/)).toBeInTheDocument()
+    const patch = calls.find((call) => call.key === 'PATCH /api/contributions/20412')
+    expect(JSON.parse(String(patch?.init?.body))).toEqual({ latitude: -22.3, longitude: 118.7, disclosure_accepted: true })
   })
 
   test('shows a rejection with its reason, a verified record with a link, and one the site no longer reports', async () => {
