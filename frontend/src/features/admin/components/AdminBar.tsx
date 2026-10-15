@@ -1,7 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import BrandMark from '../../../shared/components/BrandMark'
-import { useAdminSession } from '../session'
+import { publicPageToReturnTo, useAdminSession } from '../session'
 
 /**
  * The administration header, used on every admin page in place of the public
@@ -48,7 +48,9 @@ function AdminBar() {
                 className="admin-account__sign-out"
                 type="button"
                 onClick={() => {
-                  void signOut().then(() => navigate('/admin/login', { replace: true }))
+                  // Back to the public page this tab came from, not to another sign-in
+                  navigate(publicPageToReturnTo(), { replace: true })
+                  void signOut()
                 }}
               >
                 Sign out

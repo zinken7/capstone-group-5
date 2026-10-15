@@ -14,7 +14,12 @@
 | `GET` | `/api/analytics/crosstab` | Returns machine counts for every pair of groups across two dimensions, for the analytics heatmap and mix charts |
 | `GET` | `/api/reference-data` | Returns the controlled values for the contribution form |
 | `POST` | `/api/contributions` | Submits a new deployment record with evidence (FR-40, FR-44) |
-| `PATCH` | `/api/deployments/{id}` | Corrects an existing deployment record (FR-46 to FR-48) |
+| `POST` | `/api/contributions/status` | Returns the status of one's own submissions, by key (FR-59) |
+| `GET` | `/api/contributions/{id}` | Returns one's own submission, by key (FR-59) |
+| `PATCH` | `/api/contributions/{id}` | Updates one's own submission while it waits or has changes requested (FR-46, FR-59) |
+| `PATCH` | `/api/deployments/{id}` | Proposes a correction to a verified record (FR-46 to FR-48) |
+| `POST` | `/api/corrections/status` | Returns the status of one's own proposed corrections, by key (FR-59) |
+| `GET` | `/api/corrections/{id}` | Returns one's own proposed correction and the record it corrects, by key (FR-59) |
 | `POST` | `/api/admin/session` | Signs an administrator in (FR-45) |
 | `GET` | `/api/admin/session` | Returns the signed-in administrator |
 | `DELETE` | `/api/admin/session` | Signs out |
@@ -23,10 +28,17 @@
 | `GET` | `/api/admin/submissions` | Lists submission history with pagination and optional ID filtering |
 | `GET` | `/api/admin/deployments/{id}` | Returns one record in any status, with evidence and history |
 | `POST` | `/api/admin/deployments/{id}/reviews` | Records an approve, reject or needs-changes decision (FR-43) |
+| `POST` | `/api/admin/corrections/{id}/reviews` | Decides a proposed correction (FR-48) |
 | `PATCH` | `/api/admin/deployments/{id}` | Administrator correction (FR-47) |
 | `GET` | `/api/admin/users` | Lists administrator accounts (root only) |
 | `POST` | `/api/admin/users` | Adds an administrator with a temporary password (root only) |
 | `PATCH` | `/api/admin/users/{id}` | Deactivates or reactivates an administrator (root only) |
+| `GET` | `/health` | Liveness check: `200 {"status": "ok"}`, outside `/api` |
+| `GET` | `/health/database` | Database check: `200` with the PostgreSQL and PostGIS versions, or `503` when the database cannot be reached |
+
+Errors that a route handles return JSON, `{"error": "…"}`. An unexpected
+failure returns Express's default `500` page, which is HTML; outside
+`development` it carries no details.
 
 The public read endpoints only return deployments with `verification_status = verified` by default (FR-43).
 
@@ -393,7 +405,7 @@ browser keeps it to follow and update the submission without an account; see
 - All writes occur in one transaction; any failure rolls everything back.
 - Companies, regions, sites, machine models and technology products are reused case-insensitively when they match; otherwise they are created.
 - The supplier is stored on the deployment. Without a product name no placeholder product is created; a named product is filed under the supplier.
-- When supplied together, contribution coordinates are stored as the site's PostGIS point. An existing same-name site without a point is filled in by a later contribution or administrator correction.
+- When supplied together, contribution coordinates are stored as the site's PostGIS point. An existing site with the same name and country is reused as it is: a contribution never moves it or gives it coordinates. Its contributor can add missing coordinates with [`PATCH /api/contributions/{id}`](#patch-apicontributionsid), and an administrator can set them.
 - `commissioning_date: "YYYY"` stores only `commissioning_year`; a full date stores both and sets `valid_from`.
 - A submission with `deployment_status: "decommissioned"` gets `valid_to` set to the submission date (never before `valid_from`), so it is not shown as in service once verified (#156).
 - Every submission creates a contributor row, with `email` and `organisation` left empty when none were given, because each revision names exactly one actor (migration 005).
@@ -467,7 +479,8 @@ each with its id and key"}`.
 
 With the key in `X-Contribution-Key`: `200` with the status item above, plus
 the values the update form needs: the site's `latitude` and `longitude`
-(`null` when it has none), `region`, `commodity`, `machine_model_variant`,
+(`null` when it has none), `site_shared` (`true` when another record that is
+not rejected is at the same site, so only an administrator may locate it), `region`, `commodity`, `machine_model_variant`,
 `technology_supplier`, `technology_product` (so a rejected submission can be
 resubmitted from it), `environment`, `deployment_status`,
 `automation_level`, `installation_type`, `commissioning_date` (a date, or the
@@ -478,12 +491,17 @@ year alone) and `evidence_urls`. Otherwise `404 {"error":"contribution not found
 With the key in `X-Contribution-Key`, the contributor answers a request for
 changes (FR-46). The body is the same as for
 [`PATCH /api/deployments/{id}`](#patch-apideploymentsid): the correctable
-fields, new evidence URLs, `change_note` and `disclosure_accepted`; contact
-details are ignored, since the original submission already names the
+fields, new evidence URLs, `change_note` and `disclosure_accepted`. Contact
+details are validated as for a correction, so a malformed email returns `400`,
+but are not stored, since the original submission already names the
 contributor. `latitude` and `longitude`, given together, supply the location
 of a site that has none, which approval needs (FR-04). A site that already has
 coordinates is shared by every record at it, so moving it returns `400` with
-`"the site already has coordinates"` on both fields.
+`"the site already has coordinates"` on both fields. Sites are matched by name
+and country, so another contributor naming the same mine shares the site too:
+while any other record there is not rejected, supplying coordinates returns
+`400` with `"the site is shared with other records, so an administrator sets
+its location"` on both fields, and an administrator adds them instead.
 
 A record that is `pending_review` or `changes_requested` can be updated: while
 it waits, so a contributor can add a source before anyone looks, and when
@@ -539,8 +557,9 @@ Every modifying request (`POST`, `PATCH`, `DELETE`) must send the header
 `X-Requested-With: fetch`, otherwise it gets `403`. Requests without a valid
 session get `401 {"error": "sign in required"}`. An account that still has its
 temporary password gets `403 {"error": "password change required"}` from every
-administrator route except `GET /api/admin/session` and `POST /api/admin/password`.
-If `SESSION_SECRET` is not configured, administrator routes return `503`.
+administrator route except `GET` and `DELETE /api/admin/session` and
+`POST /api/admin/password`. If `SESSION_SECRET` is missing or shorter than 32
+characters, the routes that create or read a session return `503`.
 
 ### `POST /api/admin/session`
 
@@ -559,7 +578,10 @@ case-insensitive.
 
 ### `DELETE /api/admin/session`
 
-`204`, and the cookie is cleared.
+`204`, and the cookie is cleared. It needs only the `X-Requested-With` header,
+not a session, so it always succeeds. Sessions are not stored on the server: a
+copy of the cookie stays valid until it expires, unless the account's password
+changes or the account is deactivated.
 
 ### `POST /api/admin/password`
 
@@ -579,12 +601,13 @@ has been changed (see [Administrator sign-in](#administrator-sign-in)).
 ### `GET /api/admin/reviews`
 
 `200 {"items": [...]}`: everything waiting for a decision, oldest first. That is
-every deployment with `verification_status = pending_review` (`kind:
-"submission"`) and every pending correction to a verified deployment (`kind:
-"correction"`). Each item has:
+every deployment with `verification_status = pending_review` and every pending
+correction to a verified deployment (`kind: "correction"` with its
+`correction_id`). A pending record is `kind: "submission"`, or `kind:
+"correction"` with `correction_id: null` when its contributor has updated it
+since submitting. Each item has:
 
 - `id` (the deployment), `site_name`, `country_code`, `region`,
-  `latitude`, `longitude`,
   `machine_manufacturer`, `machine_model`, `machine_type`, `quantity`,
   `technology_supplier`, `technology_product`: the record's current values;
 - `kind` and `correction_id` (`null` for a submission);
@@ -640,7 +663,8 @@ Unauthenticated requests return `401 Unauthorized`.
 ### `GET /api/admin/deployments/{id}`
 
 `200` with the record in any verification status: `verification_status`, site
-(including nullable `latitude` and `longitude`),
+(including nullable `latitude` and `longitude`, and `site_shared` when another
+record that is not rejected is at the site, so only an administrator can locate it),
 machine, technology, deployment fields (as in the register, plus `valid_from`,
 `valid_to`, `created_at`, `updated_at`), and:
 
@@ -720,8 +744,11 @@ present, since every deployment carries them.
 ### `POST /api/admin/corrections/{id}/reviews`
 
 Decides a correction proposed for a verified record. The request is the same as
-for a record: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`,
-with the note required unless approving.
+for a record: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…", "version": "…"}`,
+with the note required unless approving. `version` is the record's `updated_at` as
+the administrator saw it. When another correction or an edit has changed the record
+since, the decision is refused with `409`, so a proposal is never approved against
+values the administrator did not see. Without `version` the check is skipped.
 
 | Decision | Effect |
 |---|---|
@@ -738,6 +765,7 @@ database refuses any later change to it.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "correction not found"}` |
 | `409` | `{"error": "only pending corrections can be decided", "correction_status": "…"}` |
+| `409` | `{"error": "the record changed since you opened it", "updated_at": "…"}`: decide again on the latest version |
 | `409` | `{"error": "the proposed commissioning date is after the record's valid_to; correct the record or reject the proposal"}`: approving would end the validity window before it starts, so nothing changes and the proposal stays pending |
 
 ### `PATCH /api/admin/deployments/{id}`
@@ -768,9 +796,10 @@ or a correction that changes nothing, `404` for an unknown record.
 
 ### Validity window on corrections (#156)
 
-Every path that changes a record (a direct public correction, an approved
-proposal and an administrator's correction) keeps `valid_from`..`valid_to` in
-step, because the map and the timeline decide what is in service from it:
+Every path that changes a record (a contributor's update with
+`PATCH /api/contributions/{id}`, an approved proposal and an administrator's
+correction) keeps `valid_from`..`valid_to` in step, because the map and the
+timeline decide what is in service from it:
 
 - When `deployment_status` becomes `decommissioned` and no `valid_to` is
   recorded, `valid_to` is set to today, never before `valid_from`. An explicit
@@ -780,8 +809,8 @@ step, because the map and the timeline decide what is in service from it:
   date, `valid_from` moves with it. A `valid_from` set separately, as after a
   relocation, is left alone, and a year-only date never invents a start.
 - If that would put `valid_from` after the recorded `valid_to`, nothing is
-  stored: a correction returns `400` with
-  `{"fields": {"commissioning_date": "must not be after valid_to"}}`, and
+  stored: a contributor's update or an administrator's correction returns `400`
+  with `{"fields": {"commissioning_date": "must not be after valid_to"}}`, and
   approving a proposal returns `409` and leaves it pending. An administrator can
   send the new end date, or `clear_valid_to`, in the same correction.
 - The status is not reopened automatically: a record changed back from
@@ -831,10 +860,6 @@ Route tests, repository tests and contribution/correction service tests run agai
 
 - Sites without coordinates are omitted from `/api/map`; `/api/sites/{id}` returns `null` coordinates for them.
 - `valid_from` may be null; the map date filter treats that as no lower bound.
-- Moderation still needs visibility parameters such as `include_unverified`.
-- Register and summary filters do not yet include the map's `date` and `bbox` parameters.
+- Register and summary filters do not include the map's `date` and `bbox` parameters.
 - Analytics count verified deployments only; there is no option to include unverified records.
-- The frontend Analytics page still builds its figures from site detail requests; switching it to `/api/analytics/*` is the frontend part of #67.
-- New submissions start as `pending_review`. A public correction to a verified record is stored as a proposal (`202`), and the record stays public and unchanged until an administrator approves it (FR-48). FR-51 anti-spam controls are still needed before public launch.
-- Administrator revision/review history endpoints belong to #66.
-- Persistence currently uses the shared parameterised `query()`/`withTransaction()` layer and is planned to move to Drizzle with #71.
+- FR-51 anti-spam controls are partial: the API rejects a filled `website` honeypot field, but there is no rate limiting.

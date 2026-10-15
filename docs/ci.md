@@ -36,8 +36,9 @@ checks or using a truncated list.
 Backend checks use an isolated `postgis/postgis:17-3.5` service, matching the
 root Compose image. Its `test` credentials are disposable CI values, not
 deployment credentials. After the health check, CI runs `npm ci`, lint,
-typecheck, build, `npm run db:migrate`, then `npm test` with `NODE_ENV=test` and
-`DATABASE_URL` pointing to that service.
+typecheck, build, `npm run db:migrate`, `npm run db:schema:check` (the
+committed Drizzle schema must match the migrated database), then `npm test` with
+`NODE_ENV=test` and `DATABASE_URL` pointing to that service.
 
 Between migrations and tests, CI creates a second database, `seed_check`,
 migrates it and runs `npm run db:seed` twice. A migration that breaks

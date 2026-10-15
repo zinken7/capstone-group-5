@@ -1,3 +1,4 @@
+import { mayBeSignedIn, rememberPublicPage, useOptionalAdminSession } from '../features/admin/session'
 import { needsChanges as waitsOnContributor, useMyContributions } from '../features/contribute/my-contributions'
 import type { PropsWithChildren } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
@@ -23,6 +24,13 @@ function AppLayout({ children }: PropsWithChildren) {
   const inAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/')
   // Submissions from this browser waiting on the contributor (FR-59)
   const needsChanges = useMyContributions().items.filter(waitsOnContributor).length
+  const session = useOptionalAdminSession()
+  const administrator = session?.state.status === 'signed-in' ? session.state.profile : null
+
+  // A signed-in administrator sees the session on public pages too; visitors are not asked for one
+  useEffect(() => {
+    if (!inAdmin && session?.state.status === 'unknown' && mayBeSignedIn()) session.load()
+  }, [inAdmin, session])
 
   useEffect(() => {
     // Only routes explicitly ending in `/` own nested paths. Public pages and
@@ -32,7 +40,8 @@ function AppLayout({ children }: PropsWithChildren) {
       ? location.pathname.startsWith(path)
       : location.pathname === path)?.[1]
     document.title = page ? `${page} · Mining Market Map` : 'Page not found · Mining Market Map'
-  }, [location.pathname])
+    if (page && !inAdmin) rememberPublicPage(`${location.pathname}${location.search}`)
+  }, [location.pathname, location.search, inAdmin])
 
   // Administration pages bring their own header (AdminBar) and need no public footer
   if (inAdmin) {
@@ -45,8 +54,31 @@ function AppLayout({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className="app-shell">
+    <div className={administrator ? 'app-shell app-shell--administrator' : 'app-shell'}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
+      {administrator && session && (
+        <div className="admin-strip">
+          {/* Phones show the short label alone, so the strip stays on one line */}
+          <p>
+            <strong className="admin-strip__long">Signed in as administrator</strong>
+            <strong className="admin-strip__short">Administrator</strong>
+            <span className="admin-strip__email">{administrator.email}</span>
+          </p>
+          <div className="admin-strip__actions">
+            <Link to="/admin">Administration</Link>
+            <button
+              type="button"
+              onClick={() => {
+                // Stays on this page; focus goes to its content, as the strip is gone
+                void session.signOut().then((signedOut) => { if (signedOut) document.getElementById('main-content')?.focus() })
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+          {session.signOutFailed && <p className="admin-strip__error" role="alert">Sign-out failed, so you are still signed in. Check your connection and try again.</p>}
+        </div>
+      )}
       <header className="site-header">
         <NavLink className="brand" to="/map" aria-label="Mining Market Map home">
           <BrandMark />
@@ -70,16 +102,16 @@ function AppLayout({ children }: PropsWithChildren) {
             {needsChanges > 0 && <span className="nav-badge" aria-hidden="true">{needsChanges}</span>}
           </NavLink>
         </nav>
-        {/* On phones the footer link is a long scroll away, so the header carries it as an icon, after the navigation in tab order */}
-        <Link className="site-header__admin" to="/admin" aria-label="Administrator sign-in" title="Administrator sign-in">
+        {/* On phones the footer link is a long scroll away, so the header carries it as an icon, after the navigation in tab order; signed in, the strip above replaces both */}
+        {!administrator && <Link className="site-header__admin" to="/admin" aria-label="Administrator sign-in" title="Administrator sign-in">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-        </Link>
+        </Link>}
       </header>
       <main className="page-content" id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
         <p><strong>About the data</strong> · Unverified submissions are excluded from public views. Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noreferrer" target="_blank">CC BY 4.0</a>.</p>
         {/* The way in for administrators; the pages behind it still require a sign-in */}
-        <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>
+        {!administrator && <Link className="site-footer__admin" to="/admin">Administrator sign-in</Link>}
       </footer>
     </div>
   )

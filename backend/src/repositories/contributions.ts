@@ -3,6 +3,7 @@ import type { SQL } from 'drizzle-orm'
 
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
+import { isoTimestamp } from '../lib/iso-timestamp.js'
 
 type DeploymentInsert = typeof tables.deployment.$inferInsert
 type MachineModelInsert = typeof tables.machineModel.$inferInsert
@@ -256,6 +257,8 @@ export interface CurrentDeployment {
   validTo: string | null
   technologyProductId: number | null
   verificationStatus: string
+  /** As the API serialises updated_at, to compare with the version an administrator saw */
+  updatedAt: string
 }
 
 /** Reads a deployment and locks its row until the transaction ends, so concurrent corrections queue up. */
@@ -278,6 +281,7 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       validTo: tables.deployment.validTo,
       technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
+      updatedAt: isoTimestamp(tables.deployment.updatedAt),
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))

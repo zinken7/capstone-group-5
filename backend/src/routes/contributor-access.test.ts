@@ -285,7 +285,7 @@ describe('PATCH /api/contributions/:id', () => {
 
   it('supplies the coordinates of a site that has none, so the record can be approved', async () => {
     const mine = await submit({ site_name: 'Unmapped Pit', latitude: null, longitude: null })
-    expect((await read(mine.id, mine.key)).body).toEqual(expect.objectContaining({ latitude: null, longitude: null }))
+    expect((await read(mine.id, mine.key)).body).toEqual(expect.objectContaining({ latitude: null, longitude: null, site_shared: false }))
     expect((await decide(mine.id, 'approved')).body.error).toBe('site coordinates are required before the record can be verified')
     expect((await decide(mine.id, 'needs_changes', 'Please add the site location')).status).toBe(201)
 
@@ -307,6 +307,29 @@ describe('PATCH /api/contributions/:id', () => {
     expect(response.body).toEqual({ error: 'invalid update', fields: { latitude: 'the site already has coordinates', longitude: 'the site already has coordinates' } })
     const [row] = await query<{ quantity: number }>('SELECT quantity FROM deployment WHERE id = $1', [mine.id])
     expect(row?.quantity).toBe(15)
+  })
+
+  it('leaves the location of a site another contributor shares to an administrator, until the other record is rejected', async () => {
+    // Sites are matched by name and country, so a second contributor naming the same mine shares its site
+    const first = await submit({ site_name: 'Shared Pit', latitude: null, longitude: null })
+    const second = await submit({ site_name: 'shared pit', latitude: null, longitude: null })
+    expect((await read(second.id, second.key)).body).toEqual(expect.objectContaining({ latitude: null, site_shared: true }))
+    // The administrator's page says so too, as the location is theirs to add
+    expect((await request(app).get(`/api/admin/deployments/${second.id}`).set('Cookie', cookie)).body.site_shared).toBe(true)
+
+    const response = await update(second.id, second.key, { latitude: 10, longitude: 10 })
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid update', fields: {
+      latitude: 'the site is shared with other records, so an administrator sets its location',
+      longitude: 'the site is shared with other records, so an administrator sets its location',
+    } })
+    // The first contributor's record is not placed by someone else
+    expect((await read(first.id, first.key)).body).toEqual(expect.objectContaining({ latitude: null, longitude: null }))
+
+    // A rejected record is closed, so it no longer holds the site
+    expect((await decide(first.id, 'rejected', 'Duplicate of a later submission')).status).toBe(201)
+    expect((await read(second.id, second.key)).body).toEqual(expect.objectContaining({ site_shared: false }))
+    expect((await update(second.id, second.key, { latitude: 10, longitude: 10 })).status).toBe(200)
   })
 
   it('needs both coordinates together', async () => {

@@ -6,6 +6,7 @@ import { db } from '../database.js'
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
 import { isoTimestamp } from '../lib/iso-timestamp.js'
+import { sharedSite } from './contributor-access.js'
 import { likePattern } from './deployments.js'
 
 // company joins twice: once as the machine manufacturer, once as the technology supplier
@@ -263,6 +264,8 @@ export interface ReviewRecord {
   country_code: string
   latitude: number | null
   longitude: number | null
+  /** Another record that is not rejected is at the site, so its contributor cannot locate it (FR-46) */
+  site_shared: boolean
   region: string | null
   commodity: string | null
   machine_manufacturer: string
@@ -359,6 +362,7 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       country_code: tables.site.countryCode,
       latitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
       longitude: sql<number | null>`ST_X(${tables.site.point4326})`,
+      site_shared: sharedSite(tables.deployment.siteId, tables.deployment.id),
       region: tables.region.name,
       commodity: tables.site.commodity,
       machine_manufacturer: manufacturer.name,

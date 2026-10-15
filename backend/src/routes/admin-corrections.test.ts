@@ -114,6 +114,24 @@ describe('GET /api/admin/deployments/:id', () => {
 })
 
 describe('POST /api/admin/corrections/:id/reviews', () => {
+  it('refuses a decision made on a version of the record that has since changed', async () => {
+    const first = await propose(10, { quantity: 100, evidence_urls: ['https://example.com/fleet-a'] })
+    const second = await propose(10, { quantity: 120, evidence_urls: ['https://example.com/fleet-b'] })
+    // Both were read from the same page
+    const seen = (await request(app).get('/api/admin/deployments/10').set('Cookie', cookie)).body.updated_at as string
+
+    expect((await decide(first, { decision: 'approved', version: seen })).status).toBe(201)
+    const stale = await decide(second, { decision: 'approved', version: seen })
+
+    expect(stale.status).toBe(409)
+    expect(stale.body).toEqual({ error: 'the record changed since you opened it', updated_at: expect.any(String) })
+    expect(stale.body.updated_at).not.toBe(seen)
+    expect(await deployment10()).toEqual({ quantity: 100, verification_status: 'verified' })
+    // On the latest version the decision goes through
+    expect((await decide(second, { decision: 'approved', version: stale.body.updated_at })).status).toBe(201)
+    expect(await deployment10()).toEqual({ quantity: 120, verification_status: 'verified' })
+  })
+
   it('applies an approved correction, keeps the record verified and attributes the change to its contributor', async () => {
     const correctionId = await propose(10, {
       quantity: 100,

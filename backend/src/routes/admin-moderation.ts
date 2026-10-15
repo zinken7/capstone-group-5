@@ -148,6 +148,9 @@ router.post('/admin/corrections/:id/reviews', ...requireAdmin(), async (req, res
       case 'not_pending':
         res.status(409).json({ error: 'only pending corrections can be decided', correction_status: outcome.correctionStatus })
         return
+      case 'stale':
+        res.status(409).json({ error: 'the record changed since you opened it', updated_at: outcome.updatedAt })
+        return
       case 'invalid_window':
         res.status(409).json({ error: 'the proposed commissioning date is after the record\'s valid_to; correct the record or reject the proposal' })
         return

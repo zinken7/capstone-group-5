@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -125,8 +125,27 @@ describe('administration access', () => {
     expect(passwordCall?.headers.get('X-Requested-With')).toBe('fetch')
   })
 
-  test('signs out and returns to the sign-in page', async () => {
+  test('signs out and returns to the public page this tab came from, not to sign-in', async () => {
     const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({ items: [] }),
+      'DELETE /api/admin/session': () => new Response(null, { status: 204 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    window.sessionStorage.setItem('mining-market-map.admin-return-to', '/contribute')
+    const user = userEvent.setup()
+    renderAt('/admin')
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('heading', { name: 'Contribute', level: 1 })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Sign in' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Signed in as administrator')).not.toBeInTheDocument()
+    expect(calls.some((call) => call.key === 'DELETE /api/admin/session')).toBe(true)
+  })
+
+  test('signs out to the map when this tab came straight to administration', async () => {
+    stubApi({
       'GET /api/admin/session': () => profile(),
       'GET /api/admin/reviews': () => Response.json({ items: [] }),
       'DELETE /api/admin/session': () => new Response(null, { status: 204 }),
@@ -136,8 +155,73 @@ describe('administration access', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Sign out' }))
 
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Map' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('heading', { name: 'Sign in' })).not.toBeInTheDocument()
+  })
+
+  test('shows a signed-in administrator on public pages, with a way back and out', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'DELETE /api/admin/session': () => new Response(null, { status: 204 }),
+    })
+    window.localStorage.setItem('mining-market-map.admin-signed-in', '1')
+    const user = userEvent.setup()
+    renderAt('/contribute')
+
+    expect(await screen.findByText('Signed in as administrator')).toBeInTheDocument()
+    expect(screen.getByText('reviewer@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Administration' })).toHaveAttribute('href', '/admin')
+    // The strip replaces the sign-in links
+    expect(screen.queryByRole('link', { name: 'Administrator sign-in' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    // Signing out here stays on the page
+    expect(await within(screen.getByRole('contentinfo')).findByRole('link', { name: 'Administrator sign-in' })).toBeInTheDocument()
+    expect(screen.queryByText('Signed in as administrator')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Contribute', level: 1 })).toBeInTheDocument()
     expect(calls.some((call) => call.key === 'DELETE /api/admin/session')).toBe(true)
+    expect(window.localStorage.getItem('mining-market-map.admin-signed-in')).toBeNull()
+  })
+
+  test('keeps the administrator signed in, and says so, when sign-out does not reach the server', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'DELETE /api/admin/session': () => { throw new TypeError('Failed to fetch') },
+    })
+    window.localStorage.setItem('mining-market-map.admin-signed-in', '1')
+    const user = userEvent.setup()
+    renderAt('/contribute')
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByText(/Sign-out failed, so you are still signed in./)).toHaveAttribute('role', 'alert')
+    expect(screen.getByText('Signed in as administrator')).toBeInTheDocument()
+    expect(window.localStorage.getItem('mining-market-map.admin-signed-in')).toBe('1')
+  })
+
+  test('does not ask for a session on public pages when no administrator signed in here', async () => {
+    const calls = stubApi({ 'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }) })
+    renderAt('/contribute')
+
+    expect(await screen.findByRole('heading', { name: 'Contribute', level: 1 })).toBeInTheDocument()
+    expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Administrator sign-in' })).toBeInTheDocument()
+    expect(calls.some((call) => call.key === 'GET /api/admin/session')).toBe(false)
+  })
+
+  test('remembers that an administrator signed in, for the public pages', async () => {
+    stubApi({ 'POST /api/admin/session': () => profile(), 'GET /api/admin/reviews': () => Response.json({ items: [] }) })
+    const user = userEvent.setup()
+    renderAt('/admin/login')
+
+    await user.type(screen.getByLabelText('Email'), 'reviewer@example.com')
+    await user.type(screen.getByLabelText('Password'), 'a much longer password')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { name: 'Review queue' })).toBeInTheDocument()
+    expect(window.localStorage.getItem('mining-market-map.admin-signed-in')).toBe('1')
   })
 
   test('returns to sign-in when the session ends while loading the queue', async () => {
@@ -301,7 +385,8 @@ describe('proposed corrections', () => {
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
 
     expect(await screen.findByText('Decision on the correction recorded.')).toBeInTheDocument()
-    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null })
+    // Decided on the version of the record the page shows, so a change since is refused
+    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null, version: '2026-10-02T00:00:00Z' })
     expect(screen.queryByRole('table', { name: 'Proposed changes' })).not.toBeInTheDocument()
     expect(screen.getByText('Correction approved')).toBeInTheDocument()
     expect(screen.getByText('Decided corrections')).toBeInTheDocument()
@@ -364,6 +449,32 @@ describe('record review', () => {
 
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
     expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual(expect.objectContaining({ decision: 'needs_changes' }))
+  })
+
+  test('asks only for what the contributor can supply when other records share the site', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ evidence: [], latitude: null, longitude: null, site_shared: true })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('No site coordinates (other records share this site, so the contributor cannot add them)')).toBeInTheDocument()
+    // The request goes out for the evidence only; the location is the administrator's to add
+    expect(screen.getByLabelText(/^Note/)).toHaveValue("Before this can be approved, please add a link to a public source (such as the operator's announcement).")
+
+    // With nothing the contributor can supply, the panel offers only Edit record
+    cleanup()
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ latitude: null, longitude: null, site_shared: true })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+    const blockers = (await screen.findByText('Not ready to approve')).closest('div') as HTMLElement
+    expect(blockers).toHaveTextContent('Add it yourself with Edit record.')
+    expect(blockers).not.toHaveTextContent('Needs changes')
+    expect(screen.getByLabelText(/^Note/)).toHaveValue('')
   })
 
   test('offers an email to the contributor who submitted the record, when they gave one', async () => {
@@ -671,7 +782,7 @@ describe('record review', () => {
 
 describe('buildCorrection', () => {
   const record = {
-    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, siteShared: false, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, possibleDuplicates: [], resubmissionOf: null, resubmittedAs: [],
     automationLevel: null, environment: null,

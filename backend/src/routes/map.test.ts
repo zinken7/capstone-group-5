@@ -76,9 +76,10 @@ describe('GET /api/map', () => {
     expect(response.body).toEqual({ error: 'invalid bbox parameter' })
   })
 
-  it('rejects a malformed date parameter', async () => {
-    const response = await request(app).get('/api/map?date=not-a-date')
+  it.each(['not-a-date', '2024-02-30', '1', '2024-1-5', '2024-01-01T00:00:00Z'])('rejects a malformed date parameter: %s', async (date) => {
+    const response = await request(app).get(`/api/map?date=${encodeURIComponent(date)}`)
 
+    // Including dates JavaScript accepts but PostgreSQL does not, which used to fail the query with a 500
     expect(response.status).toBe(400)
     expect(response.body).toEqual({ error: 'invalid date parameter' })
   })

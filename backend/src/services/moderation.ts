@@ -106,6 +106,7 @@ const CORRECTION_STATUS_AFTER: Record<ReviewDecision, CorrectionStatus> = {
 export type CorrectionDecisionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_pending'; correctionStatus: string }
+  | { kind: 'stale'; updatedAt: string }
   | { kind: 'invalid_window' }
   | { kind: 'decided'; reviewId: number; correctionStatus: string; verificationStatus: string }
 
@@ -124,6 +125,8 @@ export async function decideCorrection(correctionId: number, adminUserId: number
     const current = await lockDeployment(tx, correction.deploymentId)
     // The foreign key guarantees the deployment exists
     if (!current) throw new Error(`Correction ${correctionId} has no deployment`)
+    // Another correction or an edit may have changed the record, so the decision must be on the values the administrator saw
+    if (input.version !== null && input.version !== current.updatedAt) return { kind: 'stale', updatedAt: current.updatedAt }
 
     if (input.decision === 'approved' && !(await applyCorrection(tx, correction, current))) return { kind: 'invalid_window' }
     const reviewId = await insertReview(tx, {

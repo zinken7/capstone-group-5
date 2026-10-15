@@ -29,6 +29,15 @@ describe('AppLayout', () => {
     expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).queryByRole('link', { name: /admin/i })).not.toBeInTheDocument()
   })
 
+  test('remembers the public page to return to after signing out, not administration or unknown pages', () => {
+    const { unmount } = render(<MemoryRouter initialEntries={['/equipment?site_id=1']}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
+    unmount()
+    for (const path of ['/admin/deployments/12', '/map/unknown']) {
+      render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>).unmount()
+    }
+    expect(window.sessionStorage.getItem('mining-market-map.admin-return-to')).toBe('/equipment?site_id=1')
+  })
+
   test.each(['/admin', '/admin/login', '/admin/deployments/12'])('gives the administration pages no public header or footer: %s', (path) => {
     render(<MemoryRouter initialEntries={[path]}><AppLayout><p>Page</p></AppLayout></MemoryRouter>)
 

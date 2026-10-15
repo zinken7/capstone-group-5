@@ -36,7 +36,17 @@ export function formatDate(value: string | null | undefined): string {
   const [, year, month, day] = match
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
   if (date.getUTCFullYear() !== Number(year) || date.getUTCMonth() !== Number(month) - 1 || date.getUTCDate() !== Number(day)) return value
-  return new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+  // A calendar date has no time zone: formatted in UTC, it shows the same day everywhere
+  return new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date)
+}
+
+/** The day an instant fell on where the reader is, for times such as when something was submitted */
+export function formatDay(value: string | null | undefined): string {
+  if (!value) return 'Not recorded'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
 export function formatDateTime(value: string | null | undefined): string {

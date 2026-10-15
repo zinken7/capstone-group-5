@@ -157,6 +157,8 @@ export interface OwnContribution extends ContributionStatus {
   /** The site's location; null when it has none, which approval needs */
   latitude: number | null
   longitude: number | null
+  /** Another open or public record is at the site, so only an administrator may locate it */
+  siteShared: boolean
   /** The rest of the submission, which a resubmission starts from (FR-60) */
   countryCode: string
   region: string | null
