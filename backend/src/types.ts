@@ -1,6 +1,6 @@
 export type DeploymentStatus = 'announced' | 'commissioning' | 'operational' | 'decommissioned'
 
-export type VerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
+export type VerificationStatus = 'unverified' | 'pending_review' | 'changes_requested' | 'verified' | 'rejected'
 
 export type MiningEnvironment = 'surface' | 'underground' | 'both'
 

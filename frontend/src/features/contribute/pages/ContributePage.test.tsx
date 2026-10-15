@@ -27,7 +27,7 @@ describe('ContributePage', () => {
   test('renders the contribution form instead of the Sprint 3 placeholder', () => {
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
-    expect(screen.getByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^contribute$/i, level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /submit deployment/i })).toBeInTheDocument()
     expect(screen.queryByText(/submission workflow planned/i)).not.toBeInTheDocument()
   })
@@ -101,7 +101,7 @@ describe('ContributePage', () => {
     const user = userEvent.setup()
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
-    const page = screen.getByRole('heading', { name: /contribute a deployment/i }).closest('section')
+    const page = screen.getByRole('heading', { name: /^contribute$/i, level: 1 }).closest('section')
     const form = screen.getByRole('button', { name: /submit deployment/i }).closest('form')
     expect(page).toHaveClass('contribute-page')
     expect(form).toHaveClass('contribution-form')
@@ -156,9 +156,10 @@ describe('ContributePage', () => {
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
     expect(await screen.findByRole('heading', { name: /contribution received/i })).toBeInTheDocument()
+    // A first submission names no rejected one to replace
     expect(submitContribution).toHaveBeenCalledWith(expect.objectContaining({
       siteName: 'Roy Hill', countryCode: 'AU', machineType: 'haul_truck', quantity: '10',
-    }))
+    }), undefined)
     expect(screen.getByText(/pending review/i)).toBeInTheDocument()
   })
 
@@ -222,7 +223,7 @@ describe('ContributePage', () => {
 
     render(<ContributePage />)
 
-    expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^contribute$/i, level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Highly Autonomous' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Australia (AU)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Anonymised (XR)' })).toBeInTheDocument()

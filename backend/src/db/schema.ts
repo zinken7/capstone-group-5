@@ -13,7 +13,7 @@ export const miningEnvironment = pgEnum("mining_environment", ['surface', 'under
 export const revisionAction = pgEnum("revision_action", ['create', 'update', 'verification_change'])
 export const siteStatus = pgEnum("site_status", ['operating', 'commissioning'])
 export const verificationDecision = pgEnum("verification_decision", ['approved', 'rejected', 'needs_changes'])
-export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'verified', 'rejected'])
+export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'changes_requested', 'verified', 'rejected'])
 
 
 export const region = pgTable("region", {
@@ -38,6 +38,8 @@ export const site = pgTable("site", {
 	point4326: geometry("point_4326", { type: "point", srid: 4326 }),
 }, (table) => [
 	index("site_country_code_idx").using("btree", table.countryCode.asc().nullsLast().op("text_ops")),
+	index("site_name_idx").using("btree", table.name.asc().nullsLast().op("text_ops")),
+	index("site_name_trgm_idx").using("gin", table.name.asc().nullsLast().op("gin_trgm_ops")),
 	index("site_point_4326_gist_idx").using("gist", table.point4326.asc().nullsLast().op("gist_geometry_ops_2d")),
 	index("site_region_id_idx").using("btree", table.regionId.asc().nullsLast().op("int8_ops")),
 	foreignKey({
@@ -76,6 +78,7 @@ export const company = pgTable("company", {
 	countryCode: text("country_code"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
+	index("company_name_trgm_idx").using("gin", table.name.asc().nullsLast().op("gin_trgm_ops")),
 	unique("company_name_key").on(table.name),
 ]);
 
@@ -103,13 +106,9 @@ export const deployment = pgTable("deployment", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	technologySupplierId: bigint("technology_supplier_id", { mode: "number" }).notNull(),
 }, (table) => [
-	index("deployment_automation_level_idx").using("btree", table.automationLevel.asc().nullsLast().op("enum_ops")),
-	index("deployment_commissioning_date_idx").using("btree", table.commissioningDate.asc().nullsLast().op("date_ops")),
 	index("deployment_commissioning_year_idx").using("btree", table.commissioningYear.asc().nullsLast().op("int2_ops")),
-	index("deployment_installation_type_idx").using("btree", table.installationType.asc().nullsLast().op("enum_ops")),
 	index("deployment_machine_model_id_idx").using("btree", table.machineModelId.asc().nullsLast().op("int8_ops")),
 	index("deployment_site_id_idx").using("btree", table.siteId.asc().nullsLast().op("int8_ops")),
-	index("deployment_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
 	index("deployment_technology_product_id_idx").using("btree", table.technologyProductId.asc().nullsLast().op("int8_ops")),
 	index("deployment_technology_supplier_id_idx").using("btree", table.technologySupplierId.asc().nullsLast().op("int8_ops")),
 	index("deployment_verification_status_idx").using("btree", table.verificationStatus.asc().nullsLast().op("enum_ops")),
@@ -153,6 +152,7 @@ export const technologyProduct = pgTable("technology_product", {
 	automationLevel: automationLevel("automation_level"),
 	levelBasis: text("level_basis"),
 }, (table) => [
+	index("technology_product_name_trgm_idx").using("gin", table.productName.asc().nullsLast().op("gin_trgm_ops")),
 	foreignKey({
 			columns: [table.supplierId],
 			foreignColumns: [company.id],
@@ -265,6 +265,7 @@ export const machineModel = pgTable("machine_model", {
 }, (table) => [
 	uniqueIndex("machine_model_manufacturer_model_variant_unique").using("btree", sql`manufacturer_id`, sql`model_name`, sql`COALESCE(lower(model_variant), ''::text)`).where(sql`(model_name IS NOT NULL)`),
 	uniqueIndex("machine_model_manufacturer_type_variant_unnamed_unique").using("btree", sql`manufacturer_id`, sql`machine_type`, sql`COALESCE(lower(model_variant), ''::text)`).where(sql`(model_name IS NULL)`),
+	index("machine_model_name_trgm_idx").using("gin", table.modelName.asc().nullsLast().op("gin_trgm_ops")),
 	foreignKey({
 			columns: [table.manufacturerId],
 			foreignColumns: [company.id],
@@ -323,4 +324,38 @@ export const deploymentCorrection = pgTable("deployment_correction", {
 	unique("deployment_correction_id_deployment_unique").on(table.id, table.deploymentId),
 	check("deployment_correction_values_are_objects", sql`(jsonb_typeof(proposed_values) = 'object'::text) AND (jsonb_typeof(base_values) = 'object'::text)`),
 	check("deployment_correction_changes_something", sql`(proposed_values <> '{}'::jsonb) OR (cardinality(evidence_urls) > 0)`),
+]);
+
+export const contributionKey = pgTable("contribution_key", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	keyHash: text("key_hash").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "contribution_key_deployment_id_fkey"
+		}).onDelete("cascade"),
+	check("contribution_key_hash_format", sql`key_hash ~ '^[0-9a-f]{64}$'::text`),
+]);
+
+export const resubmission = pgTable("resubmission", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	previousDeploymentId: bigint("previous_deployment_id", { mode: "number" }).notNull(),
+}, (table) => [
+	index("resubmission_previous_deployment_id_idx").using("btree", table.previousDeploymentId.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_deployment_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.previousDeploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_previous_deployment_id_fkey"
+		}),
+	check("resubmission_not_itself", sql`deployment_id <> previous_deployment_id`),
 ]);

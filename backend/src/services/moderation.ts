@@ -27,16 +27,19 @@ import {
 import type { QueueItem, ReviewRecord, SubmissionHistoryOptions } from '../repositories/moderation.js'
 import { alignValidity, changesFromProposed, diffChanges, windowOrdered } from './corrections.js'
 
-/**
- * Verification status after each decision. A record that needs changes leaves
- * the queue and nothing returns it until the changes requested status (#204),
- * so the administration interface does not offer that decision meanwhile.
- */
+/** Verification status after each decision. A record that needs changes waits on its contributor, out of the queue. */
 const STATUS_AFTER: Record<ReviewDecision, string> = {
   approved: 'verified',
   rejected: 'rejected',
-  needs_changes: 'unverified',
+  needs_changes: 'changes_requested',
 }
+
+/**
+ * Statuses a decision can be recorded on (FR-45): pending review, and changes
+ * requested, so an administrator who fixes the record can approve it, or
+ * reject one whose changes never arrive.
+ */
+const DECIDABLE = ['pending_review', 'changes_requested']
 
 /** Submissions and proposed corrections together, oldest first. */
 export async function listQueue(): Promise<QueueItem[]> {
@@ -55,6 +58,7 @@ export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
 export type DecisionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_pending'; verificationStatus: string }
+  | { kind: 'stale'; updatedAt: string }
   | { kind: 'missing_evidence' }
   | { kind: 'missing_coordinates' }
   | { kind: 'decided'; reviewId: number; verificationStatus: string }
@@ -67,9 +71,11 @@ export async function decide(deploymentId: number, adminUserId: number, input: R
   return withTransaction(async (tx) => {
     const state = await lockDecisionState(tx, deploymentId)
     if (!state) return { kind: 'not_found' }
-    if (state.verificationStatus !== 'pending_review') {
+    if (!DECIDABLE.includes(state.verificationStatus)) {
       return { kind: 'not_pending', verificationStatus: state.verificationStatus }
     }
+    // A contributor may change a record while it waits, so a decision must be on the version the administrator saw
+    if (input.version !== null && input.version !== state.updatedAt) return { kind: 'stale', updatedAt: state.updatedAt }
     // Supplier and level are always present (migration 005); a product is not needed to verify (FR-08)
     if (input.decision === 'approved') {
       if (state.evidenceCount === 0) return { kind: 'missing_evidence' }
@@ -158,15 +164,17 @@ async function applyCorrection(tx: Tx, correction: LockedCorrection, current: Cu
 
 export type AdminCorrectionOutcome =
   | { kind: 'not_found' }
+  | { kind: 'closed' }
   | { kind: 'unchanged' }
   | { kind: 'invalid_window'; field: 'commissioning_date' | 'valid_to' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
-/** Applies an administrator's correction, keeping the previous values and the verification status. */
+/** Applies an administrator's correction, keeping the previous values and the verification status. A rejected record is closed (FR-45). */
 export async function correctAsAdministrator(id: number, adminUserId: number, input: AdminCorrectionInput): Promise<AdminCorrectionOutcome> {
   return withTransaction(async (tx) => {
     const current = await lockDeployment(tx, id)
     if (!current) return { kind: 'not_found' }
+    if (current.verificationStatus === 'rejected') return { kind: 'closed' }
 
     const { previous, updates } = diffChanges(current, input.changes)
     alignValidity(current, { previous, updates })

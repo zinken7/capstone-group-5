@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -45,7 +47,10 @@ describe('POST /api/contributions', () => {
     const response = await request(app).post('/api/contributions').send(formBody)
 
     expect(response.status).toBe(201)
-    expect(response.body).toEqual({ id: expect.any(Number), verification_status: 'pending_review' })
+    expect(response.body).toEqual({ id: expect.any(Number), verification_status: 'pending_review', key: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) })
+    // Only a hash of the key is kept (FR-59)
+    const [stored] = await query<{ key_hash: string }>('SELECT key_hash FROM contribution_key WHERE deployment_id = $1', [response.body.id])
+    expect(stored?.key_hash).toBe(createHash('sha256').update(response.body.key as string).digest('hex'))
 
     expect(await query(
       `SELECT m.model_variant FROM deployment d

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { region, site, siteCompanyRole, company, deployment, machineModel, technologyProduct, verificationReview, adminUser, deploymentCorrection, revision, contributor, evidence } from "./schema.js";
+import { region, site, siteCompanyRole, company, deployment, machineModel, technologyProduct, verificationReview, adminUser, deploymentCorrection, revision, contributor, evidence, contributionKey, resubmission } from "./schema.js";
 
 export const siteRelations = relations(site, ({one, many}) => ({
 	region: one(region, {
@@ -54,6 +54,13 @@ export const deploymentRelations = relations(deployment, ({one, many}) => ({
 	revisions: many(revision),
 	evidences: many(evidence),
 	deploymentCorrections: many(deploymentCorrection),
+	contributionKeys: many(contributionKey),
+	resubmissions_deploymentId: many(resubmission, {
+		relationName: "resubmission_deploymentId_deployment_id"
+	}),
+	resubmissions_previousDeploymentId: many(resubmission, {
+		relationName: "resubmission_previousDeploymentId_deployment_id"
+	}),
 }));
 
 export const machineModelRelations = relations(machineModel, ({one, many}) => ({
@@ -130,5 +137,25 @@ export const evidenceRelations = relations(evidence, ({one}) => ({
 	deployment: one(deployment, {
 		fields: [evidence.deploymentId],
 		references: [deployment.id]
+	}),
+}));
+
+export const contributionKeyRelations = relations(contributionKey, ({one}) => ({
+	deployment: one(deployment, {
+		fields: [contributionKey.deploymentId],
+		references: [deployment.id]
+	}),
+}));
+
+export const resubmissionRelations = relations(resubmission, ({one}) => ({
+	deployment_deploymentId: one(deployment, {
+		fields: [resubmission.deploymentId],
+		references: [deployment.id],
+		relationName: "resubmission_deploymentId_deployment_id"
+	}),
+	deployment_previousDeploymentId: one(deployment, {
+		fields: [resubmission.previousDeploymentId],
+		references: [deployment.id],
+		relationName: "resubmission_previousDeploymentId_deployment_id"
 	}),
 }));
