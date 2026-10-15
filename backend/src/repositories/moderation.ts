@@ -121,6 +121,9 @@ export interface SubmissionHistoryItem {
   updated_at: string
 }
 
+/** Every verification status, for filtering the submission history. */
+export const VERIFICATION_STATUSES = tables.verificationStatus.enumValues
+
 /** Columns the submission history can be sorted by. */
 export const SUBMISSION_HISTORY_SORTS = ['id', 'site', 'decision', 'status', 'updated'] as const
 export type SubmissionHistorySort = typeof SUBMISSION_HISTORY_SORTS[number]
@@ -134,6 +137,8 @@ export interface SubmissionHistoryOptions {
   query?: string
   sort?: SubmissionHistorySort
   order?: 'asc' | 'desc'
+  /** Only records in this verification status */
+  status?: (typeof VERIFICATION_STATUSES)[number]
 }
 
 /** Admin history of submissions across all verification statuses; ties go to the newest record. */
@@ -144,6 +149,7 @@ export async function listSubmissionHistory({
   query,
   sort = 'updated',
   order = 'desc',
+  status,
 }: SubmissionHistoryOptions = {}): Promise<SubmissionHistoryItem[]> {
   const latestDecision = sql<string | null>`(
     SELECT vr.decision::text
@@ -184,6 +190,7 @@ export async function listSubmissionHistory({
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
     .where(and(
       deploymentId === undefined ? undefined : eq(tables.deployment.id, deploymentId),
+      status === undefined ? undefined : eq(tables.deployment.verificationStatus, status),
       query ? or(
         /^\d+$/.test(query) ? sql`${tables.deployment.id}::text LIKE ${`${query}%`}` : undefined,
         ilike(tables.site.name, likePattern(query)),

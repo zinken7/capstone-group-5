@@ -81,7 +81,7 @@ describe('AdminSubmissionHistoryPage', () => {
     renderPage()
 
     expect(await screen.findByText('Correction rejected')).toBeTruthy()
-    expect(screen.getByText('Verified')).toBeTruthy()
+    expect(screen.getByText('Verified', { selector: '.status-badge' })).toBeTruthy()
   })
 
   it('loads and displays submission history', async () => {
@@ -102,7 +102,7 @@ describe('AdminSubmissionHistoryPage', () => {
 
     expect(await screen.findByText('Example Mine')).toBeTruthy()
     expect(screen.getByText('Approved')).toBeTruthy()
-    expect(screen.getByText('Verified')).toBeTruthy()
+    expect(screen.getByText('Verified', { selector: '.status-badge' })).toBeTruthy()
     expect(screen.getByText('Australia')).toBeTruthy()
     expect(getSubmissionHistoryMock).toHaveBeenCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'updated', order: 'desc' })
   })
@@ -233,7 +233,7 @@ describe('AdminSubmissionHistoryPage', () => {
     getSubmissionHistoryMock.mockResolvedValue([
       { ...sampleItems[0], id: 1, latestDecision: 'approved', latestDecisionIsCorrection: false, verificationStatus: 'verified' },
       { ...sampleItems[0], id: 2, latestDecision: 'rejected', latestDecisionIsCorrection: true, verificationStatus: 'verified' },
-      { ...sampleItems[0], id: 3, latestDecision: 'needs_changes', latestDecisionIsCorrection: false, verificationStatus: 'unverified' },
+      { ...sampleItems[0], id: 3, latestDecision: 'needs_changes', latestDecisionIsCorrection: false, verificationStatus: 'changes_requested' },
       { ...sampleItems[0], id: 4, latestDecision: null, latestDecisionIsCorrection: null, verificationStatus: 'pending_review' },
     ])
     useAdminSessionMock.mockReturnValue(signedIn)
@@ -242,10 +242,44 @@ describe('AdminSubmissionHistoryPage', () => {
 
     expect((await screen.findByText('Approved')).className).toContain('status-badge--verified')
     expect(screen.getByText('Correction rejected').className).toContain('status-badge--rejected')
-    expect(screen.getByText('Needs changes').className).toContain('status-badge--unverified')
-    expect(screen.getByText('Pending review').className).toContain('status-badge--pending-review')
+    // A request for changes waits on the contributor, so it shares the Changes requested colour
+    expect(screen.getByText('Needs changes').className).toContain('status-badge--changes-requested')
+    expect(screen.getByText('Changes requested', { selector: '.status-badge' }).className).toContain('status-badge--changes-requested')
+    expect(screen.getByText('Pending review', { selector: '.status-badge' }).className).toContain('status-badge--pending-review')
     expect(screen.getByText('No review recorded').className).not.toContain('status-badge')
-    expect(screen.getAllByText('Verified').every((badge) => badge.className.includes('status-badge--verified'))).toBe(true)
+    expect(screen.getAllByText('Verified', { selector: '.status-badge' }).every((badge) => badge.className.includes('status-badge--verified'))).toBe(true)
+  })
+
+  it('shows how long a record has waited on its contributor', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-15T03:00:00Z'))
+    try {
+      getSubmissionHistoryMock.mockResolvedValue([
+        { ...sampleItems[0], id: 1, verificationStatus: 'changes_requested', latestDecision: 'needs_changes', latestDecisionIsCorrection: false, updatedAt: '2026-10-03T01:00:00Z' },
+        { ...sampleItems[0], id: 2, verificationStatus: 'changes_requested', latestDecision: 'needs_changes', latestDecisionIsCorrection: false, updatedAt: '2026-10-15T01:00:00Z' },
+        { ...sampleItems[0], id: 3, verificationStatus: 'verified', updatedAt: '2026-10-01T01:00:00Z' },
+      ])
+      useAdminSessionMock.mockReturnValue(signedIn)
+      renderPage()
+
+      expect(await screen.findByText('waiting 12 days')).toBeTruthy()
+      expect(screen.getByText('waiting since today')).toBeTruthy()
+      expect(screen.getAllByText(/^waiting/)).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('filters by status on the server, starting from the first page', async () => {
+    getSubmissionHistoryMock.mockResolvedValue(sampleItems)
+    useAdminSessionMock.mockReturnValue(signedIn)
+
+    renderPage()
+    await screen.findByText('Example Mine')
+    fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), { target: { value: 'changes_requested' } })
+
+    await waitFor(() => expect(getSubmissionHistoryMock).toHaveBeenLastCalledWith({ limit: 51, offset: 0, q: undefined, sort: 'updated', order: 'desc', status: 'changes_requested' }))
+    expect(screen.getByRole('option', { name: 'Changes requested' })).toBeTruthy()
   })
 
   it('sorts by a column on the server and toggles the order', async () => {

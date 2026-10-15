@@ -325,11 +325,13 @@ export interface SubmissionHistoryQuery {
   q?: string
   sort?: SubmissionHistorySort
   order?: 'asc' | 'desc'
+  /** One verification status, such as the records waiting on their contributor */
+  status?: string
 }
 
 /** Retrieves submission history, optionally searched by ID or site name; newest first unless sorted. */
 export async function getSubmissionHistory(
-  { limit = 50, offset = 0, q, sort = 'updated', order = 'desc' }: SubmissionHistoryQuery = {},
+  { limit = 50, offset = 0, q, sort = 'updated', order = 'desc', status }: SubmissionHistoryQuery = {},
 ): Promise<SubmissionHistoryItem[]> {
   const params = new URLSearchParams({
     limit: String(limit),
@@ -339,6 +341,7 @@ export async function getSubmissionHistory(
   })
 
   if (q) params.set('q', q)
+  if (status) params.set('status', status)
 
   const response = await requestJson<{ items: {
     id: number
