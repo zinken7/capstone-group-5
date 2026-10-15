@@ -50,8 +50,11 @@ a deactivated account is signed out immediately.
 | Decision | Result |
 |---|---|
 | Approve | The record is verified and appears in public views. It needs a technology product and at least one evidence URL. |
-| Needs changes | The record leaves the queue and stays out of public views. A contributor correction returns it to the queue. A note is required. |
-| Reject | The record stays out of public views for good. A note is required. |
+| Reject | The record stays out of public views for good. The contributor can submit it again as a new contribution. A note is required. |
+
+**Needs changes** is not offered for a record until #204 is built: a record
+sent back for changes could not return to the queue or be decided again.
+Reject it instead. A record sent back earlier stays out of the queue until then.
 
 Decisions apply only to records pending review. Each one is kept, with your
 email, the note and the time, in the record's history, together with every
