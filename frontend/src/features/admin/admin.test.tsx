@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -366,6 +366,32 @@ describe('record review', () => {
     expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual(expect.objectContaining({ decision: 'needs_changes' }))
   })
 
+  test('asks only for what the contributor can supply when other records share the site', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ evidence: [], latitude: null, longitude: null, site_shared: true })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('No site coordinates (other records share this site, so the contributor cannot add them)')).toBeInTheDocument()
+    // The request goes out for the evidence only; the location is the administrator's to add
+    expect(screen.getByLabelText(/^Note/)).toHaveValue("Before this can be approved, please add a link to a public source (such as the operator's announcement).")
+
+    // With nothing the contributor can supply, the panel offers only Edit record
+    cleanup()
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ latitude: null, longitude: null, site_shared: true })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+    const blockers = (await screen.findByText('Not ready to approve')).closest('div') as HTMLElement
+    expect(blockers).toHaveTextContent('Add it yourself with Edit record.')
+    expect(blockers).not.toHaveTextContent('Needs changes')
+    expect(screen.getByLabelText(/^Note/)).toHaveValue('')
+  })
+
   test('offers an email to the contributor who submitted the record, when they gave one', async () => {
     const created = { action: 'create', previous_values: {}, change_note: null, administrator: null, changed_at: '2026-10-01T00:00:00Z' }
     stubApi({
@@ -671,7 +697,7 @@ describe('record review', () => {
 
 describe('buildCorrection', () => {
   const record = {
-    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
+    id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, siteShared: false, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
     technologySupplier: null, technologyProduct: null, possibleDuplicates: [], resubmissionOf: null, resubmittedAs: [],
     automationLevel: null, environment: null,

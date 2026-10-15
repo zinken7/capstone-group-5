@@ -314,6 +314,8 @@ describe('PATCH /api/contributions/:id', () => {
     const first = await submit({ site_name: 'Shared Pit', latitude: null, longitude: null })
     const second = await submit({ site_name: 'shared pit', latitude: null, longitude: null })
     expect((await read(second.id, second.key)).body).toEqual(expect.objectContaining({ latitude: null, site_shared: true }))
+    // The administrator's page says so too, as the location is theirs to add
+    expect((await request(app).get(`/api/admin/deployments/${second.id}`).set('Cookie', cookie)).body.site_shared).toBe(true)
 
     const response = await update(second.id, second.key, { latitude: 10, longitude: 10 })
     expect(response.status).toBe(400)

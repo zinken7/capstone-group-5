@@ -102,7 +102,7 @@ export interface ContributionDetailRow extends ContributionSummaryRow {
  * matched by name, so anyone naming the same mine shares one; a rejected record
  * is closed and does not count, so a resubmission can still locate its site.
  */
-function sharedSite(siteId: SQLWrapper, deploymentId: SQLWrapper | number) {
+export function sharedSite(siteId: SQLWrapper, deploymentId: SQLWrapper | number) {
   return sql<boolean>`EXISTS (
     SELECT 1 FROM deployment other
     WHERE other.site_id = ${siteId} AND other.id <> ${deploymentId} AND other.verification_status <> 'rejected'

@@ -114,6 +114,7 @@ interface RecordDto {
   country_code: string
   latitude?: number | null
   longitude?: number | null
+  site_shared?: boolean
   region: string | null
   commodity: string | null
   machine_manufacturer: string
@@ -184,6 +185,7 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     countryCode: dto.country_code,
     latitude: dto.latitude ?? null,
     longitude: dto.longitude ?? null,
+    siteShared: dto.site_shared ?? false,
     region: dto.region,
     commodity: dto.commodity,
     machineManufacturer: dto.machine_manufacturer,

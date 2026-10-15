@@ -645,7 +645,8 @@ Unauthenticated requests return `401 Unauthorized`.
 ### `GET /api/admin/deployments/{id}`
 
 `200` with the record in any verification status: `verification_status`, site
-(including nullable `latitude` and `longitude`),
+(including nullable `latitude` and `longitude`, and `site_shared` when another
+record that is not rejected is at the site, so only an administrator can locate it),
 machine, technology, deployment fields (as in the register, plus `valid_from`,
 `valid_to`, `created_at`, `updated_at`), and:
 

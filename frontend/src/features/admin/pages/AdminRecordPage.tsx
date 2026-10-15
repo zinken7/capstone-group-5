@@ -147,7 +147,12 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
   // What approval needs (FR-44, FR-04) that a submission may lack, since both are optional when submitting (FR-07)
   const approvalBlockers: ApprovalBlocker[] = [
     ...(record.evidence.length === 0 ? [{ label: 'No evidence URL', request: 'a link to a public source (such as the operator\'s announcement)' }] : []),
-    ...(record.latitude === null || record.longitude === null ? [{ label: 'No site coordinates', request: 'the site\'s latitude and longitude' }] : []),
+    ...(record.latitude === null || record.longitude === null
+      // Other records share the site, so its contributor may not place it (FR-46): only an administrator can
+      ? [record.siteShared
+          ? { label: 'No site coordinates (other records share this site, so the contributor cannot add them)' }
+          : { label: 'No site coordinates', request: 'the site\'s latitude and longitude' }]
+      : []),
   ]
   // The request a record with changes requested is waiting on: the latest decision on the record itself
   const request = record.verificationStatus === 'changes_requested'

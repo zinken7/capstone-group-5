@@ -87,6 +87,8 @@ export interface ReviewRecord {
   countryCode: string
   latitude: number | null
   longitude: number | null
+  /** Another record that is not rejected is at the site, so its contributor cannot locate it */
+  siteShared: boolean
   region: string | null
   commodity: string | null
   machineManufacturer: string

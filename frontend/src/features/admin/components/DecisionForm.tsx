@@ -37,13 +37,14 @@ interface DecisionFormProps {
 export interface ApprovalBlocker {
   /** What is missing, as a short phrase */
   label: string
-  /** What to ask the contributor for */
-  request: string
+  /** What to ask the contributor for; absent when only an administrator can supply it */
+  request?: string
 }
 
 /** A note that asks the contributor for everything that is missing */
 function requestFor(blockers: readonly ApprovalBlocker[]): string {
-  const asks = blockers.map((blocker) => blocker.request)
+  const asks = blockers.flatMap((blocker) => blocker.request ? [blocker.request] : [])
+  if (asks.length === 0) return ''
   const list = asks.length > 1 ? `${asks.slice(0, -1).join(', ')} and ${asks.at(-1)}` : asks[0]
   return `Before this can be approved, please add ${list}.`
 }
@@ -85,7 +86,10 @@ function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECOR
         <div className="decision-blockers" id={`${idPrefix}-blockers`}>
           <p><strong>Not ready to approve</strong></p>
           <ul>{approvalBlockers.map((blocker) => <li key={blocker.label}>{blocker.label}</li>)}</ul>
-          <p>Add {approvalBlockers.length > 1 ? 'them' : 'it'} yourself with <strong>Edit record</strong>, or ask the contributor with <strong>Needs changes</strong>.</p>
+          <p>
+            Add {approvalBlockers.length > 1 ? 'them' : 'it'} yourself with <strong>Edit record</strong>
+            {approvalBlockers.some((blocker) => blocker.request) && <>, or ask the contributor with <strong>Needs changes</strong></>}.
+          </p>
         </div>
       )}
       <fieldset className="decision-options">
