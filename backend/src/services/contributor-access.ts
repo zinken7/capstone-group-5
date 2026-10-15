@@ -10,7 +10,7 @@ import {
   updateDeploymentForReview,
   updateSiteCoordinates,
 } from '../repositories/contributions.js'
-import { findContributionDetail, findContributionSummaries, findKeyHash, findSubmitter } from '../repositories/contributor-access.js'
+import { findContributionDetail, findContributionSummaries, findKeyHash, findSubmitter, siteSharedWithOthers } from '../repositories/contributor-access.js'
 import type { ContributionDetailRow, ContributionSummaryRow } from '../repositories/contributor-access.js'
 import { alignValidity, commissioningValue, diffChanges, windowOrdered } from './corrections.js'
 
@@ -38,6 +38,8 @@ export interface ContributionDetail extends ContributionSummary {
   /** The site's location; null when it has none, which approval needs */
   latitude: number | null
   longitude: number | null
+  /** Another open or public record is at the site, so only an administrator may locate it */
+  site_shared: boolean
   /** The rest of the submission, so a rejected one can be resubmitted from it (FR-60) */
   region: string | null
   commodity: string | null
@@ -79,6 +81,7 @@ function toDetail(row: ContributionDetailRow): ContributionDetail {
     ...toSummary(row),
     latitude: row.latitude,
     longitude: row.longitude,
+    site_shared: row.site_shared,
     region: row.region,
     commodity: row.commodity,
     machine_model_variant: row.machine_model_variant,
@@ -113,6 +116,7 @@ export type OwnUpdateOutcome =
   | { kind: 'unchanged' }
   | { kind: 'invalid_window' }
   | { kind: 'site_located' }
+  | { kind: 'site_shared' }
   | { kind: 'updated'; id: number; verificationStatus: string }
 
 /**
@@ -133,6 +137,8 @@ export async function updateOwnContribution(id: number, key: string, input: Corr
     // A site is shared by every deployment at it, so a contributor may only supply a location it lacks
     const coordinates = input.coordinates ?? null
     if (coordinates && current.siteLatitude !== null) return { kind: 'site_located' }
+    // Anyone naming the same mine shares its site, so one contributor must not place another's record
+    if (coordinates && await siteSharedWithOthers(tx, current.siteId, id)) return { kind: 'site_shared' }
 
     const { previous, updates } = diffChanges(current, input.changes)
     const existingUrls = await findEvidenceUrls(tx, id)

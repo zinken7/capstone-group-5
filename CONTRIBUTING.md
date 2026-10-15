@@ -21,9 +21,15 @@ docker compose up --build
 curl --fail http://localhost:3000/health/database
 ```
 
-The backend is then available at `http://localhost:3000`. Database migrations
-and seed data are added by their own issues; no placeholder command is required
-for the current foundation.
+The backend is then available at `http://localhost:3000`, with an empty
+database. Create the tables and load the demonstration data as the
+[README](README.md) describes:
+
+```bash
+docker compose exec backend npm run db:migrate
+docker compose cp backend/seeds/seed_global.sql db:/tmp/seed_global.sql
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -v ON_ERROR_STOP=1 -f /tmp/seed_global.sql'
+```
 
 ## The short version
 
@@ -32,7 +38,7 @@ work, identified by the issue number.
 
 ```
 issue #14
-  └── branch  feat/14-map-markers
+  └── branch  feature/14-map-markers
         └── commits  feat(map): render site markers from the GeoJSON endpoint
               └── pull request  "Closes #14"  →  auto-merge by M1  →  card moves to Done
 ```
@@ -46,10 +52,12 @@ directly. All work happens on a short-lived branch, one per issue.
 <type>/<issue-number>-<short-name>
 ```
 
-Examples:
+`<type>` is one of `feature`, `fix`, `bugfix`, `docs`, `chore`, `refactor` or
+`test`, and the rest is lower case, digits and hyphens. CI (`PR Conventions`)
+rejects any other branch name. Examples:
 
 ```
-feat/14-map-markers
+feature/14-map-markers
 fix/22-marker-popup-drag
 docs/31-deployment-guide
 ```
@@ -129,8 +137,10 @@ a label.
 ## Pull requests
 
 1. Open the pull request against `main`.
-2. Title follows the commit convention. It appears in the merge commit on
-   `main`.
+2. Title follows the commit convention **without a scope**: `<type>: <description>`,
+   with `<type>` one of `feat`, `fix`, `docs`, `chore`, `refactor`, `test`,
+   `ci`, `build` or `perf`. CI (`PR Conventions`) rejects a title such as
+   `feat(map): …`. The title appears in the merge commit on `main`.
 3. Body includes `Closes #n`, what changed, and how it was tested. GitHub
    pre-fills this from
    [`.github/pull_request_template.md`](.github/pull_request_template.md).

@@ -40,11 +40,14 @@ a deactivated account is signed out immediately.
    technology product is flagged.
 2. Open a record with **Review**. Check the details and open each evidence link;
    links open in a new tab.
-3. If something is wrong or missing, use **Correct this record**. You can change
-   the quantity, mining environment, deployment status, automation level,
-   installation type, commissioning date or year, and the technology supplier
-   and product, and add an evidence URL. Corrections are saved in the revision
-   history with the previous values and do not change the verification status.
+3. If something is wrong or missing, use **Edit record** under **Fix a detail
+   yourself**. You can change the quantity, mining environment, deployment
+   status, automation level, installation type, commissioning date or year, the
+   technology supplier and product, and the **Valid from** and **Valid to**
+   dates, and add an evidence URL. **Site latitude** and **Site longitude** set
+   the site's location; a site is shared by every record at it, so moving it
+   moves them all. Corrections are saved in the revision history with the
+   previous values and do not change the verification status.
 4. Record a **Decision**:
 
 | Decision | Result |
@@ -57,7 +60,10 @@ A record needs at least one evidence URL and site coordinates before it can
 be approved, and a contributor may leave both out when submitting. When either
 is missing, the decision panel says **Not ready to approve**, Approve is
 unavailable, and **Needs changes** is selected with a note asking for what is
-missing. Add it yourself with **Edit record**, or send the request.
+missing. Add it yourself with **Edit record**, or send the request. A
+contributor can add a missing location only when no other open or verified
+record is at the same site; sites are matched by name, so when two contributors
+name the same mine, the location is yours to add.
 
 A contributor can also change a record while it waits for review, for example
 to add a source; the queue then marks it **Updated while waiting**. If they

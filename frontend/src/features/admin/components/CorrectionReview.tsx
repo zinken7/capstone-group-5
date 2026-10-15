@@ -1,4 +1,5 @@
 import { submitCorrectionDecision } from '../../../lib/api/admin'
+import { ApiError } from '../../../lib/api/errors'
 import { formatDateTime, formatEnumLabel } from '../../../lib/format'
 import { contributorOf, describeValue } from '../corrections'
 import type { CorrectionChange, CorrectionItem } from '../types'
@@ -10,14 +11,18 @@ function changedSince(change: CorrectionChange): boolean {
 
 interface CorrectionReviewProps {
   correction: CorrectionItem
+  /** The record's updated_at as the page shows it; a decision on an older version is refused */
+  version: string
   onDecided: () => void
+  /** The record changed while the page was open: show the latest version instead */
+  onStale: () => void
 }
 
 /**
  * A correction a contributor proposed for a verified record. The record stays
  * public as it is until the correction is decided here.
  */
-function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
+function CorrectionReview({ correction, version, onDecided, onStale }: CorrectionReviewProps) {
   const prefix = `correction-${correction.id}`
 
   return (
@@ -70,7 +75,18 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
         idPrefix={prefix}
         heading="Decision on this correction"
         options={CORRECTION_DECISIONS}
-        submit={(decision, note) => submitCorrectionDecision(correction.id, decision, note)}
+        submit={async (decision, note) => {
+          try {
+            await submitCorrectionDecision(correction.id, decision, note, version)
+          } catch (cause) {
+            // Another correction or an edit changed the record since the page was opened, so its current values here are old
+            if (cause instanceof ApiError && cause.status === 409 && cause.message === 'the record changed since you opened it') {
+              onStale()
+              throw new Error('This record changed while you had it open.', { cause })
+            }
+            throw cause
+          }
+        }}
         onDecided={onDecided}
         noteShownToContributor
       />

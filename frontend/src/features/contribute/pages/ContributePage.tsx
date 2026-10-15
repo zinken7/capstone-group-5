@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { FormEvent, KeyboardEvent } from 'react'
 
 import { getOwnContribution, postContribution } from '../../../lib/api/contributions'
@@ -408,13 +409,13 @@ function NewContribution({
           <legend>Additional details</legend>
           <div className="form-grid">
             <label className="form-field" htmlFor="region">State or region
-              <input id="region" name="region" value={values.region} onChange={(event) => updateTextField('region', event.target.value)} />
+              <input id="region" name="region" value={values.region} maxLength={100} onChange={(event) => updateTextField('region', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="commodity">Commodity
-              <input id="commodity" name="commodity" placeholder="e.g. Iron ore" value={values.commodity} onChange={(event) => updateTextField('commodity', event.target.value)} />
+              <input id="commodity" name="commodity" placeholder="e.g. Iron ore" value={values.commodity} maxLength={100} onChange={(event) => updateTextField('commodity', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="machine-model-variant">Machine model variant
-              <input id="machine-model-variant" name="machineModelVariant" placeholder="e.g. XDE" value={values.machineModelVariant} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
+              <input id="machine-model-variant" name="machineModelVariant" placeholder="e.g. XDE" value={values.machineModelVariant} maxLength={100} onChange={(event) => updateTextField('machineModelVariant', event.target.value)} />
             </label>
             <label className="form-field" htmlFor="environment">Mining environment
               <select id="environment" name="environment" value={values.environment} onChange={(event) => updateTextField('environment', event.target.value)}><option value="">Select an environment</option>{referenceData.environments.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
@@ -436,7 +437,7 @@ function NewContribution({
               <FieldError id="technology-supplier-error" message={showError('technologySupplier')} />
             </label>
             <label className="form-field" htmlFor="technology-product">Technology product
-              <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
+              <input id="technology-product" name="technologyProduct" placeholder="e.g. Command for hauling" value={values.technologyProduct} maxLength={200} onChange={(event) => updateTextField('technologyProduct', event.target.value)} />
             </label>
             <fieldset className="chip-field form-field form-field--wide" id="automation-level" aria-invalid={Boolean(showError('automationLevel'))} aria-describedby={showError('automationLevel') ? 'automation-level-error' : undefined}>
               <legend>Automation level <span aria-hidden="true">*</span></legend>
@@ -473,7 +474,7 @@ function NewContribution({
                 <FieldError id="email-error" message={showError('email')} />
               </label>
               <label className="form-field" htmlFor="organisation">Organisation <span className="form-help">(optional)</span>
-                <input id="organisation" name="organisation" value={values.organisation} onChange={(event) => updateTextField('organisation', event.target.value)} />
+                <input id="organisation" name="organisation" value={values.organisation} maxLength={200} onChange={(event) => updateTextField('organisation', event.target.value)} />
               </label>
               <p className="form-help form-field--wide">Contact details are used only if the project team needs clarification. They are not published in the public register.</p>
             </div>}
@@ -504,13 +505,11 @@ function NewContribution({
 type Tab = 'new' | 'mine'
 const TABS: readonly [Tab, string][] = [['new', 'New contribution'], ['mine', 'My contributions']]
 
-/** /contribute?tab=mine opens the list, for example from a link back to it */
-function initialTab(): Tab {
-  return new URLSearchParams(window.location.search).get('tab') === 'mine' ? 'mine' : 'new'
-}
-
 function ContributePage(props: ContributePageProps) {
-  const [tab, setTab] = useState<Tab>(initialTab)
+  // The address holds the tab, so /contribute?tab=mine opens the list even from this page, as the header badge does
+  const [params, setParams] = useSearchParams()
+  const tab: Tab = params.get('tab') === 'mine' ? 'mine' : 'new'
+  const setTab = (next: Tab) => setParams(next === 'mine' ? { tab: 'mine' } : {}, { replace: true })
   const [resubmission, setResubmission] = useState<Resubmission | null>(null)
   const { items } = useMyContributions()
   // Counted by application, as the list shows them
@@ -565,17 +564,19 @@ function ContributePage(props: ContributePageProps) {
           </button>
         ))}
       </div>
-      <div className="contribute-panel" id={`contribute-panel-${tab}`} role="tabpanel" aria-labelledby={`contribute-tab-${tab}`}>
-        {tab === 'new'
-          ? <NewContribution
-              // A resubmission and a blank form are separate forms, each starting from its own values
-              key={resubmission ? `resubmit-${resubmission.id}` : 'blank'}
-              {...props}
-              onShowMine={() => select('mine')}
-              resubmission={resubmission}
-              onClearResubmission={() => setResubmission(null)}
-            />
-          : <MyContributions onStartNew={() => select('new')} onResubmit={startResubmission} />}
+      {/* Both panels stay mounted, so a half-filled form is still there after a look at the list */}
+      <div className="contribute-panel" id="contribute-panel-new" role="tabpanel" aria-labelledby="contribute-tab-new" hidden={tab !== 'new'}>
+        <NewContribution
+          // A resubmission and a blank form are separate forms, each starting from its own values
+          key={resubmission ? `resubmit-${resubmission.id}` : 'blank'}
+          {...props}
+          onShowMine={() => select('mine')}
+          resubmission={resubmission}
+          onClearResubmission={() => setResubmission(null)}
+        />
+      </div>
+      <div className="contribute-panel" id="contribute-panel-mine" role="tabpanel" aria-labelledby="contribute-tab-mine" hidden={tab !== 'mine'}>
+        <MyContributions onStartNew={() => select('new')} onResubmit={startResubmission} />
       </div>
     </section>
   )

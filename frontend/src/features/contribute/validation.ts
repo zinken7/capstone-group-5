@@ -6,11 +6,20 @@ const YEAR_OR_DATE_PATTERN = /^(\d{4}|\d{4}-\d{2}-\d{2})$/
 
 function isValidYearOrDate(value: string): boolean {
   if (!YEAR_OR_DATE_PATTERN.test(value)) return false
+
+  const year = Number(value.slice(0, 4))
+  if (year < 1900 || year > 2100) return false
+
   if (/^\d{4}$/.test(value)) return true
 
-  const [year, month, day] = value.split('-').map(Number)
+  const [, month, day] = value.split('-').map(Number)
   const date = new Date(Date.UTC(year, month - 1, day))
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  )
 }
 
 function isHttpUrl(value: string): boolean {
@@ -40,10 +49,14 @@ export function validateContribution(values: ContributionFormValues): Contributi
     if (!latitude || !longitude) {
       errors.latitude = 'Enter both latitude and longitude, or leave both blank.'
       errors.longitude = 'Enter both latitude and longitude, or leave both blank.'
-    } else if (!Number.isFinite(Number(latitude)) || Number(latitude) < -90 || Number(latitude) > 90) {
-      errors.latitude = 'Latitude must be between -90 and 90.'
-    } else if (!Number.isFinite(Number(longitude)) || Number(longitude) < -180 || Number(longitude) > 180) {
-      errors.longitude = 'Longitude must be between -180 and 180.'
+    } else {
+      if (!Number.isFinite(Number(latitude)) || Number(latitude) < -90 || Number(latitude) > 90) {
+        errors.latitude = 'Latitude must be between -90 and 90.'
+      }
+
+      if (!Number.isFinite(Number(longitude)) || Number(longitude) < -180 || Number(longitude) > 180) {
+        errors.longitude = 'Longitude must be between -180 and 180.'
+      }
     }
   }
 
@@ -67,25 +80,54 @@ export function validateContribution(values: ContributionFormValues): Contributi
     errors.automationLevel = 'Automation level is required.'
   }
 
-  if (!Number.isSafeInteger(quantity) || quantity <= 0) {
-    errors.quantity = 'Quantity must be a positive whole number.'
+  if (
+    !values.quantity.trim() ||
+    !Number.isSafeInteger(quantity) ||
+    quantity < 1 ||
+    quantity > 100_000
+  ) {
+    errors.quantity = 'Quantity must be a whole number between 1 and 100000.'
   }
 
   if (values.commissioningDate.trim() && !isValidYearOrDate(values.commissioningDate.trim())) {
-    errors.commissioningDate = 'Use a year (YYYY) or a full date (YYYY-MM-DD).'
+    errors.commissioningDate = 'Enter a year between 1900 and 2100, or a valid date (YYYY-MM-DD) in that range.'
   }
 
-  if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) {
+  if (values.email.trim().length > 254) {
+    errors.email = 'Email must be at most 254 characters.'
+  } else if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) {
     errors.email = 'Enter a valid email address or leave this field blank.'
   }
 
   const nonEmptyEvidenceUrls = values.evidenceUrls
     .map((value) => value.trim())
     .filter(Boolean)
-  if (nonEmptyEvidenceUrls.some((value) => !isHttpUrl(value))) {
+  if (nonEmptyEvidenceUrls.length > 10) {
+    errors.evidenceUrls = 'Enter no more than 10 evidence URLs.'
+  } else if (nonEmptyEvidenceUrls.some((value) => value.length > 2000)) {
+    errors.evidenceUrls = 'Each evidence URL must be at most 2000 characters.'
+  } else if (nonEmptyEvidenceUrls.some((value) => !isHttpUrl(value))) {
     errors.evidenceUrls = 'Evidence links must be valid HTTP or HTTPS URLs.'
   }
 
+  // Match the backend's text field length limits.
+  const textLimits = [
+    { field: 'siteName', max: 200 },
+    { field: 'region', max: 100 },
+    { field: 'commodity', max: 100 },
+    { field: 'manufacturer', max: 200 },
+    { field: 'machineModel', max: 200 },
+    { field: 'machineModelVariant', max: 100 },
+    { field: 'technologySupplier', max: 200 },
+    { field: 'technologyProduct', max: 200 },
+    { field: 'organisation', max: 200 },
+  ] as const
+
+  for (const { field, max } of textLimits) {
+    if (values[field].trim().length > max) {
+      errors[field] = `Must be at most ${max} characters.`
+    }
+  }
   if (!values.disclosureAccepted) {
     errors.disclosureAccepted = 'Confirm that you are authorised to disclose this information.'
   }

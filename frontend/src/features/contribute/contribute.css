@@ -261,6 +261,11 @@
   gap: var(--space-5);
 }
 
+/* The inactive tab's panel stays mounted but out of sight */
+.contribute-panel[hidden] {
+  display: none;
+}
+
 /* A contributor's own submissions, kept in this browser */
 .my-contributions {
   display: grid;

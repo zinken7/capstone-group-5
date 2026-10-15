@@ -114,6 +114,7 @@ interface RecordDto {
   country_code: string
   latitude?: number | null
   longitude?: number | null
+  site_shared?: boolean
   region: string | null
   commodity: string | null
   machine_manufacturer: string
@@ -184,6 +185,7 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     countryCode: dto.country_code,
     latitude: dto.latitude ?? null,
     longitude: dto.longitude ?? null,
+    siteShared: dto.site_shared ?? false,
     region: dto.region,
     commodity: dto.commodity,
     machineManufacturer: dto.machine_manufacturer,
@@ -269,12 +271,12 @@ export async function submitDecision(id: number, decision: ReviewDecision, note:
   return response.verification_status
 }
 
-/** Decides a proposed correction; returns its new status. */
-export async function submitCorrectionDecision(correctionId: number, decision: ReviewDecision, note: string): Promise<string> {
+/** Decides a proposed correction against the version of the record the administrator saw; returns its new status. */
+export async function submitCorrectionDecision(correctionId: number, decision: ReviewDecision, note: string, version: string): Promise<string> {
   const response = await requestJson<{ correction_status: string }>(`admin/corrections/${correctionId}/reviews`, {
     method: 'POST',
     headers: MODIFYING_HEADERS,
-    body: JSON.stringify({ decision, note: note.trim() || null }),
+    body: JSON.stringify({ decision, note: note.trim() || null, version }),
   })
   return response.correction_status
 }
