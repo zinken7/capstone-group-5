@@ -1,11 +1,19 @@
-% LaTeX preamble — loaded via --include-in-header in build.sh.
-% Packages and formatting only. Nothing here appears in the document body.
+% Final report preamble, included in the LaTeX header by build.sh.
+% Differs from docs/d1/preamble.tex: the report has a 5-page limit, so each
+% "#" section (a chapter in the report class) runs on without a page break
+% and with a compact heading instead of "Chapter N".
 
 \usepackage{graphicx}
-\usepackage{longtable}
-\usepackage{array}
-
-% Render chapter headings as "1  Title" instead of "Chapter 1 / Title"
+\usepackage{etoolbox}
 \usepackage{titlesec}
-\titleformat{\chapter}[hang]{\LARGE\bfseries}{\thechapter}{1em}{}
-\titlespacing*{\chapter}{0pt}{-25pt}{18pt}
+
+\titleformat{\chapter}[hang]{\Large\bfseries}{\thechapter}{0.8em}{}
+\titlespacing*{\chapter}{0pt}{14pt}{6pt}
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{\par}{}{}
+\makeatother
+
+% Tables in a slightly smaller type, and block paragraphs.
+\AtBeginEnvironment{longtable}{\small}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}

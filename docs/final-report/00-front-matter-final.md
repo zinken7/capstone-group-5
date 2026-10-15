@@ -12,14 +12,7 @@ author-meta: "Group 5 — CITS5206 Capstone Project"
      LINKS MUST BE FULL URLs. This PDF is submitted on its own, so a
      repo-relative path is not resolvable by a marker. -->
 
-# Project and Resources {-}
-
-| | |
-|---|---|
-| **Client** | Dr Adrian Boeing, UWA |
-| **Facilitator** | Fudong Qin |
-| **Representative users** | RCT Global (Yash Singh) · Epiroc (Milan Ivovic) |
-| **Team** | Tyrone Tran (24814799), Hans Lionar (24661999), Zerun Zhang (24389925), Zunhao Zhang (24758673), Shee Wang (24368932), Hengan Weng (24201874) |
+# Resources {-}
 
 The client and the facilitator have access to every resource listed below. Issue and pull request numbers in this report, such as #212, refer to the repository: <https://github.com/zinken7/capstone-group-5/issues> and <https://github.com/zinken7/capstone-group-5/pulls>.
 
