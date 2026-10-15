@@ -53,6 +53,12 @@ a deactivated account is signed out immediately.
 | Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it. |
 | Reject | The record is closed: it stays out of public views and can no longer be corrected or decided. The contributor can submit it again as a new contribution. A note is required, and the contributor sees it. |
 
+A record needs at least one evidence URL and site coordinates before it can
+be approved, and a contributor may leave both out when submitting. When either
+is missing, the decision panel says **Not ready to approve**, Approve is
+unavailable, and **Needs changes** is selected with a note asking for what is
+missing. Add it yourself with **Edit record**, or send the request.
+
 Decisions apply to records pending review and to records with changes
 requested. If you fix a record with changes requested yourself, approve it from
 its page: it does not need to go back through the queue. To find the records

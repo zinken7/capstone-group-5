@@ -636,6 +636,33 @@
   background: #eef1fa;
 }
 
+.decision-option:has(input:disabled) {
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+/* What approval needs that the submission does not have yet */
+.decision-blockers {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #f2c078;
+  border-radius: var(--control-radius);
+  background: var(--color-warning-surface);
+  color: var(--text-strong);
+  font-size: var(--type-sm);
+}
+
+.decision-blockers p,
+.decision-blockers ul {
+  margin: 0;
+}
+
+.decision-blockers ul {
+  padding-left: 1.2rem;
+}
+
 .decision-option small {
   display: block;
   color: var(--text-muted);

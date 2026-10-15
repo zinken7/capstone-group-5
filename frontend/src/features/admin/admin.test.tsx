@@ -24,6 +24,8 @@ const recordDto = (overrides: Record<string, unknown> = {}) => ({
   model_variant: null,
   machine_type: 'lhd',
   quantity: 8,
+  latitude: -30.78,
+  longitude: 121.5,
   technology_supplier: 'Sandvik',
   technology_product: 'AutoMine',
   automation_level: 'semi_autonomous',
@@ -279,6 +281,27 @@ describe('record review', () => {
 
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
     expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'approved', note: null })
+  })
+
+  test('starts a record that lacks evidence and coordinates on asking the contributor for them', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({ evidence: [], latitude: null, longitude: null })),
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 3, verification_status: 'changes_requested' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText('Not ready to approve')).toBeInTheDocument()
+    expect(screen.getByText('No evidence URL')).toBeInTheDocument()
+    expect(screen.getByText('No site coordinates')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Approve/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Needs changes/)).toBeChecked()
+    expect(screen.getByLabelText(/^Note/)).toHaveValue("Before this can be approved, please add a link to a public source (such as the operator's announcement) and the site's latitude and longitude.")
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual(expect.objectContaining({ decision: 'needs_changes' }))
   })
 
   test('closes a rejected record: no decision and no editing', async () => {

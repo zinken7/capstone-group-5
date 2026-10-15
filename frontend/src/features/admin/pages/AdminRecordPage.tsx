@@ -10,6 +10,7 @@ import AdminBar from '../components/AdminBar'
 import CorrectionForm from '../components/CorrectionForm'
 import CorrectionReview from '../components/CorrectionReview'
 import DecisionForm from '../components/DecisionForm'
+import type { ApprovalBlocker } from '../components/DecisionForm'
 import RecordHistory from '../components/RecordHistory'
 import { useAdminSession } from '../session'
 import type { ReviewRecord } from '../types'
@@ -134,6 +135,11 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]
   const decidable = DECIDABLE.includes(record.verificationStatus)
+  // What approval needs (FR-44, FR-04) that a submission may lack, since both are optional when submitting (FR-07)
+  const approvalBlockers: ApprovalBlocker[] = [
+    ...(record.evidence.length === 0 ? [{ label: 'No evidence URL', request: 'a link to a public source (such as the operator\'s announcement)' }] : []),
+    ...(record.latitude === null || record.longitude === null ? [{ label: 'No site coordinates', request: 'the site\'s latitude and longitude' }] : []),
+  ]
   // The request a record with changes requested is waiting on: the latest decision on the record itself
   const request = record.verificationStatus === 'changes_requested'
     ? [...record.reviews].reverse().find((review) => review.correctionId === null)
@@ -248,7 +254,14 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             </section>
           )}
           {decidable && (
-            <DecisionForm submit={(decision, note) => submitDecision(record.id, decision, note)} onDecided={() => onChanged('Decision recorded.')} noteShownToContributor />
+            <DecisionForm
+              // A new form once the record changes what it lacks, so the starting decision and note follow it
+              key={approvalBlockers.map((blocker) => blocker.label).join('|')}
+              submit={(decision, note) => submitDecision(record.id, decision, note)}
+              onDecided={() => onChanged('Decision recorded.')}
+              noteShownToContributor
+              approvalBlockers={approvalBlockers}
+            />
           )}
           {!decidable && pendingCorrections.length === 0 && (
             <p className="admin-notice">{closedNotice(record.verificationStatus)}</p>
