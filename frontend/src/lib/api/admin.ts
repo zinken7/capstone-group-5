@@ -269,12 +269,12 @@ export async function submitDecision(id: number, decision: ReviewDecision, note:
   return response.verification_status
 }
 
-/** Decides a proposed correction; returns its new status. */
-export async function submitCorrectionDecision(correctionId: number, decision: ReviewDecision, note: string): Promise<string> {
+/** Decides a proposed correction against the version of the record the administrator saw; returns its new status. */
+export async function submitCorrectionDecision(correctionId: number, decision: ReviewDecision, note: string, version: string): Promise<string> {
   const response = await requestJson<{ correction_status: string }>(`admin/corrections/${correctionId}/reviews`, {
     method: 'POST',
     headers: MODIFYING_HEADERS,
-    body: JSON.stringify({ decision, note: note.trim() || null }),
+    body: JSON.stringify({ decision, note: note.trim() || null, version }),
   })
   return response.correction_status
 }

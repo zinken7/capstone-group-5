@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { FormEvent, KeyboardEvent } from 'react'
 
 import { getOwnContribution, postContribution } from '../../../lib/api/contributions'
@@ -504,13 +505,11 @@ function NewContribution({
 type Tab = 'new' | 'mine'
 const TABS: readonly [Tab, string][] = [['new', 'New contribution'], ['mine', 'My contributions']]
 
-/** /contribute?tab=mine opens the list, for example from a link back to it */
-function initialTab(): Tab {
-  return new URLSearchParams(window.location.search).get('tab') === 'mine' ? 'mine' : 'new'
-}
-
 function ContributePage(props: ContributePageProps) {
-  const [tab, setTab] = useState<Tab>(initialTab)
+  // The address holds the tab, so /contribute?tab=mine opens the list even from this page, as the header badge does
+  const [params, setParams] = useSearchParams()
+  const tab: Tab = params.get('tab') === 'mine' ? 'mine' : 'new'
+  const setTab = (next: Tab) => setParams(next === 'mine' ? { tab: 'mine' } : {}, { replace: true })
   const [resubmission, setResubmission] = useState<Resubmission | null>(null)
   const { items } = useMyContributions()
   // Counted by application, as the list shows them
@@ -565,17 +564,19 @@ function ContributePage(props: ContributePageProps) {
           </button>
         ))}
       </div>
-      <div className="contribute-panel" id={`contribute-panel-${tab}`} role="tabpanel" aria-labelledby={`contribute-tab-${tab}`}>
-        {tab === 'new'
-          ? <NewContribution
-              // A resubmission and a blank form are separate forms, each starting from its own values
-              key={resubmission ? `resubmit-${resubmission.id}` : 'blank'}
-              {...props}
-              onShowMine={() => select('mine')}
-              resubmission={resubmission}
-              onClearResubmission={() => setResubmission(null)}
-            />
-          : <MyContributions onStartNew={() => select('new')} onResubmit={startResubmission} />}
+      {/* Both panels stay mounted, so a half-filled form is still there after a look at the list */}
+      <div className="contribute-panel" id="contribute-panel-new" role="tabpanel" aria-labelledby="contribute-tab-new" hidden={tab !== 'new'}>
+        <NewContribution
+          // A resubmission and a blank form are separate forms, each starting from its own values
+          key={resubmission ? `resubmit-${resubmission.id}` : 'blank'}
+          {...props}
+          onShowMine={() => select('mine')}
+          resubmission={resubmission}
+          onClearResubmission={() => setResubmission(null)}
+        />
+      </div>
+      <div className="contribute-panel" id="contribute-panel-mine" role="tabpanel" aria-labelledby="contribute-tab-mine" hidden={tab !== 'mine'}>
+        <MyContributions onStartNew={() => select('new')} onResubmit={startResubmission} />
       </div>
     </section>
   )

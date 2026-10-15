@@ -179,7 +179,13 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
       <div className={decidable ? 'admin-record admin-record--decide' : 'admin-record'}>
         <div className="admin-record__main">
           {pendingCorrections.map((correction) => (
-            <CorrectionReview key={correction.id} correction={correction} onDecided={() => onChanged('Decision on the correction recorded.')} />
+            <CorrectionReview
+              key={correction.id}
+              correction={correction}
+              version={record.updatedAt}
+              onDecided={() => onChanged('Decision on the correction recorded.')}
+              onStale={() => onChanged('This record changed while you had it open, for example by another correction. Check the latest values below, then decide again.')}
+            />
           ))}
 
           {latestCorrection?.action === 'update' && latestCorrection.previousValues && <section className="admin-panel change-panel admin-record__lead" aria-labelledby="changes-heading">

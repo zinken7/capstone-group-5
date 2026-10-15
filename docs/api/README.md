@@ -738,8 +738,11 @@ present, since every deployment carries them.
 ### `POST /api/admin/corrections/{id}/reviews`
 
 Decides a correction proposed for a verified record. The request is the same as
-for a record: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`,
-with the note required unless approving.
+for a record: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…", "version": "…"}`,
+with the note required unless approving. `version` is the record's `updated_at` as
+the administrator saw it. When another correction or an edit has changed the record
+since, the decision is refused with `409`, so a proposal is never approved against
+values the administrator did not see. Without `version` the check is skipped.
 
 | Decision | Effect |
 |---|---|
@@ -756,6 +759,7 @@ database refuses any later change to it.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "correction not found"}` |
 | `409` | `{"error": "only pending corrections can be decided", "correction_status": "…"}` |
+| `409` | `{"error": "the record changed since you opened it", "updated_at": "…"}`: decide again on the latest version |
 | `409` | `{"error": "the proposed commissioning date is after the record's valid_to; correct the record or reject the proposal"}`: approving would end the validity window before it starts, so nothing changes and the proposal stays pending |
 
 ### `PATCH /api/admin/deployments/{id}`
