@@ -63,6 +63,8 @@ The SQL files in `migrations/` remain the only migration authority, for fresh an
 
 Constraints the typed schema cannot represent stay database-native and live only in the migrations: the `updated_at` maintenance, append-only history, active-admin review, evidence/deployment locking and verified-requires-evidence triggers and functions.
 
+Time limits: the pool gives up on a connection after 10 seconds, and migration `012` sets the database's own limits, 15 seconds per statement and 60 seconds for a transaction left idle. They are database settings rather than connection parameters, so they also hold behind a connection pooler such as Neon's, which may refuse them as parameters. `npm run db:migrate` lifts the statement limit for its own session. Staging's API connects through Neon's pooled endpoint, and migrations through the direct one ([`docs/staging.md`](../docs/staging.md)).
+
 ### Raw SQL rule
 
 Drizzle is the default data-access path for feature code. Raw SQL is allowed only where PostGIS or complex SQL is materially clearer, must run through Drizzle's parameterised `sql` template (never string concatenation), and needs a justifying comment — the spatial map query in `src/repositories/sites.ts` is the canonical example. The `query()` helper in `src/database.ts` remains for tests and fixtures; do not add new direct `pg` query strings in feature code.

@@ -23,6 +23,8 @@ async function migrate(): Promise<void> {
   await client.connect()
 
   try {
+    // The database bounds every statement (migration 012); a migration such as an index build may need longer
+    await client.query('SET statement_timeout = 0')
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY])
 
     await client.query(`
