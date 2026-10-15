@@ -379,3 +379,88 @@ describe('My contributions', () => {
     expect(screen.getByRole('tab', { name: 'New contribution' })).toHaveAttribute('aria-selected', 'true')
   })
 })
+
+describe('Following a proposed correction (#223)', () => {
+  const correctionItem = (overrides: Record<string, unknown> = {}) => ({
+    id: 5,
+    deployment_id: 10,
+    status: 'needs_changes',
+    submitted_at: '2026-10-08T03:00:00.000Z',
+    site_id: 1,
+    site_name: 'Roy Hill',
+    machine_manufacturer: 'Caterpillar',
+    machine_model: '793F',
+    machine_type: 'haul_truck',
+    change_note: 'Fleet grew',
+    evidence_urls: [],
+    changes: [{ field: 'quantity', before: 96, proposed: 100 }],
+    decision: { decision: 'needs_changes', note: 'Which source says 100?', decided_at: '2026-10-09T03:00:00.000Z' },
+    ...overrides,
+  })
+  const storedCorrection = { kind: 'correction', id: 5, key: KEY, deploymentId: 10, siteName: 'Roy Hill', machine: 'Caterpillar 793F', submittedAt: '2026-10-08T03:00:00.000Z' }
+  const registerRecord = {
+    id: 10, site_id: 1, site_name: 'Roy Hill', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore',
+    machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 96,
+    technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface',
+    installation_type: 'unknown', status: 'operational', commissioning_date: '2021-01-01', commissioning_year: 2021, valid_from: '2021-01-01', valid_to: null,
+  }
+
+  test('shows what a correction changes and what the reviewer asked, and counts it as needing changes', async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([storedCorrection]))
+    const calls = stubApi({ 'POST /api/corrections/status': () => Response.json({ items: [correctionItem()] }) })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /correction: roy hill/i })
+    expect(within(row).getByText('Changes requested')).toBeInTheDocument()
+    expect(within(row).getByText('Quantity').closest('div')).toHaveTextContent('96 → 100')
+    expect(within(row).getByText('Which source says 100?')).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Propose again' })).toBeInTheDocument()
+    expect(JSON.parse(String(calls.find((call) => call.key === 'POST /api/corrections/status')?.init?.body))).toEqual({ items: [{ id: 5, key: KEY }] })
+    // Corrections and submissions are checked separately, so no submission request is made
+    expect(calls.some((call) => call.key === 'POST /api/contributions/status')).toBe(false)
+  })
+
+  test('proposes a correction again from the earlier proposal, and follows the new one', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([storedCorrection]))
+    const calls = stubApi({
+      'POST /api/corrections/status': () => Response.json({ items: [correctionItem()] }),
+      'GET /api/corrections/5': () => Response.json({ ...correctionItem(), record: registerRecord }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'PATCH /api/deployments/10': () => Response.json({ id: 10, correction_id: 6, verification_status: 'verified', key: 'n'.repeat(43) }, { status: 202 }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /correction: roy hill/i })
+    await user.click(await within(row).findByRole('button', { name: 'Propose again' }))
+    const dialog = await screen.findByRole('dialog', { name: /correct this record/i })
+    expect(within(dialog).getByRole('textbox', { name: /quantity/i })).toHaveValue('100')
+    expect(within(dialog).getByText('Which source says 100?')).toBeInTheDocument()
+
+    await user.type(within(dialog).getByRole('textbox', { name: /evidence url/i }), 'https://example.com/fleet-report')
+    await user.click(within(dialog).getByRole('checkbox'))
+    await user.click(within(dialog).getByRole('button', { name: /submit correction/i }))
+
+    expect(await within(row).findByText(/You proposed it again as #C6/)).toBeInTheDocument()
+    // The new proposal is listed beside the earlier one
+    expect(screen.getAllByRole('listitem', { name: /correction: roy hill/i })).toHaveLength(2)
+    expect(JSON.parse(String(calls.find((call) => call.key === 'PATCH /api/deployments/10')?.init?.body))).toEqual(expect.objectContaining({
+      quantity: 100, evidence_urls: ['https://example.com/fleet-report'],
+    }))
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'correction', id: 6, deploymentId: 10 }),
+      expect.objectContaining({ kind: 'correction', id: 5, proposedAgainAs: 6 }),
+    ]))
+  })
+
+  test('adds a correction from its tracking link', async () => {
+    stubApi({ 'GET /api/corrections/5': () => Response.json({ ...correctionItem({ status: 'approved', decision: { decision: 'approved', note: null, decided_at: '2026-10-09T03:00:00.000Z' } }), record: registerRecord }) })
+    renderPage(`/contribute?tab=mine#track=c5.${KEY}`)
+
+    expect(await screen.findByText('Added correction #C5 to this browser from its tracking link.')).toBeInTheDocument()
+    const row = screen.getByRole('listitem', { name: /correction: roy hill/i })
+    expect(within(row).getByText('Approved')).toBeInTheDocument()
+    expect(within(row).getByRole('link', { name: 'View on register' })).toHaveAttribute('href', '/equipment?site_id=1')
+    expect(window.location.hash).toBe('')
+  })
+})

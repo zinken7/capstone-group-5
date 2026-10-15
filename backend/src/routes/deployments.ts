@@ -41,7 +41,8 @@ router.patch('/deployments/:id', async (req, res, next) => {
       return
     }
     // Accepted for review: the verified record stays public and unchanged until an administrator decides
-    res.status(202).json({ id: outcome.id, correction_id: outcome.correctionId, verification_status: outcome.verificationStatus })
+    // The key is returned once and never again; only its hash is stored (FR-59)
+    res.status(202).json({ id: outcome.id, correction_id: outcome.correctionId, verification_status: outcome.verificationStatus, key: outcome.key })
   } catch (error) {
     next(error)
   }

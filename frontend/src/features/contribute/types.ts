@@ -135,6 +135,23 @@ export interface ContributionStatus {
   resubmittedAs: number | null
 }
 
+/** A proposed correction to a verified record, as its proposer follows it (#223) */
+export interface CorrectionTracking {
+  id: number
+  deploymentId: number
+  /** pending, approved, rejected or needs_changes */
+  status: string
+  submittedAt: string
+  siteId: number
+  siteName: string
+  machine: string
+  changeNote: string | null
+  evidenceUrls: string[]
+  /** Each proposed field with its value when the correction was sent */
+  changes: { field: string; before: unknown; proposed: unknown }[]
+  decision: { decision: string; note: string | null; decidedAt: string } | null
+}
+
 /** The values of one's own submission that the update form starts from */
 export interface OwnContribution extends ContributionStatus {
   /** The site's location; null when it has none, which approval needs */

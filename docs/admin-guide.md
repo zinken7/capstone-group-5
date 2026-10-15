@@ -97,7 +97,7 @@ flagged with its value now; approving applies the proposed value over it.
 | Decision | Result |
 |---|---|
 | Approve | The change is applied and appears in public views straight away. The record stays verified. The history shows the change, credited to the contributor, with the previous values. |
-| Needs changes | The record stays as it is. The contributor can send a new correction. A note is required. |
-| Reject | The record stays as it is. A note is required. |
+| Needs changes | The record stays as it is. A note is required; the contributor sees it under **My contributions** and can propose the correction again, starting from their earlier proposal. |
+| Reject | The record stays as it is. A note is required, and the contributor sees it. |
 
 Decided corrections stay in the record's history, including what was proposed.

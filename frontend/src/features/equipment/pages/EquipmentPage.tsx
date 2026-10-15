@@ -10,6 +10,7 @@ import StatusBadge from '../../../shared/components/StatusBadge'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../../contribute/types'
 import type { ContributionReferenceData } from '../../contribute/types'
 import MapIcon from '../../map/components/MapIcon'
+import { useMyContributions } from '../../contribute/my-contributions'
 import CorrectionDialog from '../components/CorrectionDialog'
 import type { EquipmentRecord, EquipmentSort, SortDirection } from '../types'
 import '../equipment.css'
@@ -132,6 +133,7 @@ function LiveEquipmentPage() {
   const [reference, setReference] = useState<ContributionReferenceData>(DEFAULT_CONTRIBUTION_REFERENCE_DATA)
   const [moreFilters, setMoreFilters] = useState(false)
   const [correctionRecord, setCorrectionRecord] = useState<EquipmentRecord | null>(null)
+  const { add: trackCorrection } = useMyContributions()
   const [notice, setNotice] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState(0)
 
@@ -214,10 +216,23 @@ function LiveEquipmentPage() {
   const pageCount = Math.max(1, Math.ceil(total / view.pageSize))
 
   function handleCorrectionSubmitted(result: CorrectionResult) {
+    const record = correctionRecord
     setCorrectionRecord(null)
     // A correction to a verified record is a proposal, so the register does not change until it is approved
     if (result.correctionId !== null) {
-      setNotice('Correction submitted for review. The record stays public and unchanged until an administrator approves the change.')
+      // Kept in this browser, so its proposer can follow the decision (#223)
+      if (result.key && record) {
+        trackCorrection({
+          kind: 'correction',
+          id: result.correctionId,
+          key: result.key,
+          deploymentId: result.id,
+          siteName: record.siteName,
+          machine: record.machineModel ? `${record.manufacturer} ${record.machineModel}` : `${record.manufacturer} ${formatEnumLabel(record.machineType)}`,
+          submittedAt: new Date().toISOString(),
+        })
+      }
+      setNotice(`Correction submitted for review. The record stays public and unchanged until an administrator approves the change.${result.key ? ' Follow it under My contributions on the Contribute page.' : ''}`)
       return
     }
     setNotice('Correction submitted for review.')

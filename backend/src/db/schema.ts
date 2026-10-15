@@ -43,8 +43,8 @@ export const site = pgTable("site", {
 	index("site_point_4326_gist_idx").using("gist", table.point4326.asc().nullsLast().op("gist_geometry_ops_2d")),
 	index("site_region_id_idx").using("btree", table.regionId.asc().nullsLast().op("int8_ops")),
 	foreignKey({
-			columns: [table.countryCode, table.regionId],
-			foreignColumns: [region.countryCode, region.id],
+			columns: [table.regionId, table.countryCode],
+			foreignColumns: [region.id, region.countryCode],
 			name: "site_region_same_country_fkey"
 		}),
 ]);
@@ -162,20 +162,6 @@ export const technologyProduct = pgTable("technology_product", {
 	unique("technology_product_supplier_product_unique").on(table.supplierId, table.productName),
 ]);
 
-export const adminUser = pgTable("admin_user", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "admin_user_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	email: text().notNull(),
-	passwordHash: text("password_hash").notNull(),
-	active: boolean().default(true).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	role: adminRole().default('admin').notNull(),
-	mustChangePassword: boolean("must_change_password").default(false).notNull(),
-}, (table) => [
-	unique("admin_user_email_key").on(table.email),
-	check("admin_user_password_hash_check", sql`btrim(password_hash) <> ''::text`),
-]);
-
 export const verificationReview = pgTable("verification_review", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "verification_review_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
@@ -203,10 +189,24 @@ export const verificationReview = pgTable("verification_review", {
 			name: "verification_review_admin_user_id_fkey"
 		}),
 	foreignKey({
-			columns: [table.deploymentId, table.correctionId],
-			foreignColumns: [deploymentCorrection.deploymentId, deploymentCorrection.id],
+			columns: [table.correctionId, table.deploymentId],
+			foreignColumns: [deploymentCorrection.id, deploymentCorrection.deploymentId],
 			name: "verification_review_correction_same_deployment_fkey"
 		}),
+]);
+
+export const adminUser = pgTable("admin_user", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "admin_user_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	email: text().notNull(),
+	passwordHash: text("password_hash").notNull(),
+	active: boolean().default(true).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	role: adminRole().default('admin').notNull(),
+	mustChangePassword: boolean("must_change_password").default(false).notNull(),
+}, (table) => [
+	unique("admin_user_email_key").on(table.email),
+	check("admin_user_password_hash_check", sql`btrim(password_hash) <> ''::text`),
 ]);
 
 export const revision = pgTable("revision", {
@@ -358,4 +358,18 @@ export const resubmission = pgTable("resubmission", {
 			name: "resubmission_previous_deployment_id_fkey"
 		}),
 	check("resubmission_not_itself", sql`deployment_id <> previous_deployment_id`),
+]);
+
+export const correctionKey = pgTable("correction_key", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	correctionId: bigint("correction_id", { mode: "number" }).primaryKey().notNull(),
+	keyHash: text("key_hash").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.correctionId],
+			foreignColumns: [deploymentCorrection.id],
+			name: "correction_key_correction_id_fkey"
+		}).onDelete("cascade"),
+	check("correction_key_hash_format", sql`key_hash ~ '^[0-9a-f]{64}$'::text`),
 ]);

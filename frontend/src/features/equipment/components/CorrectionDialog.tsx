@@ -20,6 +20,8 @@ interface CorrectionDialogProps {
   onSubmitted: (result: CorrectionResult) => void
   /** An administrator's correction, already applied to the public record */
   onApplied: () => void
+  /** A correction proposed again starts from the earlier proposal's values, with the reviewer's request shown (#223) */
+  proposal?: { values: Partial<Record<'quantity' | 'environment' | 'deploymentStatus' | 'automationLevel' | 'installationType' | 'commissioningDate', string>>; request: string | null }
 }
 
 /** Who is correcting: an administrator's change applies at once, anyone else's is a proposal; checking until the session is known */
@@ -161,14 +163,14 @@ function optionLabel(options: readonly ReferenceOption[], value: string): string
   return options.find(([option]) => option === value)?.[1] ?? formatEnumLabel(value)
 }
 
-function CorrectionDialog({ record, referenceData, onClose, onSubmitted, onApplied }: CorrectionDialogProps) {
+function CorrectionDialog({ record, referenceData, onClose, onSubmitted, onApplied, proposal }: CorrectionDialogProps) {
   const session = useOptionalAdminSession()
   // Settled once the session is known, so a session that ends mid-edit reports an error instead of turning the form into a proposal
   const [settledMode, setSettledMode] = useState<CorrectionMode | null>(null)
   const liveMode = modeFor(session)
   if (settledMode === null && liveMode !== 'checking') setSettledMode(liveMode)
   const mode = settledMode ?? liveMode
-  const [values, setValues] = useState(() => initialValues(record))
+  const [values, setValues] = useState(() => ({ ...initialValues(record), ...proposal?.values }))
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -290,6 +292,7 @@ function CorrectionDialog({ record, referenceData, onClose, onSubmitted, onAppli
         {mode === 'administrator' && <p id="equipment-correction-description" className="form-help">Your changes to <strong>{record.siteName}</strong> are published at once, and the previous values stay in its history. For the technology, site coordinates or validity dates, <Link to={`/admin/deployments/${record.id}`}>open the record in administration</Link>.</p>}
         {mode === 'public' && <p id="equipment-correction-description" className="form-help">Propose a change to <strong>{record.siteName}</strong>. An administrator will review it before it becomes public.</p>}
         <dl className="correction-record-summary"><div><dt>Machine</dt><dd>{record.machineModel ?? 'Not recorded'} · {formatEnumLabel(record.machineType)}<small>{record.manufacturer}</small></dd></div><div><dt>Supplier</dt><dd>{record.supplier || 'Not recorded'}</dd></div><div><dt>Current quantity</dt><dd>{formatNumber(record.quantity)}</dd></div><div><dt>Current status</dt><dd>{formatEnumLabel(record.status)}</dd></div><div><dt>Commissioned</dt><dd>{formatCommissioning(record.commissioningDate, undefined)}</dd></div></dl>
+        {mode === 'public' && proposal?.request && <div className="correction-request"><p className="correction-request__label">What the reviewer asked</p><p>{proposal.request}</p></div>}
         {mode === 'public' && <p className="correction-warning">An administrator reviews your correction before it is published. Until then, this record stays public and unchanged.</p>}
         {error && <p className="form-summary-error" role="alert">{error}</p>}
         <div className="form-grid">

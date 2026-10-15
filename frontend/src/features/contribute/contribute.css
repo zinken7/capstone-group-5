@@ -445,6 +445,31 @@
   margin-top: var(--space-3);
 }
 
+/* What a proposed correction changes */
+.my-contribution__changes {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--type-sm);
+}
+
+.my-contribution__changes div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+
+.my-contribution__changes dt {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.my-contribution__changes dd {
+  margin: 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
 /* Asked for only when the site has no location yet */
 .my-contribution__location {
   display: grid;

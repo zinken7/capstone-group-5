@@ -1,5 +1,11 @@
+import type { CorrectionTracking } from '../../features/contribute/types'
+import type { EquipmentRecord } from '../../features/equipment/types'
+import { formatEnumLabel } from '../format'
 import { getApiBaseUrl } from './config'
 import { ApiError, fieldMessages } from './errors'
+import { requestJson } from './http'
+import { toEquipmentRecord } from './register'
+import type { RegisterItemDto } from './register'
 
 export interface CorrectionPayload {
   quantity?: number
@@ -20,6 +26,8 @@ export interface CorrectionResult {
   /** Set when the record is verified: the change is a proposal, and the record stays public and unchanged until reviewed */
   correctionId: number | null
   verificationStatus: string
+  /** The proposal's private key, returned once; kept in this browser to follow it (FR-59, #223) */
+  key: string | null
 }
 
 export class CorrectionApiError extends ApiError {
@@ -74,5 +82,54 @@ export async function submitCorrection(id: number, payload: CorrectionPayload): 
     id: typeof object.id === 'number' ? object.id : id,
     correctionId: typeof object.correction_id === 'number' ? object.correction_id : null,
     verificationStatus: typeof object.verification_status === 'string' ? object.verification_status : 'pending_review',
+    key: typeof object.key === 'string' ? object.key : null,
   }
+}
+
+interface CorrectionTrackingDto {
+  id: number
+  deployment_id: number
+  status: string
+  submitted_at: string
+  site_id: number
+  site_name: string
+  machine_manufacturer: string
+  machine_model: string | null
+  machine_type: string
+  change_note: string | null
+  evidence_urls: string[]
+  changes: { field: string; before: unknown; proposed: unknown }[]
+  decision: { decision: string; note: string | null; decided_at: string } | null
+}
+
+function toTracking(dto: CorrectionTrackingDto): CorrectionTracking {
+  return {
+    id: dto.id,
+    deploymentId: dto.deployment_id,
+    status: dto.status,
+    submittedAt: dto.submitted_at,
+    siteId: dto.site_id,
+    siteName: dto.site_name,
+    machine: dto.machine_model ? `${dto.machine_manufacturer} ${dto.machine_model}` : `${dto.machine_manufacturer} ${formatEnumLabel(dto.machine_type)}`,
+    changeNote: dto.change_note,
+    evidenceUrls: dto.evidence_urls,
+    changes: dto.changes,
+    decision: dto.decision && { decision: dto.decision.decision, note: dto.decision.note, decidedAt: dto.decision.decided_at },
+  }
+}
+
+/** The proposed corrections whose keys match, at most 50 per request; any other is left out (#223). */
+export async function checkCorrectionStatuses(items: readonly { id: number; key: string }[]): Promise<CorrectionTracking[]> {
+  const response = await requestJson<{ items: CorrectionTrackingDto[] }>('corrections/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
+  return response.items.map(toTracking)
+}
+
+/** One's own proposed correction, with the record as the register shows it, to propose again from. */
+export async function getOwnCorrection(id: number, key: string): Promise<CorrectionTracking & { record: EquipmentRecord | null }> {
+  const dto = await requestJson<CorrectionTrackingDto & { record: RegisterItemDto | null }>(`corrections/${id}`, { headers: { 'X-Contribution-Key': key } })
+  return { ...toTracking(dto), record: dto.record && toEquipmentRecord(dto.record) }
 }

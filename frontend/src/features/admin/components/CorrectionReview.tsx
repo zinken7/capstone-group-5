@@ -72,6 +72,7 @@ function CorrectionReview({ correction, onDecided }: CorrectionReviewProps) {
         options={CORRECTION_DECISIONS}
         submit={(decision, note) => submitCorrectionDecision(correction.id, decision, note)}
         onDecided={onDecided}
+        noteShownToContributor
       />
     </section>
   )

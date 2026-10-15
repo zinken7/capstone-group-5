@@ -3,14 +3,17 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getOwnContribution, updateOwnContribution } from '../../../lib/api/contributions'
+import { getOwnCorrection } from '../../../lib/api/corrections'
 import { ApiError } from '../../../lib/api/errors'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import { formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import MapIcon from '../../map/components/MapIcon'
+import CorrectionDialog from '../../equipment/components/CorrectionDialog'
+import type { EquipmentRecord } from '../../equipment/types'
 import CopyTrackingLink from './CopyTrackingLink'
-import { useMyContributions } from '../my-contributions'
+import { isCorrection, useMyContributions } from '../my-contributions'
 import type { TrackedContribution } from '../my-contributions'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../types'
 import type { ContributionReferenceData, OwnContribution, OwnContributionUpdate, ReferenceOption } from '../types'
@@ -330,14 +333,152 @@ function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onRe
   )
 }
 
+/** How a proposer reads a correction's status, with the status colour it shares with records */
+const CORRECTION_STATUS: Record<string, { badge: string; label: string }> = {
+  pending: { badge: 'pending_review', label: 'Pending review' },
+  approved: { badge: 'verified', label: 'Approved' },
+  rejected: { badge: 'rejected', label: 'Rejected' },
+  needs_changes: { badge: 'changes_requested', label: 'Changes requested' },
+}
+
+/** The correction dialog's fields, keyed by the API field names a correction stores */
+const DIALOG_FIELDS: Record<string, 'quantity' | 'environment' | 'deploymentStatus' | 'automationLevel' | 'installationType' | 'commissioningDate'> = {
+  quantity: 'quantity',
+  environment: 'environment',
+  deployment_status: 'deploymentStatus',
+  automation_level: 'automationLevel',
+  installation_type: 'installationType',
+  commissioning_date: 'commissioningDate',
+}
+
+function describeValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return 'Not recorded'
+  return typeof value === 'number' ? formatNumber(value) : formatEnumLabel(String(value))
+}
+
+interface Proposing {
+  record: EquipmentRecord
+  reference: ContributionReferenceData
+  values: Partial<Record<'quantity' | 'environment' | 'deploymentStatus' | 'automationLevel' | 'installationType' | 'commissioningDate', string>>
+  request: string | null
+}
+
+/** A proposed correction to a verified record: what it changes, where its review stands, and what to do next (#223) */
+function CorrectionRow({ item }: { item: TrackedContribution }) {
+  const { remove, add, markProposedAgain } = useMyContributions()
+  const [proposing, setProposing] = useState<Proposing | null>(null)
+  const [opening, setOpening] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+  const removeButtonRef = useRef<HTMLButtonElement>(null)
+  const correction = item.lastCorrection
+  const status = item.missing ? null : correction?.status ?? 'pending'
+  const shown = status ? CORRECTION_STATUS[status] ?? { badge: status, label: formatEnumLabel(status) } : null
+  const titleId = `my-correction-${item.id}`
+
+  function proposeAgain() {
+    setOpening(true)
+    setOpenError(null)
+    Promise.all([getOwnCorrection(item.id, item.key), getContributionReferenceData().catch(() => DEFAULT_CONTRIBUTION_REFERENCE_DATA)])
+      .then(([own, reference]) => {
+        if (!own.record) throw new Error('The record is no longer in the register, so the correction cannot be proposed again.')
+        const values: Proposing['values'] = {}
+        for (const change of own.changes) {
+          const field = DIALOG_FIELDS[change.field]
+          if (field && change.proposed !== null && change.proposed !== undefined) values[field] = String(change.proposed)
+        }
+        setProposing({ record: own.record, reference, values, request: own.decision?.note ?? null })
+      })
+      .catch((cause: unknown) => setOpenError(cause instanceof Error ? cause.message : 'The correction could not be opened.'))
+      .finally(() => setOpening(false))
+  }
+
+  return (
+    <li className="my-contribution" aria-labelledby={titleId}>
+      <div className="my-contribution__summary">
+        <p className="my-contribution__ref">Correction #C{item.id} to record #{item.deploymentId ?? correction?.deploymentId} · proposed {formatDate(item.submittedAt.slice(0, 10))}</p>
+        <h3 id={titleId} className="my-contribution__title">Correction: {item.siteName} · {item.machine}</h3>
+        <p className="my-contribution__state">
+          {shown ? <StatusBadge status={shown.badge} label={shown.label} /> : <span className="my-contribution__missing">No longer available</span>}
+          {correction?.decision && status !== 'pending' && <span>{formatDate(correction.decision.decidedAt.slice(0, 10))}</span>}
+        </p>
+      </div>
+      {correction && correction.changes.length > 0 && (
+        <dl className="my-contribution__changes my-contribution__wide">
+          {correction.changes.map((change) => (
+            <div key={change.field}><dt>{formatEnumLabel(change.field)}</dt><dd>{describeValue(change.before)} → {describeValue(change.proposed)}</dd></div>
+          ))}
+          {correction.evidenceUrls.length > 0 && <div><dt>Sources</dt><dd>{correction.evidenceUrls.join(', ')}</dd></div>}
+        </dl>
+      )}
+      {correction?.decision?.note && (status === 'needs_changes' || status === 'rejected') && (
+        <div className={`my-contribution__note my-contribution__note--${status === 'rejected' ? 'rejected' : 'changes_requested'}`}>
+          <p className="my-contribution__note-label">{status === 'rejected' ? 'Reason' : 'What the reviewer asked'}</p>
+          <p>{correction.decision.note}</p>
+        </div>
+      )}
+      {status === 'pending' && <p className="form-help my-contribution__wide">Waiting for review. The record stays public and unchanged until then.</p>}
+      {status === 'approved' && <p className="form-help my-contribution__wide">Applied to the record.</p>}
+      {status === 'rejected' && <p className="form-help my-contribution__wide">Not applied; the record stays as it is.</p>}
+      {status === 'needs_changes' && (item.proposedAgainAs
+        ? <p className="form-help my-contribution__wide">You proposed it again as #C{item.proposedAgainAs}.</p>
+        : <p className="form-help my-contribution__wide">Not applied yet. Propose it again with what the reviewer asked for.</p>)}
+      {item.missing && <p className="form-help my-contribution__wide">The site no longer reports this correction. You can remove it from this browser.</p>}
+      {openError && <p className="form-summary-error my-contribution__wide" role="alert">{openError}</p>}
+      {notice && <p className="form-summary-success my-contribution__wide" role="status">{notice}</p>}
+      <div className="my-contribution__actions">
+        {status === 'needs_changes' && !item.proposedAgainAs && (
+          <button className="button button--primary" type="button" disabled={opening} onClick={proposeAgain}>{opening ? 'Opening…' : 'Propose again'}</button>
+        )}
+        {status === 'approved' && correction && (
+          <Link className="button button--secondary" to={`/equipment?site_id=${correction.siteId}`}>View on register</Link>
+        )}
+      </div>
+      <div className="my-contribution__remove">
+        {!confirmingRemoval && !item.missing && <CopyTrackingLink id={item.id} contributionKey={item.key} kind="correction" />}
+        {confirmingRemoval ? (
+          <div className="my-contribution__confirm" role="group" aria-label={`Remove correction ${item.id} from this browser`}>
+            <span>Remove correction #C{item.id} from this browser? You will not be able to follow it here again.</span>
+            <button className="button button--secondary" type="button" onClick={() => remove(item.id, 'correction')}>Remove</button>
+            <button className="text-button" type="button" autoFocus onClick={() => { setConfirmingRemoval(false); window.setTimeout(() => removeButtonRef.current?.focus(), 0) }}>Keep</button>
+          </div>
+        ) : (
+          <button ref={removeButtonRef} className="text-button text-button--flush" type="button" onClick={() => setConfirmingRemoval(true)}>Remove from this browser</button>
+        )}
+      </div>
+      {proposing && (
+        <CorrectionDialog
+          record={proposing.record}
+          referenceData={proposing.reference}
+          proposal={{ values: proposing.values, request: proposing.request }}
+          onClose={() => setProposing(null)}
+          onSubmitted={(result) => {
+            setProposing(null)
+            if (result.correctionId !== null && result.key) {
+              add({ kind: 'correction', id: result.correctionId, key: result.key, deploymentId: result.id, siteName: item.siteName, machine: item.machine, submittedAt: new Date().toISOString() })
+              markProposedAgain(item.id, result.correctionId)
+            }
+            setNotice('Proposed again. The new correction is listed above and waits for review.')
+          }}
+          onApplied={() => {
+            setProposing(null)
+            setNotice('Applied to the record.')
+          }}
+        />
+      )}
+    </li>
+  )
+}
+
 /** The submissions made from this browser, with their review status (FR-59) */
 function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; onResubmit: (item: TrackedContribution) => Promise<void> }) {
   const { items, checking, checkFailed, refresh, linkNotice, dismissLinkNotice } = useMyContributions()
   const notice = linkNotice && (
     <div className={linkNotice.kind === 'invalid' ? 'form-summary-error my-contributions__notice' : 'form-summary-success my-contributions__notice'} role={linkNotice.kind === 'invalid' ? 'alert' : 'status'}>
       <span>
-        {linkNotice.kind === 'added' && `Added #${linkNotice.id} to this browser from its tracking link.`}
-        {linkNotice.kind === 'already' && `#${linkNotice.id} is already in this browser.`}
+        {linkNotice.kind === 'added' && `Added ${linkNotice.entry === 'correction' ? 'correction #C' : '#'}${linkNotice.id} to this browser from its tracking link.`}
+        {linkNotice.kind === 'already' && `${linkNotice.entry === 'correction' ? 'Correction #C' : '#'}${linkNotice.id} is already in this browser.`}
         {linkNotice.kind === 'invalid' && 'This tracking link is not valid, or the submission no longer exists.'}
       </span>
       <button className="text-button text-button--flush" type="button" onClick={dismissLinkNotice}>Dismiss</button>
@@ -365,7 +506,9 @@ function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; o
       </div>
       {checkFailed && <p className="form-summary-error" role="alert">The latest statuses could not be checked. These are the last ones known.</p>}
       <ul className="my-contributions__list">
-        {items.map((item) => <ContributionRow key={item.id} item={item} onResubmit={onResubmit} />)}
+        {items.map((item) => isCorrection(item)
+          ? <CorrectionRow key={`c${item.id}`} item={item} />
+          : <ContributionRow key={item.id} item={item} onResubmit={onResubmit} />)}
       </ul>
     </div>
   )
