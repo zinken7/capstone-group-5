@@ -108,12 +108,3 @@ Administrators sign in from **Administrator sign-in** in the footer. Reviewing,
 approving, requesting changes and correcting records are described in
 [`admin-guide.md`](admin-guide.md).
 
-<!-- CHECK on staging before committing, then delete this comment:
-  1. Where the evidence link field sits on the form (step 4): in the main
-     fields, or under Add more detail?
-  2. The exact label and wording of the contact email field (step 3).
-  3. The resubmit control on a Rejected row: its label (Rejected row).
-  4. Where the tracking link is offered: on the confirmation, or on the row?
-  5. The correction form: which fields it offers, and whether it asks for an
-     email or a note (Correct a verified record).
--->
