@@ -6,7 +6,7 @@ import { getOwnContribution, updateOwnContribution } from '../../../lib/api/cont
 import { getOwnCorrection } from '../../../lib/api/corrections'
 import { ApiError } from '../../../lib/api/errors'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
-import { formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { formatDay, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import MapIcon from '../../map/components/MapIcon'
@@ -258,13 +258,13 @@ function ContributionRow({ item, onResubmit, removable = true }: { item: Tracked
   return (
     <li className="my-contribution" aria-labelledby={titleId}>
       <div className="my-contribution__summary">
-        <p className="my-contribution__ref">#{item.id} · submitted {formatDate(item.submittedAt.slice(0, 10))}{item.last?.resubmissionOf ? ` · replaces #${item.last.resubmissionOf}` : ''}</p>
+        <p className="my-contribution__ref">#{item.id} · submitted {formatDay(item.submittedAt)}{item.last?.resubmissionOf ? ` · replaces #${item.last.resubmissionOf}` : ''}</p>
         <h3 id={titleId} className="my-contribution__title">
           {item.siteName} · {item.machine}{item.last ? ` × ${formatNumber(item.last.quantity)}` : ''}
         </h3>
         <p className="my-contribution__state">
           {status ? <StatusBadge status={status} /> : <span className="my-contribution__missing">No longer available</span>}
-          {status && decision && status !== 'pending_review' && <span>{formatDate(decision.decidedAt.slice(0, 10))}</span>}
+          {status && decision && status !== 'pending_review' && <span>{formatDay(decision.decidedAt)}</span>}
         </p>
       </div>
       {showNote && (
@@ -405,11 +405,11 @@ function CorrectionRow({ item, removable = true }: { item: TrackedContribution; 
   return (
     <li className="my-contribution" aria-labelledby={titleId}>
       <div className="my-contribution__summary">
-        <p className="my-contribution__ref">Correction #C{item.id} to record #{item.deploymentId ?? correction?.deploymentId} · proposed {formatDate(item.submittedAt.slice(0, 10))}</p>
+        <p className="my-contribution__ref">Correction #C{item.id} to record #{item.deploymentId ?? correction?.deploymentId} · proposed {formatDay(item.submittedAt)}</p>
         <h3 id={titleId} className="my-contribution__title">Correction: {item.siteName} · {item.machine}</h3>
         <p className="my-contribution__state">
           {shown ? <StatusBadge status={shown.badge} label={shown.label} /> : <span className="my-contribution__missing">No longer available</span>}
-          {correction?.decision && status !== 'pending' && <span>{formatDate(correction.decision.decidedAt.slice(0, 10))}</span>}
+          {correction?.decision && status !== 'pending' && <span>{formatDay(correction.decision.decidedAt)}</span>}
         </p>
       </div>
       {correction && correction.changes.length > 0 && (
@@ -465,9 +465,11 @@ function CorrectionRow({ item, removable = true }: { item: TrackedContribution; 
             setProposing(null)
             if (result.correctionId !== null && result.key) {
               add({ kind: 'correction', id: result.correctionId, key: result.key, deploymentId: result.id, siteName: item.siteName, machine: item.machine, submittedAt: new Date().toISOString() })
+              // Announced over the list, which also takes focus, as this row moves under Earlier attempts
               markProposedAgain(item.id, result.correctionId)
+            } else {
+              setNotice('Proposed again. It waits for review.')
             }
-            setNotice('Proposed again. The new correction is listed above and waits for review.')
           }}
           onApplied={() => {
             setProposing(null)
@@ -487,7 +489,7 @@ function EarlierAttempt({ entry }: { entry: TrackedContribution }) {
     return (
       <li>
         <p className="my-contribution-history__line">
-          <span>Correction #C{entry.id} · proposed {formatDate(entry.submittedAt.slice(0, 10))}</span>
+          <span>Correction #C{entry.id} · proposed {formatDay(entry.submittedAt)}</span>
           {shown && <StatusBadge status={shown.badge} label={shown.label} />}
           {entry.proposedAgainAs && <span>Proposed again as #C{entry.proposedAgainAs}.</span>}
         </p>
@@ -500,7 +502,7 @@ function EarlierAttempt({ entry }: { entry: TrackedContribution }) {
   return (
     <li>
       <p className="my-contribution-history__line">
-        <span>#{entry.id} · submitted {formatDate(entry.submittedAt.slice(0, 10))}</span>
+        <span>#{entry.id} · submitted {formatDay(entry.submittedAt)}</span>
         {last && <StatusBadge status={last.verificationStatus} />}
         {last?.resubmittedAs && <span>Resubmitted as #{last.resubmittedAs}.</span>}
       </p>
@@ -550,15 +552,21 @@ function GroupCard({ group, onResubmit }: { group: ContributionGroup; onResubmit
 
 /** The submissions made from this browser, with their review status (FR-59) */
 function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; onResubmit: (item: TrackedContribution) => Promise<void> }) {
-  const { items, checking, checkFailed, refresh, linkNotice, dismissLinkNotice } = useMyContributions()
-  const notice = linkNotice && (
-    <div className={linkNotice.kind === 'invalid' ? 'form-summary-error my-contributions__notice' : 'form-summary-success my-contributions__notice'} role={linkNotice.kind === 'invalid' ? 'alert' : 'status'}>
+  const { items, checking, checkFailed, refresh, notice: listNotice, dismissNotice } = useMyContributions()
+  const noticeRef = useRef<HTMLDivElement>(null)
+  // The button that proposed it again is gone once its row moves under Earlier attempts, so focus goes to the news
+  useEffect(() => {
+    if (listNotice?.kind === 'proposed') noticeRef.current?.focus()
+  }, [listNotice])
+  const notice = listNotice && (
+    <div ref={noticeRef} tabIndex={-1} className={listNotice.kind === 'invalid' ? 'form-summary-error my-contributions__notice' : 'form-summary-success my-contributions__notice'} role={listNotice.kind === 'invalid' ? 'alert' : 'status'}>
       <span>
-        {linkNotice.kind === 'added' && `Added ${linkNotice.entry === 'correction' ? 'correction #C' : '#'}${linkNotice.id} to this browser from its tracking link.`}
-        {linkNotice.kind === 'already' && `${linkNotice.entry === 'correction' ? 'Correction #C' : '#'}${linkNotice.id} is already in this browser.`}
-        {linkNotice.kind === 'invalid' && 'This tracking link is not valid, or the submission no longer exists.'}
+        {listNotice.kind === 'added' && `Added ${listNotice.entry === 'correction' ? 'correction #C' : '#'}${listNotice.id} to this browser from its tracking link.`}
+        {listNotice.kind === 'already' && `${listNotice.entry === 'correction' ? 'Correction #C' : '#'}${listNotice.id} is already in this browser.`}
+        {listNotice.kind === 'invalid' && 'This tracking link is not valid, or the submission no longer exists.'}
+        {listNotice.kind === 'proposed' && `Proposed again as correction #C${listNotice.id}. It waits for review.`}
       </span>
-      <button className="text-button text-button--flush" type="button" onClick={dismissLinkNotice}>Dismiss</button>
+      <button className="text-button text-button--flush" type="button" onClick={dismissNotice}>Dismiss</button>
     </div>
   )
 

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { Link, MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { MyContributionsProvider, STORAGE_KEY } from '../my-contributions'
@@ -47,7 +47,7 @@ function stubApi(routes: Record<string, Handler>) {
 function renderPage(path = '/contribute?tab=mine') {
   window.history.replaceState(null, '', path)
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <MyContributionsProvider>
         <ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />
       </MyContributionsProvider>
@@ -271,7 +271,7 @@ describe('My contributions', () => {
     await user.click(await within(row).findByRole('button', { name: 'Resubmit' }))
 
     expect(await screen.findByRole('heading', { name: 'Resubmitting #20412' })).toBeInTheDocument()
-    expect(screen.getByText('This is the processing plant, not the mine.')).toBeInTheDocument()
+    expect(within(screen.getByRole('tabpanel')).getByText('This is the processing plant, not the mine.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'New contribution' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByLabelText(/mine site name/i)).toHaveValue('Ashgrove Mine')
     expect(screen.getByPlaceholderText('e.g. 793F')).toHaveValue('793F')
@@ -384,6 +384,50 @@ describe('My contributions', () => {
     expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/my contributions/i)
     await user.keyboard('{ArrowLeft}')
     expect(screen.getByRole('tab', { name: 'New contribution' })).toHaveAttribute('aria-selected', 'true')
+  })
+})
+
+describe('Tabs and other tabs of the browser', () => {
+  test('opens the list from a link to ?tab=mine while on the page, and keeps a half-filled form', async () => {
+    const user = userEvent.setup()
+    stubApi({})
+    window.history.replaceState(null, '', '/contribute')
+    render(
+      <MemoryRouter initialEntries={['/contribute']}>
+        <MyContributionsProvider>
+          <Link to="/contribute?tab=mine">Badge</Link>
+          <ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />
+        </MyContributionsProvider>
+      </MemoryRouter>,
+    )
+
+    await user.type(screen.getByLabelText(/mine site name/i), 'Half-typed Mine')
+    // As the header badge does
+    await user.click(screen.getByRole('link', { name: 'Badge' }))
+    expect(screen.getByRole('tab', { name: /my contributions/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { name: 'No contributions in this browser yet' })).toBeVisible()
+
+    await user.click(screen.getByRole('tab', { name: 'New contribution' }))
+    expect(screen.getByLabelText(/mine site name/i)).toHaveValue('Half-typed Mine')
+  })
+
+  test('keeps entries another tab added, and shows them', async () => {
+    stubApi({ 'POST /api/contributions/status': () => Response.json({ items: [] }) })
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    renderPage()
+    await screen.findByRole('listitem', { name: /ashgrove mine/i })
+
+    // Another tab adds a submission; this tab hears of it and keeps it when it writes next
+    const other = stored({ id: 30001, siteName: 'Other Tab Mine', submittedAt: '2026-10-05T03:00:00.000Z' })
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([other, stored()]))
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
+    expect(await screen.findByRole('listitem', { name: /other tab mine/i })).toBeInTheDocument()
+
+    // Even unheard, a change made here starts from what is stored
+    const third = stored({ id: 30002, siteName: 'Third Mine', submittedAt: '2026-10-06T03:00:00.000Z' })
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([third, other, stored()]))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Check again' }))
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toHaveLength(3))
   })
 })
 
@@ -501,6 +545,9 @@ describe('Following a proposed correction (#223)', () => {
     await user.click(within(dialog).getByRole('checkbox'))
     await user.click(within(dialog).getByRole('button', { name: /submit correction/i }))
 
+    // The news is told over the list, which takes focus from the button that is gone
+    const news = await screen.findByText('Proposed again as correction #C6. It waits for review.')
+    expect(news.closest('[role="status"]')).toHaveFocus()
     // The new proposal is current; the earlier one is folded under it with the reviewer's request
     const group = await screen.findByRole('listitem', { name: 'Application: Roy Hill · Caterpillar 793F' })
     expect(within(group).getAllByRole('listitem', { name: /correction: roy hill/i })).toHaveLength(1)

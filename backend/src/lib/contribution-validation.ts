@@ -46,6 +46,13 @@ export type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Collects field errors while reading a JSON body; null and blank strings count as absent. */
+
+/** A real calendar date in YYYY-MM-DD form, as PostgreSQL's date type accepts it: no 30 February */
+export function isCalendarDate(value: string): boolean {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
+  return parsed !== null && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
 export class FieldReader {
   readonly errors: FieldErrors = {}
 
@@ -110,8 +117,7 @@ export class FieldReader {
   fullDate(field: string): string | null {
     const value = this.text(field, 10)
     if (value === null) return null
-    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
-    if (parsed && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value) return value
+    if (isCalendarDate(value)) return value
     this.errors[field] = 'must be a date (YYYY-MM-DD)'
     return null
   }

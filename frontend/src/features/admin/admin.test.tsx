@@ -301,7 +301,8 @@ describe('proposed corrections', () => {
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
 
     expect(await screen.findByText('Decision on the correction recorded.')).toBeInTheDocument()
-    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null })
+    // Decided on the version of the record the page shows, so a change since is refused
+    expect(calls.find((call) => call.key === 'POST /api/admin/corrections/1/reviews')?.body).toEqual({ decision: 'approved', note: null, version: '2026-10-02T00:00:00Z' })
     expect(screen.queryByRole('table', { name: 'Proposed changes' })).not.toBeInTheDocument()
     expect(screen.getByText('Correction approved')).toBeInTheDocument()
     expect(screen.getByText('Decided corrections')).toBeInTheDocument()

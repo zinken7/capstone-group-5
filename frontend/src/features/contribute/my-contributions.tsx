@@ -20,7 +20,8 @@ export function trackingLink(id: number, key: string, kind: TrackedKind = 'submi
 export type TrackedKind = 'submission' | 'correction'
 
 /** What happened to a tracking link opened in this browser */
-export type LinkNotice = { kind: 'added' | 'already'; id: number; entry: TrackedKind } | { kind: 'invalid' }
+/** A message over the list: what a tracking link did, or that a correction was proposed again */
+export type ListNotice = { kind: 'added' | 'already'; id: number; entry: TrackedKind } | { kind: 'invalid' } | { kind: 'proposed'; id: number }
 
 /** A submission or proposed correction made from this browser, with the last status the site reported for it */
 export interface TrackedContribution {
@@ -138,11 +139,16 @@ export function groupContributions(items: readonly TrackedContribution[]): Contr
 
 /** The stored list; empty when storage is blocked, unavailable or holds something else. */
 export function readTracked(): TrackedContribution[] {
+  return readStored() ?? []
+}
+
+/** The stored list, or null when storage cannot be read, so a blocked storage is not mistaken for an empty list */
+function readStored(): TrackedContribution[] | null {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')
     return Array.isArray(parsed) ? parsed.filter(isTracked) : []
   } catch {
-    return []
+    return null
   }
 }
 
@@ -169,8 +175,8 @@ interface MyContributionsValue {
   /** Notes that a rejected submission has been resubmitted, before the next status check says so */
   markResubmitted: (id: number, resubmittedAs: number) => void
   /** The outcome of a tracking link opened in this browser, until dismissed */
-  linkNotice: LinkNotice | null
-  dismissLinkNotice: () => void
+  notice: ListNotice | null
+  dismissNotice: () => void
   refresh: () => void
 }
 
@@ -186,8 +192,8 @@ const MyContributionsContext = createContext<MyContributionsValue>({
   markProposedAgain: noop,
   setStatus: noop,
   markResubmitted: noop,
-  linkNotice: null,
-  dismissLinkNotice: noop,
+  notice: null,
+  dismissNotice: noop,
   refresh: noop,
 })
 
@@ -201,12 +207,25 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
   const [checking, setChecking] = useState(() => readTracked().length > 0)
   const [checkFailed, setCheckFailed] = useState(false)
 
+  const [notice, setNotice] = useState<ListNotice | null>(null)
+  const dismissNotice = useCallback(() => setNotice(null), [])
+
   const update = useCallback((change: (current: TrackedContribution[]) => TrackedContribution[]) => {
     setItems((current) => {
-      const next = change(current)
+      // Another tab may have added entries since this one last read them, so each change starts from what is stored
+      const next = change(readStored() ?? current)
       writeTracked(next)
       return next
     })
+  }, [])
+
+  // Entries added or changed in another tab show here too
+  useEffect(() => {
+    function reload(event: StorageEvent) {
+      if (event.key === STORAGE_KEY || event.key === null) setItems(readTracked())
+    }
+    window.addEventListener('storage', reload)
+    return () => window.removeEventListener('storage', reload)
   }, [])
 
   /** Asks the site for the stored submissions' statuses; state changes only when the answer comes */
@@ -267,6 +286,8 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
 
   const markProposedAgain = useCallback((id: number, proposedAgainAs: number) => {
     update((current) => current.map((item) => isCorrection(item) && item.id === id ? { ...item, proposedAgainAs } : item))
+    // Told over the list, as the row that sent it moves under Earlier attempts
+    setNotice({ kind: 'proposed', id: proposedAgainAs })
   }, [update])
 
   const setStatus = useCallback((id: number, verificationStatus: string) => {
@@ -275,8 +296,6 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
       : item))
   }, [update])
 
-  const [linkNotice, setLinkNotice] = useState<LinkNotice | null>(null)
-  const dismissLinkNotice = useCallback(() => setLinkNotice(null), [])
 
   // A tracking link adds its submission to this browser; the key leaves the address bar at once
   useEffect(() => {
@@ -288,7 +307,7 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
       const id = Number(match[2])
       const key = match[3]
       if (readTracked().some((item) => sameEntry(item, { id, kind }))) {
-        setLinkNotice({ kind: 'already', id, entry: kind })
+        setNotice({ kind: 'already', id, entry: kind })
         return
       }
       const opened: Promise<TrackedContribution> = kind === 'correction'
@@ -304,9 +323,9 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
       opened
         .then((entry) => {
           update((current) => [entry, ...current.filter((item) => !sameEntry(item, entry))])
-          setLinkNotice({ kind: 'added', id, entry: kind })
+          setNotice({ kind: 'added', id, entry: kind })
         })
-        .catch(() => setLinkNotice({ kind: 'invalid' }))
+        .catch(() => setNotice({ kind: 'invalid' }))
     }
     openLink()
     window.addEventListener('hashchange', openLink)
@@ -320,8 +339,8 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
   }, [update])
 
   const value = useMemo(
-    () => ({ items, checking, checkFailed, add, remove, markProposedAgain, setStatus, markResubmitted, linkNotice, dismissLinkNotice, refresh }),
-    [items, checking, checkFailed, add, remove, markProposedAgain, setStatus, markResubmitted, linkNotice, dismissLinkNotice, refresh],
+    () => ({ items, checking, checkFailed, add, remove, markProposedAgain, setStatus, markResubmitted, notice, dismissNotice, refresh }),
+    [items, checking, checkFailed, add, remove, markProposedAgain, setStatus, markResubmitted, notice, dismissNotice, refresh],
   )
   return <MyContributionsContext.Provider value={value}>{children}</MyContributionsContext.Provider>
 }

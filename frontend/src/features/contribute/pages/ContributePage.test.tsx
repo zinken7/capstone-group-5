@@ -1,5 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render as renderUi, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import ContributePage from './ContributePage'
@@ -8,6 +10,9 @@ import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../types'
 afterEach(() => {
   vi.unstubAllGlobals()
 })
+
+// The page keeps its tab in the address, so it renders inside a router
+const render = (ui: ReactElement) => renderUi(ui, { wrapper: MemoryRouter })
 
 async function fillMinimumForm() {
   const user = userEvent.setup()

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { isCalendarDate } from '../lib/contribution-validation.js'
 import { findMapSites } from '../repositories/sites.js'
 import type { BoundingBox } from '../repositories/sites.js'
 
@@ -50,7 +51,8 @@ router.get('/map', async (req, res, next) => {
   }
 
   const date = stringParam(req.query.date)
-  if (date !== undefined && Number.isNaN(Date.parse(date))) {
+  // Strict, so a date PostgreSQL would reject, such as 2024-02-30, is a 400 rather than a failed query
+  if (date !== undefined && !isCalendarDate(date)) {
     res.status(400).json({ error: 'invalid date parameter' })
     return
   }
