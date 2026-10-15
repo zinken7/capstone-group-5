@@ -479,7 +479,8 @@ each with its id and key"}`.
 
 With the key in `X-Contribution-Key`: `200` with the status item above, plus
 the values the update form needs: the site's `latitude` and `longitude`
-(`null` when it has none), `region`, `commodity`, `machine_model_variant`,
+(`null` when it has none), `site_shared` (`true` when another record that is
+not rejected is at the same site, so only an administrator may locate it), `region`, `commodity`, `machine_model_variant`,
 `technology_supplier`, `technology_product` (so a rejected submission can be
 resubmitted from it), `environment`, `deployment_status`,
 `automation_level`, `installation_type`, `commissioning_date` (a date, or the
@@ -496,7 +497,11 @@ but are not stored, since the original submission already names the
 contributor. `latitude` and `longitude`, given together, supply the location
 of a site that has none, which approval needs (FR-04). A site that already has
 coordinates is shared by every record at it, so moving it returns `400` with
-`"the site already has coordinates"` on both fields.
+`"the site already has coordinates"` on both fields. Sites are matched by name
+and country, so another contributor naming the same mine shares the site too:
+while any other record there is not rejected, supplying coordinates returns
+`400` with `"the site is shared with other records, so an administrator sets
+its location"` on both fields, and an administrator adds them instead.
 
 A record that is `pending_review` or `changes_requested` can be updated: while
 it waits, so a contributor can add a source before anyone looks, and when
@@ -658,7 +663,8 @@ Unauthenticated requests return `401 Unauthorized`.
 ### `GET /api/admin/deployments/{id}`
 
 `200` with the record in any verification status: `verification_status`, site
-(including nullable `latitude` and `longitude`),
+(including nullable `latitude` and `longitude`, and `site_shared` when another
+record that is not rejected is at the site, so only an administrator can locate it),
 machine, technology, deployment fields (as in the register, plus `valid_from`,
 `valid_to`, `created_at`, `updated_at`), and:
 

@@ -1,4 +1,5 @@
 import { asc, eq, inArray, sql } from 'drizzle-orm'
+import type { SQLWrapper } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../database.js'
@@ -81,6 +82,7 @@ export async function findContributionSummaries(ids: readonly number[]): Promise
 export interface ContributionDetailRow extends ContributionSummaryRow {
   latitude: number | null
   longitude: number | null
+  site_shared: boolean
   region: string | null
   commodity: string | null
   machine_model_variant: string | null
@@ -95,6 +97,24 @@ export interface ContributionDetailRow extends ContributionSummaryRow {
   evidence_urls: string[]
 }
 
+/**
+ * Whether another record that is still open or public is at the site. Sites are
+ * matched by name, so anyone naming the same mine shares one; a rejected record
+ * is closed and does not count, so a resubmission can still locate its site.
+ */
+export function sharedSite(siteId: SQLWrapper, deploymentId: SQLWrapper | number) {
+  return sql<boolean>`EXISTS (
+    SELECT 1 FROM deployment other
+    WHERE other.site_id = ${siteId} AND other.id <> ${deploymentId} AND other.verification_status <> 'rejected'
+  )`
+}
+
+/** Whether a contributor's record shares its site with another open or public record, read inside the update's transaction. */
+export async function siteSharedWithOthers(tx: Tx, siteId: number, deploymentId: number): Promise<boolean> {
+  const rows = await tx.db.execute<{ shared: boolean }>(sql`SELECT ${sharedSite(sql`${siteId}`, deploymentId)} AS shared`)
+  return rows.rows[0]?.shared === true
+}
+
 /** One submission that holds a key, with the values its update form needs. */
 export async function findContributionDetail(id: number): Promise<ContributionDetailRow | null> {
   const rows = await db
@@ -102,6 +122,7 @@ export async function findContributionDetail(id: number): Promise<ContributionDe
       ...summaryColumns,
       latitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
       longitude: sql<number | null>`ST_X(${tables.site.point4326})`,
+      site_shared: sharedSite(tables.deployment.siteId, tables.deployment.id),
       region: tables.region.name,
       commodity: tables.site.commodity,
       machine_model_variant: tables.machineModel.modelVariant,

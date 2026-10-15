@@ -60,7 +60,10 @@ A record needs at least one evidence URL and site coordinates before it can
 be approved, and a contributor may leave both out when submitting. When either
 is missing, the decision panel says **Not ready to approve**, Approve is
 unavailable, and **Needs changes** is selected with a note asking for what is
-missing. Add it yourself with **Edit record**, or send the request.
+missing. Add it yourself with **Edit record**, or send the request. A
+contributor can add a missing location only when no other open or verified
+record is at the same site; sites are matched by name, so when two contributors
+name the same mine, the location is yours to add.
 
 A contributor can also change a record while it waits for review, for example
 to add a source; the queue then marks it **Updated while waiting**. If they
