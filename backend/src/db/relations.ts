@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { region, site, siteCompanyRole, company, deployment, machineModel, technologyProduct, verificationReview, adminUser, deploymentCorrection, revision, contributor, evidence } from "./schema.js";
+import { region, site, siteCompanyRole, company, deployment, machineModel, technologyProduct, verificationReview, adminUser, deploymentCorrection, revision, contributor, evidence, contributionKey } from "./schema.js";
 
 export const siteRelations = relations(site, ({one, many}) => ({
 	region: one(region, {
@@ -54,6 +54,7 @@ export const deploymentRelations = relations(deployment, ({one, many}) => ({
 	revisions: many(revision),
 	evidences: many(evidence),
 	deploymentCorrections: many(deploymentCorrection),
+	contributionKeys: many(contributionKey),
 }));
 
 export const machineModelRelations = relations(machineModel, ({one, many}) => ({
@@ -129,6 +130,13 @@ export const contributorRelations = relations(contributor, ({many}) => ({
 export const evidenceRelations = relations(evidence, ({one}) => ({
 	deployment: one(deployment, {
 		fields: [evidence.deploymentId],
+		references: [deployment.id]
+	}),
+}));
+
+export const contributionKeyRelations = relations(contributionKey, ({one}) => ({
+	deployment: one(deployment, {
+		fields: [contributionKey.deploymentId],
 		references: [deployment.id]
 	}),
 }));

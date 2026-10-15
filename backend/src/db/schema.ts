@@ -324,3 +324,17 @@ export const deploymentCorrection = pgTable("deployment_correction", {
 	check("deployment_correction_values_are_objects", sql`(jsonb_typeof(proposed_values) = 'object'::text) AND (jsonb_typeof(base_values) = 'object'::text)`),
 	check("deployment_correction_changes_something", sql`(proposed_values <> '{}'::jsonb) OR (cardinality(evidence_urls) > 0)`),
 ]);
+
+export const contributionKey = pgTable("contribution_key", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	keyHash: text("key_hash").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "contribution_key_deployment_id_fkey"
+		}).onDelete("cascade"),
+	check("contribution_key_hash_format", sql`key_hash ~ '^[0-9a-f]{64}$'::text`),
+]);

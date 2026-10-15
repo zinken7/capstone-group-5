@@ -198,6 +198,11 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
   return { id: row.id, verificationStatus: row.verificationStatus }
 }
 
+/** Stores the hash of a new submission's private key (FR-59); the key itself is never stored. */
+export async function insertContributionKey(tx: Tx, deploymentId: number, keyHash: string): Promise<void> {
+  await tx.db.insert(tables.contributionKey).values({ deploymentId, keyHash })
+}
+
 /** Adds evidence URLs, skipping any already attached to the deployment. */
 export async function insertEvidence(tx: Tx, deploymentId: number, urls: readonly string[]): Promise<void> {
   for (const url of urls) {

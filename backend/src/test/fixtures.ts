@@ -22,7 +22,7 @@ export async function resetDatabase(): Promise<void> {
     BEGIN;
     SET LOCAL session_replication_role = replica;
     TRUNCATE
-      revision, verification_review, deployment_correction, evidence, admin_user, contributor,
+      contribution_key, revision, verification_review, deployment_correction, evidence, admin_user, contributor,
       deployment, technology_product, machine_model, site_company_role, site, region, company
     RESTART IDENTITY CASCADE;
     COMMIT;

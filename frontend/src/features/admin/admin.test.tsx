@@ -169,6 +169,27 @@ describe('review queue', () => {
     expect(within(row).getByText('Not recorded')).toBeInTheDocument()
     expect(within(row).getByRole('link', { name: /review kalgoorlie super pit record 12/i })).toHaveAttribute('href', '/admin/deployments/12')
   })
+
+  test('marks a record its contributor updated after a request for changes', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 10,
+          technology_supplier: 'Sandvik', technology_product: 'AutoMine', evidence_count: 2, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'correction', correction_id: null, changed_fields: ['quantity'], after_changes_requested: true,
+          contributor_email: 'field@example.com', contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Changes made')).toHaveClass('admin-kind--changes')
+    expect(within(row).getByText('Quantity')).toBeInTheDocument()
+  })
 })
 
 describe('proposed corrections', () => {
@@ -517,7 +538,36 @@ describe('record review', () => {
 
     expect(await screen.findByText('What changed')).toBeInTheDocument()
     expect(screen.getByText('Proposed: https://example.com/new-evidence')).toBeInTheDocument()
-    expect(screen.getByText('Proposed: pending_review')).toBeInTheDocument()
+    // The status it came back from is not a field the contributor changed
+    expect(screen.queryByText('Proposed: pending_review')).not.toBeInTheDocument()
+  })
+
+  test('shows the request for changes an update answers', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        quantity: 10,
+        reviews: [{ decision: 'needs_changes', note: 'Check the fleet size', administrator: 'lead@example.com', reviewed_at: '2026-10-04T01:00:00Z', correction_id: null }],
+        revisions: [{
+          action: 'update',
+          previous_values: { quantity: 8, verification_status: 'changes_requested' },
+          change_note: 'Two more since June',
+          contributor_email: 'field@example.com',
+          contributor_organisation: null,
+          administrator: null,
+          changed_at: '2026-10-05T02:00:00Z',
+        }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    renderAt('/admin/deployments/12')
+
+    const panel = await screen.findByRole('region', { name: 'Changes made on request' })
+    expect(panel).toHaveTextContent('Answers the request from lead@example.com')
+    expect(panel).toHaveTextContent('Check the fleet size')
+    expect(panel).toHaveTextContent("The contributor's note: Two more since June")
+    expect(panel).toHaveTextContent('Before: 8')
+    expect(panel).not.toHaveTextContent('Verification status')
   })
 
   test('says when a record does not exist', async () => {

@@ -24,6 +24,8 @@ export interface ReviewQueueItem {
   correctionId: number | null
   /** API field names a correction would change; empty for a submission. */
   changedFields: string[]
+  /** The contributor's update answers a request for changes */
+  afterChangesRequested: boolean
   contributorEmail: string | null
   contributorOrganisation: string | null
 }
