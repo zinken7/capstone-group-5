@@ -63,7 +63,13 @@ The SQL files in `migrations/` remain the only migration authority, for fresh an
 
 Constraints the typed schema cannot represent stay database-native and live only in the migrations: the `updated_at` maintenance, append-only history, active-admin review, evidence/deployment locking and verified-requires-evidence triggers and functions.
 
-Time limits: the pool gives up on a connection after 10 seconds, and migration `012` sets the database's own limits, 15 seconds per statement and 60 seconds for a transaction left idle. They are database settings rather than connection parameters, so they also hold behind a connection pooler such as Neon's, which may refuse them as parameters. `npm run db:migrate` lifts the statement limit for its own session. Staging's API connects through Neon's pooled endpoint, and migrations through the direct one ([`docs/staging.md`](../docs/staging.md)).
+### Time limits
+
+The pool gives up on a connection after 10 seconds. The server ends any statement after 15 seconds and any transaction left idle for 60 seconds (`src/session-limits.ts`). These limits are stored on the server rather than sent as connection parameters, so they also hold behind a connection pooler such as Neon's, which may refuse them as parameters. Staging's API connects through Neon's pooled endpoint, and migrations through the direct one ([`docs/staging.md`](../docs/staging.md)).
+
+`npm run db:migrate` sets the limits on every run and lifts the statement limit for its own session. They are not a numbered migration because `pg_dump` without `--create` leaves them out: after restoring a backup, run `npm run db:migrate` to put them back. Only the database owner can set them for the whole database. Any other role sets them for itself and the migration prints a warning; the API must then connect as that same role.
+
+To lift them for one maintenance session, for example a long query in `psql`, first run `SET statement_timeout = 0;` and `SET idle_in_transaction_session_timeout = 0;`. They apply again from the next session. Connect through the direct endpoint, because behind a pooler a `SET` may reach a different server connection.
 
 ### Raw SQL rule
 

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { Client } from 'pg'
 import { config } from './config.js'
+import { applySessionLimits } from './session-limits.js'
 
 const migrationsDirectory = fileURLToPath(
   new URL('../migrations/', import.meta.url),
@@ -23,7 +24,7 @@ async function migrate(): Promise<void> {
   await client.connect()
 
   try {
-    // The database bounds every statement (migration 012); a migration such as an index build may need longer
+    // The server bounds every statement (src/session-limits.ts); a migration such as an index build may need longer
     await client.query('SET statement_timeout = 0')
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY])
 
@@ -68,6 +69,20 @@ async function migrate(): Promise<void> {
         await client.query('ROLLBACK')
         throw error
       }
+    }
+
+    // Applied on every run, so a database restored without them gets them back.
+    // A safeguard rather than schema: a failure is reported, not fatal.
+    try {
+      const limits = await applySessionLimits(client)
+      if (limits.scope === 'role') {
+        console.warn(
+          `Role ${limits.role} does not own database ${limits.database}, so the session limits cover ${limits.role} only. ` +
+            'Connect the API as the same role, or run npm run db:migrate as the database owner.',
+        )
+      }
+    } catch (error) {
+      console.warn('Session limits not applied:', error)
     }
 
     console.log('Migrations complete')

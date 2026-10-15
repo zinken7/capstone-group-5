@@ -19,8 +19,8 @@ const pool = new Pool({
   connectionString: config.databaseUrl,
   // Fail fast when the database cannot be reached, rather than leaving the
   // request waiting until the platform ends it. Ten seconds allows for a Neon
-  // compute waking from suspension. Statement limits are set on the database
-  // itself (migration 012), since a pooler may refuse them as parameters here.
+  // compute waking from suspension. Statement limits are stored on the server
+  // (src/session-limits.ts), since a pooler may refuse them as parameters here.
   connectionTimeoutMillis: 10_000,
 })
 

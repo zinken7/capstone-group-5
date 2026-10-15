@@ -26,7 +26,7 @@ describe('query', () => {
   })
 })
 
-describe('session limits (migration 012)', () => {
+describe('session limits', () => {
   it('bounds every statement and every idle transaction on the server', async () => {
     const [statement] = await query<{ statement_timeout: string }>('SHOW statement_timeout')
     const [idle] = await query<{ idle_in_transaction_session_timeout: string }>('SHOW idle_in_transaction_session_timeout')
