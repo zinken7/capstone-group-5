@@ -63,6 +63,79 @@ function isTracked(value: unknown): value is TrackedContribution {
     && typeof item.machine === 'string' && typeof item.submittedAt === 'string'
 }
 
+/**
+ * One application: a submission and its resubmissions, with the corrections
+ * proposed to its record. Only the latest attempts are current; the ones
+ * they replaced are its history.
+ */
+export interface ContributionGroup {
+  key: string
+  /** The latest submission of a chain of resubmissions; absent when only corrections were made from here */
+  submission?: TrackedContribution
+  /** Corrections not yet proposed again, newest first */
+  corrections: TrackedContribution[]
+  /** Earlier attempts, newest first: submissions that were resubmitted and corrections that were proposed again */
+  history: TrackedContribution[]
+  /** When the application last had something sent, for ordering */
+  latest: string
+}
+
+/** Groups the entries by application, so one application shows once with its earlier attempts behind it. */
+export function groupContributions(items: readonly TrackedContribution[]): ContributionGroup[] {
+  const submissions = items.filter((item) => !isCorrection(item))
+  const byId = new Map(submissions.map((item) => [item.id, item]))
+  // Linked from either side: a new resubmission may not be checked yet, but the one it replaces already knows it
+  const previousOf = new Map<number, number>()
+  for (const item of submissions) {
+    const previous = item.last?.resubmissionOf
+    if (previous && byId.has(previous)) previousOf.set(item.id, previous)
+    const next = item.last?.resubmittedAs
+    if (next && byId.has(next)) previousOf.set(next, item.id)
+  }
+  const rootOf = (id: number) => {
+    let current = id
+    const seen = new Set<number>()
+    while (previousOf.has(current) && !seen.has(current)) {
+      seen.add(current)
+      current = previousOf.get(current) as number
+    }
+    return current
+  }
+
+  const members = new Map<string, { submissions: TrackedContribution[]; corrections: TrackedContribution[] }>()
+  const memberOf = (key: string) => {
+    const existing = members.get(key)
+    if (existing) return existing
+    const created = { submissions: [] as TrackedContribution[], corrections: [] as TrackedContribution[] }
+    members.set(key, created)
+    return created
+  }
+  const groupOfRecord = new Map<number, string>()
+  for (const item of submissions) {
+    const key = `s${rootOf(item.id)}`
+    memberOf(key).submissions.push(item)
+    groupOfRecord.set(item.id, key)
+  }
+  for (const item of items.filter(isCorrection)) {
+    const record = item.deploymentId ?? item.lastCorrection?.deploymentId
+    memberOf((record !== undefined ? groupOfRecord.get(record) : undefined) ?? `r${record ?? `c${item.id}`}`).corrections.push(item)
+  }
+
+  return [...members.entries()].map(([key, group]) => {
+    // A resubmission always has a higher id than the record it replaces
+    const chain = [...group.submissions].sort((a, b) => a.id - b.id)
+    const correctionIds = new Set(group.corrections.map((item) => item.id))
+    const replaced = group.corrections.filter((item) => item.proposedAgainAs !== undefined && correctionIds.has(item.proposedAgainAs))
+    return {
+      key,
+      submission: chain.at(-1),
+      corrections: group.corrections.filter((item) => !replaced.includes(item)).sort((a, b) => b.id - a.id),
+      history: [...chain.slice(0, -1), ...replaced].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
+      latest: [...group.submissions, ...group.corrections].map((item) => item.submittedAt).sort().at(-1) ?? '',
+    }
+  }).sort((a, b) => b.latest.localeCompare(a.latest))
+}
+
 /** The stored list; empty when storage is blocked, unavailable or holds something else. */
 export function readTracked(): TrackedContribution[] {
   try {

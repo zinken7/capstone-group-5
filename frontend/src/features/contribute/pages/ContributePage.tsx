@@ -8,7 +8,7 @@ import StateMessage from '../../../shared/components/StateMessage'
 import MapIcon from '../../map/components/MapIcon'
 import CopyTrackingLink from '../components/CopyTrackingLink'
 import MyContributions from '../components/MyContributions'
-import { useMyContributions } from '../my-contributions'
+import { groupContributions, useMyContributions } from '../my-contributions'
 import type { TrackedContribution } from '../my-contributions'
 import {
   COUNTRIES,
@@ -513,6 +513,8 @@ function ContributePage(props: ContributePageProps) {
   const [tab, setTab] = useState<Tab>(initialTab)
   const [resubmission, setResubmission] = useState<Resubmission | null>(null)
   const { items } = useMyContributions()
+  // Counted by application, as the list shows them
+  const applications = groupContributions(items).length
 
   async function startResubmission(item: TrackedContribution) {
     const contribution = await getOwnContribution(item.id, item.key)
@@ -559,7 +561,7 @@ function ContributePage(props: ContributePageProps) {
             onClick={() => select(value)}
           >
             {label}
-            {value === 'mine' && items.length > 0 && <span className="contribute-tabs__count">{items.length}</span>}
+            {value === 'mine' && applications > 0 && <span className="contribute-tabs__count">{applications}</span>}
           </button>
         ))}
       </div>

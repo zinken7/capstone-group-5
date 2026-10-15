@@ -13,7 +13,8 @@ import MapIcon from '../../map/components/MapIcon'
 import CorrectionDialog from '../../equipment/components/CorrectionDialog'
 import type { EquipmentRecord } from '../../equipment/types'
 import CopyTrackingLink from './CopyTrackingLink'
-import { isCorrection, useMyContributions } from '../my-contributions'
+import { groupContributions, isCorrection, useMyContributions } from '../my-contributions'
+import type { ContributionGroup } from '../my-contributions'
 import type { TrackedContribution } from '../my-contributions'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../types'
 import type { ContributionReferenceData, OwnContribution, OwnContributionUpdate, ReferenceOption } from '../types'
@@ -239,7 +240,7 @@ function UpdateForm({ item, onSent, onCancel, onStale }: UpdateFormProps) {
 }
 
 /** One submission: what it is, where its review stands, and what the contributor can do next */
-function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onResubmit: (item: TrackedContribution) => Promise<void> }) {
+function ContributionRow({ item, onResubmit, removable = true }: { item: TrackedContribution; onResubmit: (item: TrackedContribution) => Promise<void>; removable?: boolean }) {
   const { remove, refresh } = useMyContributions()
   const [editing, setEditing] = useState(false)
   const [opening, setOpening] = useState(false)
@@ -325,7 +326,7 @@ function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onRe
             <button className="button button--secondary" type="button" onClick={() => remove(item.id)}>Remove</button>
             <button className="text-button" type="button" autoFocus onClick={() => { setConfirmingRemoval(false); window.setTimeout(() => removeButtonRef.current?.focus(), 0) }}>Keep</button>
           </div>
-        ) : (
+        ) : removable && (
           <button ref={removeButtonRef} className="text-button text-button--flush" type="button" onClick={() => setConfirmingRemoval(true)}>Remove from this browser</button>
         )}
       </div>}
@@ -364,7 +365,7 @@ interface Proposing {
 }
 
 /** A proposed correction to a verified record: what it changes, where its review stands, and what to do next (#223) */
-function CorrectionRow({ item }: { item: TrackedContribution }) {
+function CorrectionRow({ item, removable = true }: { item: TrackedContribution; removable?: boolean }) {
   const { remove, add, markProposedAgain } = useMyContributions()
   const [proposing, setProposing] = useState<Proposing | null>(null)
   const [opening, setOpening] = useState(false)
@@ -443,7 +444,7 @@ function CorrectionRow({ item }: { item: TrackedContribution }) {
             <button className="button button--secondary" type="button" onClick={() => remove(item.id, 'correction')}>Remove</button>
             <button className="text-button" type="button" autoFocus onClick={() => { setConfirmingRemoval(false); window.setTimeout(() => removeButtonRef.current?.focus(), 0) }}>Keep</button>
           </div>
-        ) : (
+        ) : removable && (
           <button ref={removeButtonRef} className="text-button text-button--flush" type="button" onClick={() => setConfirmingRemoval(true)}>Remove from this browser</button>
         )}
       </div>
@@ -467,6 +468,75 @@ function CorrectionRow({ item }: { item: TrackedContribution }) {
           }}
         />
       )}
+    </li>
+  )
+}
+
+/** One earlier attempt, as a line: what it was, how it ended and what replaced it */
+function EarlierAttempt({ entry }: { entry: TrackedContribution }) {
+  if (isCorrection(entry)) {
+    const correction = entry.lastCorrection
+    const shown = correction ? CORRECTION_STATUS[correction.status] : undefined
+    return (
+      <li>
+        <p className="my-contribution-history__line">
+          <span>Correction #C{entry.id} · proposed {formatDate(entry.submittedAt.slice(0, 10))}</span>
+          {shown && <StatusBadge status={shown.badge} label={shown.label} />}
+          {entry.proposedAgainAs && <span>Proposed again as #C{entry.proposedAgainAs}.</span>}
+        </p>
+        {correction && correction.changes.length > 0 && <p>{correction.changes.map((change) => `${formatEnumLabel(change.field)} ${describeValue(change.before)} → ${describeValue(change.proposed)}`).join('; ')}</p>}
+        {correction?.decision?.note && <blockquote>{correction.decision.note}</blockquote>}
+      </li>
+    )
+  }
+  const last = entry.last
+  return (
+    <li>
+      <p className="my-contribution-history__line">
+        <span>#{entry.id} · submitted {formatDate(entry.submittedAt.slice(0, 10))}</span>
+        {last && <StatusBadge status={last.verificationStatus} />}
+        {last?.resubmittedAs && <span>Resubmitted as #{last.resubmittedAs}.</span>}
+      </p>
+      {last?.decision?.note && <blockquote>{last.decision.note}</blockquote>}
+    </li>
+  )
+}
+
+/** An application with more than one attempt: the current ones in full, the earlier ones folded away, one removal for all */
+function GroupCard({ group, onResubmit }: { group: ContributionGroup; onResubmit: (item: TrackedContribution) => Promise<void> }) {
+  const { remove } = useMyContributions()
+  const [showHistory, setShowHistory] = useState(false)
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+  const removeButtonRef = useRef<HTMLButtonElement>(null)
+  const entries = [...(group.submission ? [group.submission] : []), ...group.corrections, ...group.history]
+  const first = entries[0]
+  const historyId = `history-${group.key}`
+
+  return (
+    <li className="my-contribution-group" aria-label={`Application: ${first?.siteName ?? ''} · ${first?.machine ?? ''}`}>
+      <ul className="my-contribution-group__items">
+        {group.submission && <ContributionRow item={group.submission} onResubmit={onResubmit} removable={false} />}
+        {group.corrections.map((item) => <CorrectionRow key={`c${item.id}`} item={item} removable={false} />)}
+      </ul>
+      {group.history.length > 0 && (
+        <div className="my-contribution-history">
+          <button className="text-button text-button--disclosure text-button--flush" type="button" aria-expanded={showHistory} aria-controls={historyId} onClick={() => setShowHistory((current) => !current)}>
+            <MapIcon name="chevronDown" size={16} /> Earlier attempts ({group.history.length})
+          </button>
+          {showHistory && <ol id={historyId} className="my-contribution-history__list" aria-label="Earlier attempts">{group.history.map((entry) => <EarlierAttempt key={`${entry.kind ?? 'submission'}-${entry.id}`} entry={entry} />)}</ol>}
+        </div>
+      )}
+      <div className="my-contribution-group__remove">
+        {confirmingRemoval ? (
+          <div className="my-contribution__confirm" role="group" aria-label="Remove this application from this browser">
+            <span>Remove everything for this application from this browser? You will not be able to follow it here again.</span>
+            <button className="button button--secondary" type="button" onClick={() => entries.forEach((entry) => remove(entry.id, entry.kind ?? 'submission'))}>Remove</button>
+            <button className="text-button" type="button" autoFocus onClick={() => { setConfirmingRemoval(false); window.setTimeout(() => removeButtonRef.current?.focus(), 0) }}>Keep</button>
+          </div>
+        ) : (
+          <button ref={removeButtonRef} className="text-button text-button--flush" type="button" onClick={() => setConfirmingRemoval(true)}>Remove from this browser</button>
+        )}
+      </div>
     </li>
   )
 }
@@ -506,9 +576,14 @@ function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; o
       </div>
       {checkFailed && <p className="form-summary-error" role="alert">The latest statuses could not be checked. These are the last ones known.</p>}
       <ul className="my-contributions__list">
-        {items.map((item) => isCorrection(item)
-          ? <CorrectionRow key={`c${item.id}`} item={item} />
-          : <ContributionRow key={item.id} item={item} onResubmit={onResubmit} />)}
+        {/* One entry per application; an application with several attempts shows the latest and folds the rest away */}
+        {groupContributions(items).map((group) => {
+          const single = (group.submission ? 1 : 0) + group.corrections.length + group.history.length === 1
+          if (!single) return <GroupCard key={group.key} group={group} onResubmit={onResubmit} />
+          return group.submission
+            ? <ContributionRow key={group.key} item={group.submission} onResubmit={onResubmit} />
+            : <CorrectionRow key={group.key} item={group.corrections[0]} />
+        })}
       </ul>
     </div>
   )

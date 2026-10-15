@@ -293,8 +293,15 @@ describe('My contributions', () => {
     }))
 
     await user.click(screen.getByRole('button', { name: 'See my contributions' }))
-    expect(within(screen.getByRole('listitem', { name: /ashgrove mine/i })).getByText(/You resubmitted it as #20460/)).toBeInTheDocument()
-    expect(screen.getByRole('listitem', { name: /ashgrove north pit/i })).toBeInTheDocument()
+    // One application: the resubmission is current and the rejected one is folded under it
+    const group = screen.getByRole('listitem', { name: 'Application: Ashgrove North Pit · Caterpillar 793F' })
+    expect(within(group).getByRole('listitem', { name: /ashgrove north pit/i })).toBeInTheDocument()
+    expect(screen.queryByRole('listitem', { name: /ashgrove mine/i })).not.toBeInTheDocument()
+    await user.click(within(group).getByRole('button', { name: 'Earlier attempts (1)' }))
+    const earlier = within(group).getByRole('list', { name: 'Earlier attempts' })
+    expect(earlier).toHaveTextContent('#20412')
+    expect(earlier).toHaveTextContent('Resubmitted as #20460.')
+    expect(earlier).toHaveTextContent('This is the processing plant, not the mine.')
   })
 
   test('removes a submission from this browser only after confirming', async () => {
@@ -380,6 +387,55 @@ describe('My contributions', () => {
   })
 })
 
+describe('Grouping by application', () => {
+  test('shows a resubmitted submission and corrections to its record as one application, removed together', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([
+      stored({ id: 20209, submittedAt: '2026-10-01T03:00:00.000Z' }),
+      stored({ id: 20210, submittedAt: '2026-10-03T03:00:00.000Z' }),
+      { kind: 'correction', id: 4, key: KEY, deploymentId: 20210, siteName: 'Ashgrove Mine', machine: 'Caterpillar 793F', submittedAt: '2026-10-05T03:00:00.000Z', proposedAgainAs: 5 },
+      { kind: 'correction', id: 5, key: KEY, deploymentId: 20210, siteName: 'Ashgrove Mine', machine: 'Caterpillar 793F', submittedAt: '2026-10-06T03:00:00.000Z' },
+      stored({ id: 30001, siteName: 'Other Mine', submittedAt: '2026-09-01T03:00:00.000Z' }),
+    ]))
+    const correction = (id: number, status: string) => ({
+      id, deployment_id: 20210, status, submitted_at: '2026-10-05T03:00:00.000Z', site_id: 7, site_name: 'Ashgrove Mine',
+      machine_manufacturer: 'Caterpillar', machine_model: '793F', machine_type: 'haul_truck', change_note: null, evidence_urls: [],
+      changes: [{ field: 'quantity', before: 12, proposed: 14 }], decision: null,
+    })
+    stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [
+        statusItem({ id: 20209, verification_status: 'rejected', resubmitted_as: 20210, decision: { decision: 'rejected', note: 'Wrong pit.', decided_at: '2026-10-02T03:00:00.000Z' } }),
+        statusItem({ id: 20210, verification_status: 'verified', resubmission_of: 20209 }),
+        statusItem({ id: 30001, site_name: 'Other Mine' }),
+      ] }),
+      'POST /api/corrections/status': () => Response.json({ items: [correction(4, 'needs_changes'), correction(5, 'approved')] }),
+    })
+    renderPage()
+
+    // The two submissions are linked once their statuses are checked
+    await user.click(await screen.findByRole('button', { name: 'Earlier attempts (2)' }))
+    const group = screen.getByRole('listitem', { name: 'Application: Ashgrove Mine · Caterpillar 793F' })
+    // The current submission and the current correction, each once; the rest are earlier attempts
+    const current = within(group).getAllByRole('listitem').filter((item) => item.classList.contains('my-contribution'))
+    expect(current.map((item) => item.querySelector('.my-contribution__ref')?.textContent)).toEqual([
+      expect.stringContaining('#20210'), expect.stringContaining('#C5'),
+    ])
+    const earlier = within(within(group).getByRole('list', { name: 'Earlier attempts' })).getAllByRole('listitem')
+    expect(earlier.map((item) => item.textContent)).toEqual([
+      expect.stringMatching(/Correction #C4.*Proposed again as #C5\./), expect.stringMatching(/#20209.*Resubmitted as #20210\..*Wrong pit\./),
+    ])
+    // A rejected submission that was resubmitted does not still ask for changes
+    expect(within(group).queryByRole('button', { name: 'Resubmit' })).not.toBeInTheDocument()
+    // Others stay on their own
+    expect(screen.getByRole('listitem', { name: /other mine/i })).toBeInTheDocument()
+
+    await user.click(within(group).getByRole('button', { name: 'Remove from this browser' }))
+    await user.click(within(group).getByRole('button', { name: 'Remove' }))
+    expect(screen.queryByRole('listitem', { name: /application: ashgrove mine/i })).not.toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([expect.objectContaining({ id: 30001 })])
+  })
+})
+
 describe('Following a proposed correction (#223)', () => {
   const correctionItem = (overrides: Record<string, unknown> = {}) => ({
     id: 5,
@@ -441,9 +497,14 @@ describe('Following a proposed correction (#223)', () => {
     await user.click(within(dialog).getByRole('checkbox'))
     await user.click(within(dialog).getByRole('button', { name: /submit correction/i }))
 
-    expect(await within(row).findByText(/You proposed it again as #C6/)).toBeInTheDocument()
-    // The new proposal is listed beside the earlier one
-    expect(screen.getAllByRole('listitem', { name: /correction: roy hill/i })).toHaveLength(2)
+    // The new proposal is current; the earlier one is folded under it with the reviewer's request
+    const group = await screen.findByRole('listitem', { name: 'Application: Roy Hill · Caterpillar 793F' })
+    expect(within(group).getAllByRole('listitem', { name: /correction: roy hill/i })).toHaveLength(1)
+    await user.click(within(group).getByRole('button', { name: 'Earlier attempts (1)' }))
+    const earlier = within(within(group).getByRole('list', { name: 'Earlier attempts' })).getByRole('listitem')
+    expect(earlier).toHaveTextContent('Proposed again as #C6.')
+    expect(earlier).toHaveTextContent('Quantity 96 → 100')
+    expect(earlier).toHaveTextContent('Which source says 100?')
     expect(JSON.parse(String(calls.find((call) => call.key === 'PATCH /api/deployments/10')?.init?.body))).toEqual(expect.objectContaining({
       quantity: 100, evidence_urls: ['https://example.com/fleet-report'],
     }))
