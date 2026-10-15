@@ -22,3 +22,6 @@ build/
 /backend/.drizzle-pull/
 
 /frontend/test-results/
+
+# Build and tool logs
+*.log

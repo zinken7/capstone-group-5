@@ -44,7 +44,7 @@ describe('PATCH /api/deployments/:id', () => {
       .send({ quantity: 100, change_note: 'Fleet expanded in 2025', disclosure_accepted: true })
 
     expect(response.status).toBe(202)
-    expect(response.body).toEqual({ id: 10, correction_id: 1, verification_status: 'verified' })
+    expect(response.body).toEqual({ id: 10, correction_id: 1, verification_status: 'verified', key: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) })
 
     const [deployment] = await query<{ quantity: number; verification_status: string }>(
       'SELECT quantity, verification_status::text FROM deployment WHERE id = 10',

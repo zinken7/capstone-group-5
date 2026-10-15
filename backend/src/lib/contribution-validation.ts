@@ -1,3 +1,4 @@
+import { isContributionKey } from './contribution-key.js'
 import {
   AUTOMATION_LEVELS,
   DEPLOYMENT_STATUSES,
@@ -35,6 +36,8 @@ export interface ContributionInput {
   evidenceUrls: string[]
   contributorEmail: string | null
   organisation: string | null
+  /** The rejected submission this one replaces, proved by its key (FR-60) */
+  resubmissionOf: { id: number; key: string } | null
 }
 
 export type FieldErrors = Record<string, string>
@@ -43,6 +46,13 @@ export type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Collects field errors while reading a JSON body; null and blank strings count as absent. */
+
+/** A real calendar date in YYYY-MM-DD form, as PostgreSQL's date type accepts it: no 30 February */
+export function isCalendarDate(value: string): boolean {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
+  return parsed !== null && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
 export class FieldReader {
   readonly errors: FieldErrors = {}
 
@@ -107,8 +117,7 @@ export class FieldReader {
   fullDate(field: string): string | null {
     const value = this.text(field, 10)
     if (value === null) return null
-    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
-    if (parsed && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value) return value
+    if (isCalendarDate(value)) return value
     this.errors[field] = 'must be a date (YYYY-MM-DD)'
     return null
   }
@@ -224,8 +233,22 @@ export function validateContribution(body: unknown): ValidationResult<Contributi
     evidenceUrls: read.urls('evidence_urls'),
     contributorEmail: read.email('contributor_email'),
     organisation: read.text('organisation', 200),
+    resubmissionOf: readResubmission(object, read),
   }
   read.disclosure('disclosure_accepted')
 
   return Object.keys(read.errors).length > 0 ? { ok: false, errors: read.errors } : { ok: true, value: input }
+}
+
+/** `resubmission_of: { id, key }`, absent or null for a first submission. */
+function readResubmission(object: Record<string, unknown>, read: FieldReader): { id: number; key: string } | null {
+  const value = object.resubmission_of
+  if (value === undefined || value === null) return null
+  const pair = asObject(value)
+  const id = pair?.id
+  if (!pair || typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1 || !isContributionKey(pair.key)) {
+    read.errors.resubmission_of = 'must hold the id and key of the rejected submission'
+    return null
+  }
+  return { id, key: pair.key }
 }

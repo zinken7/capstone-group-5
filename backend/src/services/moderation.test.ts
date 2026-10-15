@@ -31,7 +31,7 @@ describe('decide', () => {
     const created = await createAdmin('reviewer@example.com', 'admin')
     if (created.kind !== 'created') throw new Error('admin was not created')
 
-    await expect(decide(12, created.id, { decision: 'approved', note: null })).rejects.toThrow('revision insert failed')
+    await expect(decide(12, created.id, { decision: 'approved', note: null, version: null })).rejects.toThrow('revision insert failed')
 
     expect(await query("SELECT verification_status::text AS status FROM deployment WHERE id = 12")).toEqual([{ status: 'pending_review' }])
     expect(await query('SELECT COUNT(*)::int AS reviews FROM verification_review')).toEqual([{ reviews: 0 }])

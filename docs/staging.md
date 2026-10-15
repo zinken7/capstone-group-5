@@ -76,7 +76,10 @@ On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
    project's root directory. Each job times out after 10 minutes.
 
 A failed check or migration stops both deploys, so new code never runs against
-an old schema.
+an old schema. Runs on `main` go one at a time, so a later merge waits until the
+current one has migrated and deployed ([`docs/ci.md`](ci.md#staging-deployment)).
+A failed deploy is the exception: staging then runs the new schema with the
+previous code until the job is re-run or the next merge deploys.
 
 So that changes to the application deploy when they merge, M1 merges pull
 requests that change `frontend/` or `backend/`, normally through auto-merge:
@@ -141,7 +144,10 @@ environment, which only `main` can deploy to. It holds Neon's direct
 (unpooled) connection string: `backend/src/migrate.ts` holds a session-level
 advisory lock, which Neon's pooled endpoint does not preserve between
 statements. The two jobs share a concurrency group, so they never run at the
-same time.
+same time. The seed workflow first checks that staging already runs every
+migration on `main`, that is, that none was merged after the last commit by
+`DEPLOY_AUTHOR`; otherwise it stops before migrating, and should be run again
+after M1's next merge.
 
 The environment is the access boundary for both the database and the Vercel
 token. Its secrets are not defined at repository level, so a job without

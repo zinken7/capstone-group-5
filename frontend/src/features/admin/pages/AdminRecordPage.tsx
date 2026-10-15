@@ -3,13 +3,14 @@ import { Link, useParams } from 'react-router-dom'
 
 import { getReviewRecord, submitDecision } from '../../../lib/api/admin'
 import { ApiError } from '../../../lib/api/errors'
-import { formatCommissioning, formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { formatCommissioning, formatDate, formatDateTime, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import AdminBar from '../components/AdminBar'
 import CorrectionForm from '../components/CorrectionForm'
 import CorrectionReview from '../components/CorrectionReview'
 import DecisionForm from '../components/DecisionForm'
+import type { ApprovalBlocker } from '../components/DecisionForm'
 import RecordHistory from '../components/RecordHistory'
 import { useAdminSession } from '../session'
 import type { ReviewRecord } from '../types'
@@ -105,6 +106,23 @@ function EditRecordPanel({ record, onCorrected }: { record: ReviewRecord; onCorr
   )
 }
 
+/** Statuses a decision can be recorded on (FR-45): changes requested too, so a record fixed here can be approved or a silent one closed */
+const DECIDABLE = ['pending_review', 'changes_requested']
+
+/** An email to the contributor, about this record */
+function contactLink(email: string, record: ReviewRecord): string {
+  const subject = `Your Mining Market Map submission (record ${record.id})`
+  const body = `Hello,\n\nAbout your submission for ${record.siteName} (record ${record.id}):\n\n`
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
+/** What happens next for a record no decision can be made on */
+function closedNotice(status: string): string {
+  if (status === 'verified') return 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
+  if (status === 'rejected') return 'This record is rejected and closed. It cannot be corrected or decided again; the contributor can submit it again as a new contribution.'
+  return 'This record was loaded without review and is not in the review queue.'
+}
+
 function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notice: string | null; onChanged: (message?: string) => void }) {
   const machine = [record.machineManufacturer, record.machineModel, record.modelVariant].filter(Boolean).join(' ')
   const pendingCorrections = record.corrections.filter((correction) => correction.status === 'pending')
@@ -123,9 +141,32 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['Commissioning', formatCommissioning(record.commissioningDate, record.commissioningYear)],
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]
+  const decidable = DECIDABLE.includes(record.verificationStatus)
+  // Who submitted it, for following up by email (FR-40, Section 7)
+  const submitter = record.revisions.find((revision) => revision.action === 'create')
+  // What approval needs (FR-44, FR-04) that a submission may lack, since both are optional when submitting (FR-07)
+  const approvalBlockers: ApprovalBlocker[] = [
+    ...(record.evidence.length === 0 ? [{ label: 'No evidence URL', request: 'a link to a public source (such as the operator\'s announcement)' }] : []),
+    ...(record.latitude === null || record.longitude === null
+      // Other records share the site, so its contributor may not place it (FR-46): only an administrator can
+      ? [record.siteShared
+          ? { label: 'No site coordinates (other records share this site, so the contributor cannot add them)' }
+          : { label: 'No site coordinates', request: 'the site\'s latitude and longitude' }]
+      : []),
+  ]
+  // The request a record with changes requested is waiting on: the latest decision on the record itself
+  const request = record.verificationStatus === 'changes_requested'
+    ? [...record.reviews].reverse().find((review) => review.correctionId === null)
+    : undefined
   // A contributor's direct correction that returned this record to the queue; a verified record's proposals show above instead
   const latestCorrection = record.verificationStatus === 'pending_review'
     ? [...record.revisions].reverse().find((revision) => revision.action !== 'verification_change' && revision.administrator === null)
+    : undefined
+  // The status it came back from is shown by the heading, not as a changed field
+  const changedEntries = Object.entries(latestCorrection?.previousValues ?? {}).filter(([field]) => field !== 'verification_status')
+  // The request for changes this update answers
+  const answered = latestCorrection?.previousValues?.verification_status === 'changes_requested'
+    ? [...record.reviews].reverse().find((review) => review.correctionId === null && review.decision === 'needs_changes')
     : undefined
 
   return (
@@ -140,17 +181,27 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
       </header>
       {notice && <p className="admin-notice admin-notice--success" role="status">{notice}</p>}
 
-      <div className={record.verificationStatus === 'pending_review' ? 'admin-record admin-record--decide' : 'admin-record'}>
+      <div className={decidable ? 'admin-record admin-record--decide' : 'admin-record'}>
         <div className="admin-record__main">
           {pendingCorrections.map((correction) => (
-            <CorrectionReview key={correction.id} correction={correction} onDecided={() => onChanged('Decision on the correction recorded.')} />
+            <CorrectionReview
+              key={correction.id}
+              correction={correction}
+              version={record.updatedAt}
+              onDecided={() => onChanged('Decision on the correction recorded.')}
+              onStale={() => onChanged('This record changed while you had it open, for example by another correction. Check the latest values below, then decide again.')}
+            />
           ))}
 
           {latestCorrection?.action === 'update' && latestCorrection.previousValues && <section className="admin-panel change-panel admin-record__lead" aria-labelledby="changes-heading">
-            <h2 id="changes-heading">What changed</h2>
-            {latestCorrection.changeNote && <p className="form-help">{latestCorrection.changeNote}</p>}
+            <h2 id="changes-heading">{answered ? 'Changes made on request' : 'What changed'}</h2>
+            {answered && <>
+              <p className="form-help">Answers the request from {answered.administrator}, {formatDateTime(answered.reviewedAt)}:</p>
+              {answered.note && <blockquote>{answered.note}</blockquote>}
+            </>}
+            {latestCorrection.changeNote && <p className="form-help">{answered ? `The contributor's note: ${latestCorrection.changeNote}` : latestCorrection.changeNote}</p>}
             <dl className="change-list">
-              {Object.entries(latestCorrection.previousValues).map(([field, before]) => (
+              {changedEntries.map(([field, before]) => (
                 <div key={field}>
                   <dt>{formatEnumLabel(field)}</dt>
                   <dd><span>Before: {describeChangedValue(before)}</span><span>Proposed: {describeChangedValue(currentValueForField(record, field))}</span></dd>
@@ -158,6 +209,19 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
               ))}
             </dl>
           </section>}
+
+          {record.resubmissionOf && (
+            <section className="admin-panel admin-record__lead admin-resubmission" aria-labelledby="resubmission-heading">
+              <h2 id="resubmission-heading">Resubmission of a rejected record</h2>
+              <p className="form-help">
+                This replaces <Link to={`/admin/deployments/${record.resubmissionOf.id}`}>record {record.resubmissionOf.id}</Link>
+                {record.resubmissionOf.administrator && record.resubmissionOf.reviewedAt
+                  ? `, rejected by ${record.resubmissionOf.administrator}, ${formatDateTime(record.resubmissionOf.reviewedAt)}:`
+                  : '.'}
+              </p>
+              {record.resubmissionOf.note && <blockquote>{record.resubmissionOf.note}</blockquote>}
+            </section>
+          )}
 
           {record.possibleDuplicates.length > 0 && (
             <section
@@ -224,17 +288,60 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
         </div>
 
         <aside className="admin-record__side" aria-label="Decision and editing">
-          {record.verificationStatus === 'pending_review' && (
-            <DecisionForm submit={(decision, note) => submitDecision(record.id, decision, note)} onDecided={() => onChanged('Decision recorded.')} />
+          {request && (
+            <section className="admin-panel admin-waiting" aria-labelledby="waiting-heading">
+              <h2 id="waiting-heading">Waiting for the contributor</h2>
+              <p className="form-help">Changes requested by {request.administrator}, {formatDateTime(request.reviewedAt)}.</p>
+              {request.note && <blockquote>{request.note}</blockquote>}
+              <p className="form-help">If you fix the record yourself, approve it here. Reject it if the changes never arrive.</p>
+            </section>
           )}
-          {record.verificationStatus !== 'pending_review' && pendingCorrections.length === 0 && (
+          {decidable && (
+            <DecisionForm
+              // A new form once the record changes what it lacks, so the starting decision and note follow it
+              key={approvalBlockers.map((blocker) => blocker.label).join('|')}
+              submit={async (decision, note) => {
+                try {
+                  await submitDecision(record.id, decision, note, record.updatedAt)
+                } catch (cause) {
+                  // The contributor changed the record while it was open: show the latest version instead of deciding on the old one
+                  if (cause instanceof ApiError && cause.status === 409 && cause.message === 'the record changed since you opened it') {
+                    onChanged('The contributor changed this record while you had it open. Check the latest version below, then record your decision again.')
+                    throw new Error('This record changed while you had it open.', { cause })
+                  }
+                  throw cause
+                }
+              }}
+              onDecided={() => onChanged('Decision recorded.')}
+              noteShownToContributor
+              approvalBlockers={approvalBlockers}
+            />
+          )}
+          {!decidable && pendingCorrections.length === 0 && (
+            <p className="admin-notice">{closedNotice(record.verificationStatus)}</p>
+          )}
+          {record.resubmittedAs.length > 0 && (
             <p className="admin-notice">
-              {record.verificationStatus === 'verified'
-                ? 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
-                : 'Decisions apply to records pending review. A record sent back for changes waits here until contributors can update their submissions.'}
+              Resubmitted as {record.resubmittedAs.map((item, index) => (
+                <span key={item.id}>{index > 0 && ', '}<Link to={`/admin/deployments/${item.id}`}>record {item.id}</Link> ({formatEnumLabel(item.verificationStatus).toLowerCase()})</span>
+              ))}.
             </p>
           )}
-          <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />
+          {submitter && (
+            <section className="admin-panel admin-contact" aria-labelledby="contact-heading">
+              <h2 id="contact-heading">Contributor</h2>
+              {submitter.contributorEmail ? (
+                <>
+                  <p>{[submitter.contributorEmail, submitter.contributorOrganisation].filter(Boolean).join(' · ')}</p>
+                  <a className="button button--secondary" href={contactLink(submitter.contributorEmail, record)}>Email contributor</a>
+                </>
+              ) : (
+                <p className="form-help">No contact email was given{submitter.contributorOrganisation ? ` (organisation: ${submitter.contributorOrganisation})` : ''}. The contributor sees your decisions under My contributions, in the browser they submitted from.</p>
+              )}
+            </section>
+          )}
+          {/* A rejected record is closed (FR-45) */}
+          {record.verificationStatus !== 'rejected' && <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />}
         </aside>
       </div>
     </>

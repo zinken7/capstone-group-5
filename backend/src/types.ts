@@ -1,31 +1,15 @@
+import type { machineType } from './db/schema.js'
+
 export type DeploymentStatus = 'announced' | 'commissioning' | 'operational' | 'decommissioned'
 
-export type VerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
+export type VerificationStatus = 'unverified' | 'pending_review' | 'changes_requested' | 'verified' | 'rejected'
 
 export type MiningEnvironment = 'surface' | 'underground' | 'both'
 
 export type MineStatus = 'operating' | 'commissioning'
 
-export type MachineType =
-  | 'haul_truck'
-  | 'lhd'
-  | 'dozer'
-  | 'excavator'
-  | 'drill'
-  | 'scaler'
-  | 'shotcrete_machine'
-  | 'other'
-
-export interface Site {
-  id: number
-  name: string
-  countryCode: string
-  region: string | null
-  commodity: string
-  mineStatus: MineStatus
-  latitude: number
-  longitude: number
-}
+// The values migration 002 settled, taken from the schema so they cannot drift
+export type MachineType = (typeof machineType.enumValues)[number]
 
 export interface Deployment {
   id: number

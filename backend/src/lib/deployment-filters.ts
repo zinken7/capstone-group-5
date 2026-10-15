@@ -11,6 +11,8 @@ export interface DeploymentFilters {
   automationLevel?: string
   environment?: string
   status?: string
+  /** One deployment, for reading a single register row; never parsed from a request */
+  deploymentId?: number
   /** First and last commissioning year, inclusive; undated deployments match neither */
   commissionedFrom?: number
   commissionedTo?: number

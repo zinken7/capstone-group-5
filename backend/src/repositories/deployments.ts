@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, or, sql } from 'drizzle-orm'
+import { and, asc, count, eq, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
@@ -83,15 +83,19 @@ export function buildWhere(filters: DeploymentFilters): SQL | undefined {
 
   if (filters.q !== undefined) {
     const pattern = likePattern(filters.q)
-    const search = or(
-      ilike(tables.site.name, pattern),
-      ilike(tables.machineModel.modelName, pattern),
-      ilike(manufacturer.name, pattern),
-      ilike(supplier.name, pattern),
-      ilike(tables.technologyProduct.productName, pattern),
-    )
-    if (search) conditions.push(search)
+    // Each name table is searched on its own trigram index, then deployments match by key
+    // through their foreign-key indexes; an OR of ILIKEs across the joins scans every row
+    conditions.push(sql`(
+      ${tables.deployment.siteId} = ANY(ARRAY(SELECT ${tables.site.id} FROM ${tables.site} WHERE ${tables.site.name} ILIKE ${pattern}))
+      OR ${tables.deployment.machineModelId} = ANY(ARRAY(
+        SELECT ${tables.machineModel.id} FROM ${tables.machineModel}
+        WHERE ${tables.machineModel.modelName} ILIKE ${pattern}
+          OR ${tables.machineModel.manufacturerId} = ANY(ARRAY(SELECT ${tables.company.id} FROM ${tables.company} WHERE ${tables.company.name} ILIKE ${pattern}))))
+      OR ${tables.deployment.technologySupplierId} = ANY(ARRAY(SELECT ${tables.company.id} FROM ${tables.company} WHERE ${tables.company.name} ILIKE ${pattern}))
+      OR ${tables.deployment.technologyProductId} = ANY(ARRAY(SELECT ${tables.technologyProduct.id} FROM ${tables.technologyProduct} WHERE ${tables.technologyProduct.productName} ILIKE ${pattern}))
+    )`)
   }
+  if (filters.deploymentId !== undefined) conditions.push(eq(tables.deployment.id, filters.deploymentId))
   if (filters.siteId !== undefined) conditions.push(eq(tables.site.id, filters.siteId))
   if (filters.country !== undefined) conditions.push(eq(tables.site.countryCode, filters.country))
   if (filters.region !== undefined) conditions.push(eq(tables.region.name, filters.region))
@@ -111,8 +115,10 @@ export function buildWhere(filters: DeploymentFilters): SQL | undefined {
   if (filters.status !== undefined) {
     conditions.push(sql`${tables.deployment.status}::text = ${filters.status}`)
   }
-  if (filters.commissionedFrom !== undefined) conditions.push(sql`${commissioningYear} >= ${filters.commissionedFrom}`)
-  if (filters.commissionedTo !== undefined) conditions.push(sql`${commissioningYear} <= ${filters.commissionedTo}`)
+  // deployment_commissioning_precision guarantees the year whenever a date is recorded,
+  // so the bare column matches commissioningYear and can use its index
+  if (filters.commissionedFrom !== undefined) conditions.push(sql`${tables.deployment.commissioningYear} >= ${filters.commissionedFrom}`)
+  if (filters.commissionedTo !== undefined) conditions.push(sql`${tables.deployment.commissioningYear} <= ${filters.commissionedTo}`)
 
   return and(...conditions)
 }

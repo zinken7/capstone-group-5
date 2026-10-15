@@ -7,13 +7,14 @@ import {
   lockDeployment,
 } from '../repositories/contributions.js'
 import type { CorrectableColumn, CurrentDeployment } from '../repositories/contributions.js'
-import { insertCorrection } from '../repositories/corrections.js'
+import { createContributionKey } from '../lib/contribution-key.js'
+import { insertCorrection, insertCorrectionKey } from '../repositories/corrections.js'
 
 export type CorrectionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_verified' }
   | { kind: 'unchanged' }
-  | { kind: 'proposed'; id: number; correctionId: number; verificationStatus: string }
+  | { kind: 'proposed'; id: number; correctionId: number; verificationStatus: string; key: string }
 
 export interface ChangeSet {
   /** Previous values of the changed fields, by API field name, for the revision. */
@@ -143,6 +144,9 @@ export async function correctDeployment(id: number, input: CorrectionInput): Pro
       evidenceUrls: newUrls,
       changeNote: input.changeNote,
     })
-    return { kind: 'proposed', id, correctionId, verificationStatus: current.verificationStatus }
+    // The proposer follows it without an account, as with a submission (FR-59)
+    const { key, hash } = createContributionKey()
+    await insertCorrectionKey(tx, correctionId, hash)
+    return { kind: 'proposed', id, correctionId, verificationStatus: current.verificationStatus, key }
   })
 }

@@ -36,8 +36,9 @@ checks or using a truncated list.
 Backend checks use an isolated `postgis/postgis:17-3.5` service, matching the
 root Compose image. Its `test` credentials are disposable CI values, not
 deployment credentials. After the health check, CI runs `npm ci`, lint,
-typecheck, build, `npm run db:migrate`, then `npm test` with `NODE_ENV=test` and
-`DATABASE_URL` pointing to that service.
+typecheck, build, `npm run db:migrate`, `npm run db:schema:check` (the
+committed Drizzle schema must match the migrated database), then `npm test` with
+`NODE_ENV=test` and `DATABASE_URL` pointing to that service.
 
 Between migrations and tests, CI creates a second database, `seed_check`,
 migrates it and runs `npm run db:seed` twice. A migration that breaks
@@ -64,7 +65,15 @@ On pushes to `main` only, three more jobs run after the checks, in order:
 2. **Migrate staging database** applies pending migrations to Neon staging.
 3. **Deploy staging frontend** and **Deploy staging backend** deploy each
    Vercel project to production with `vercel deploy --prod`, with a 10-minute
-   timeout.
+   timeout. They run only after the migration job succeeds.
+
+Runs on `main` go one at a time: a later merge waits until the current run has
+migrated and deployed, so an older run never deploys over a newer one. GitHub
+keeps only the newest waiting run, and its commit includes those of any run it
+drops. On a pull request, a new push cancels the run it replaces instead. If a
+deploy fails after the migration, staging runs the new schema with the previous
+code, and the two projects may run different commits, until the failed job is
+re-run or the next merge deploys.
 
 The migration and deploy jobs use the `staging` GitHub environment, whose
 secrets (`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`.
@@ -72,6 +81,11 @@ None of the three is part of the `Backend Lint` gate, because they run after
 the checks rather than as checks, and they are skipped on pull requests.
 
 `.github/workflows/seed-staging.yml` migrates and seeds staging when run by hand.
+It refuses to run while `main` has migrations newer than the last commit by
+`DEPLOY_AUTHOR`, because staging still runs that commit's code.
+
+Every job runs on `ubuntu-24.04` rather than `ubuntu-latest`, which moves to a
+new Ubuntu release on 19 October 2026; the seed steps rely on the runner's `psql`.
 [`staging.md`](staging.md) covers these jobs, the environment and its
 configuration.
 

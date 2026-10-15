@@ -233,11 +233,12 @@ environment is known (Q-4).
 | Environment | Purpose | Platform | Deployed by |
 |---|---|---|---|
 | Local | Development | Docker Compose: application, PostgreSQL/PostGIS, seed data | Any member |
-| Staging | Integration and client demonstration | Vercel (frontend and backend) and Neon PostgreSQL/PostGIS; see [`staging.md`](staging.md) | Vercel Git integration from `main` |
+| Staging | Integration and client demonstration | Vercel (frontend and backend) and Neon PostgreSQL/PostGIS; see [`staging.md`](staging.md) | GitHub Actions on merges to `main` by M1 |
 | Production | Handover | UWA-provided environment | M1, manual approval |
 
-**Pipeline.** Staging: apply any new migrations, then merge to `main`; Vercel
-builds and deploys the affected project. Rollback is Vercel Instant Rollback.
+**Pipeline.** Staging: on each merge to `main` by M1, GitHub Actions applies any
+new migrations to Neon and then deploys both Vercel projects (`lint.yml`; see
+[`ci.md`](ci.md)). Vercel's Git integration is turned off. Rollback is Vercel Instant Rollback.
 Production deploys to the UWA environment follow once it is known, with a
 manual approval step.
 

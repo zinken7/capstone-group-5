@@ -78,28 +78,3 @@ export const fixtureSites: MapSite[] = [
     ],
   },
 ]
-
-export const highDensityFixtureSite: MapSite = {
-  id: 'pilbara-high-density-demo',
-  name: 'Pilbara High Density Demo Site',
-  region: 'Pilbara',
-  country: 'Australia',
-  latitude: -21.8,
-  longitude: 119.4,
-  deployments: [
-    {
-      id: 'deployment-high-density-1',
-      machineModel: 'HX-1000 Haul Truck',
-      machineType: 'Haul Truck',
-      manufacturer: 'Komatsu',
-      supplier: 'Highland Automation',
-      automationLevel: 'Highly Autonomous',
-      environment: 'Surface',
-      status: 'operational',
-      quantity: 60,
-      commissioningDate: '2022-01-10',
-    },
-  ],
-}
-
-export const densityFixtureSites: MapSite[] = [...fixtureSites, highDensityFixtureSite]

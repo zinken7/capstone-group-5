@@ -26,6 +26,16 @@ describe('query', () => {
   })
 })
 
+describe('session limits', () => {
+  it('bounds every statement and every idle transaction on the server', async () => {
+    const [statement] = await query<{ statement_timeout: string }>('SHOW statement_timeout')
+    const [idle] = await query<{ idle_in_transaction_session_timeout: string }>('SHOW idle_in_transaction_session_timeout')
+
+    expect(statement?.statement_timeout).toBe('15s')
+    expect(idle?.idle_in_transaction_session_timeout).toBe('1min')
+  })
+})
+
 describe('withTransaction', () => {
   async function companyNames(): Promise<string[]> {
     const rows = await query<{ name: string }>('SELECT name FROM company ORDER BY name')

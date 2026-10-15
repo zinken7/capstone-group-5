@@ -10,10 +10,22 @@ on:
 permissions:
   contents: read
 
+# One run per ref at a time. On main, a later merge waits for the current
+# migration and both deployments to finish instead of overtaking them; GitHub
+# keeps only the newest waiting run, which includes the commits of any it drops.
+# On a pull request, a new push cancels the run it replaces.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Runners are pinned rather than ubuntu-latest, which moves to a new Ubuntu
+# release on 19 October 2026: the seed check and staging seed rely on the
+# runner's psql, and a new image should be adopted on purpose, not mid-handover.
+
 jobs:
   changes:
     name: Detect affected areas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       frontend: ${{ steps.paths.outputs.frontend }}
       backend: ${{ steps.paths.outputs.backend }}
@@ -40,7 +52,7 @@ jobs:
     name: Docker Compose Config
     needs: changes
     if: needs.changes.outputs.compose == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Validate Docker Compose configuration
@@ -50,7 +62,7 @@ jobs:
     name: Backend checks and database tests
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -105,7 +117,7 @@ jobs:
     name: Frontend Lint
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -126,7 +138,7 @@ jobs:
     name: Service checks
     needs: changes
     if: needs.changes.outputs.services == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Run checks declared by the service implementation
@@ -136,7 +148,7 @@ jobs:
     name: Infrastructure validation
     needs: changes
     if: needs.changes.outputs.infra == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Detect Terraform configuration
@@ -160,7 +172,7 @@ jobs:
     name: Backend Lint
     if: always()
     needs: [changes, compose-config, backend-checks, frontend-lint, services-checks, infra-checks]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -172,16 +184,15 @@ jobs:
         run: node .github/scripts/ci/results.mjs
 
   # M1's Vercel Hobby account deploys only commits authored by M1, whether the
-  # deploy comes from Git or the CLI. Check the merge commit once, before
-  # migrating or deploying. If anyone else authored it, skip both, so schema and
-  # code stay in step, and tell M1 on the pull request; M1's next merge deploys
-  # everything. Gated on the always-running result gate, not on a path-selected
-  # job, so it never depends on change routing.
+  # deploy comes from Git or the CLI. Check the merge commit before migrating or
+  # deploying. If anyone else authored it, skip both and tell M1 on the pull
+  # request; M1's next merge deploys everything. Main push workflows are
+  # serialized above, so a later run cannot overtake this migration or deploy.
   check-deploy-author:
     name: Check deploy author
     needs: backend-lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
@@ -232,7 +243,7 @@ jobs:
     name: Migrate staging database
     needs: [backend-lint, check-deploy-author]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging
     concurrency:
       group: staging-database
@@ -266,7 +277,7 @@ jobs:
     name: Deploy staging ${{ matrix.project }}
     needs: [backend-lint, check-deploy-author, migrate-staging]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: staging
     strategy:

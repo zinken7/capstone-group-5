@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import EquipmentPage from './EquipmentPage'
 import { AdminSessionProvider } from '../../admin/session'
+import { MyContributionsProvider, STORAGE_KEY } from '../../contribute/my-contributions'
 import { fixtureSites } from '../../map/data/fixtureSites'
 import { buildEquipmentRecords } from '../presentation'
 
@@ -363,6 +364,36 @@ describe('EquipmentPage', () => {
     }))
     expect(document.body.style.overflow).toBe('')
     expect(correctButton).toHaveFocus()
+  })
+
+  test('keeps a proposed correction in this browser so its proposer can follow it', async () => {
+    const user = userEvent.setup()
+    window.localStorage.clear()
+    const item = { id: 20207, site_id: 7, site_name: 'Followed site', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', machine_manufacturer: 'Caterpillar', machine_model: '793F', model_variant: null, machine_type: 'haul_truck', quantity: 1, technology_supplier: 'Caterpillar', technology_product: 'Cat Command', automation_level: 'autonomous', environment: 'surface', installation_type: 'unknown', status: 'operational', commissioning_date: '2024', commissioning_year: 2024, valid_from: null, valid_to: null }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation((input, init) => {
+      const url = String(input)
+      if (init?.method === 'PATCH') return Promise.resolve(Response.json({ id: 20207, correction_id: 9, verification_status: 'verified', key: 'k'.repeat(43) }, { status: 202 }))
+      if (url.endsWith('/reference-data')) return Promise.resolve(Response.json(referenceData))
+      if (url.includes('/analytics/summary')) return Promise.resolve(Response.json(analyticsSummary))
+      if (url.includes('/analytics/breakdowns')) return Promise.resolve(Response.json(analyticsBreakdowns))
+      return Promise.resolve(Response.json({ total: 1, limit: 25, offset: 0, items: [item] }))
+    }))
+    try {
+      render(<MyContributionsProvider><EquipmentPage /></MyContributionsProvider>)
+
+      await user.click(await screen.findByRole('button', { name: /correct followed site/i }))
+      await user.clear(screen.getByRole('textbox', { name: /quantity/i }))
+      await user.type(screen.getByRole('textbox', { name: /quantity/i }), '2')
+      await user.click(screen.getByRole('checkbox'))
+      await user.click(screen.getByRole('button', { name: /submit correction/i }))
+
+      expect(await screen.findByText(/Follow it under My contributions on the Contribute page/)).toBeInTheDocument()
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([
+        expect.objectContaining({ kind: 'correction', id: 9, key: 'k'.repeat(43), deploymentId: 20207, siteName: 'Followed site', machine: 'Caterpillar 793F' }),
+      ])
+    } finally {
+      window.localStorage.clear()
+    }
   })
 
   test('returns focus to the correction trigger when Escape closes the dialog', async () => {

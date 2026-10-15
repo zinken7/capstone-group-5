@@ -1,4 +1,5 @@
 import { withTransaction } from '../database.js'
+import { createContributionKey, keyMatches } from '../lib/contribution-key.js'
 import type { ContributionInput } from '../lib/contribution-validation.js'
 import {
   findOrCreateCompany,
@@ -6,15 +7,29 @@ import {
   findOrCreateRegion,
   findOrCreateSite,
   findOrCreateTechnologyProduct,
+  insertContributionKey,
   insertContributor,
   insertDeployment,
+  insertResubmission,
+  lockDeployment,
   insertEvidence,
   insertRevision,
 } from '../repositories/contributions.js'
+import { findKeyHash } from '../repositories/contributor-access.js'
+
+/** The rejected submission named for resubmission is not one the key opens, or is not rejected (FR-60). */
+export class ResubmissionRefusedError extends Error {
+  constructor() {
+    super('resubmission_of is not a rejected submission of yours')
+    this.name = 'ResubmissionRefusedError'
+  }
+}
 
 export interface ContributionResult {
   id: number
   verificationStatus: string
+  /** The submission's private key, returned once; only its hash is stored (FR-59) */
+  key: string
 }
 
 /** The submission as received, minus contact details, kept on the create revision (FR-47). */
@@ -45,6 +60,15 @@ function submissionSnapshot(input: ContributionInput): Record<string, unknown> {
 /** Stores a public submission and its evidence atomically; nothing is kept if any step fails. */
 export async function createContribution(input: ContributionInput): Promise<ContributionResult> {
   return withTransaction(async (tx) => {
+    // Checked first, so a refused resubmission stores nothing
+    if (input.resubmissionOf) {
+      const previous = await lockDeployment(tx, input.resubmissionOf.id)
+      const keyHash = previous ? await findKeyHash(tx, previous.id) : null
+      if (!previous || !keyMatches(input.resubmissionOf.key, keyHash) || previous.verificationStatus !== 'rejected') {
+        throw new ResubmissionRefusedError()
+      }
+    }
+
     const manufacturerId = await findOrCreateCompany(tx, input.machineManufacturer)
     const regionId = input.region === null ? null : await findOrCreateRegion(tx, input.region, input.countryCode)
     const siteId = await findOrCreateSite(tx, {
@@ -69,6 +93,7 @@ export async function createContribution(input: ContributionInput): Promise<Cont
 
     // Each revision names exactly one actor, so an anonymous submission still gets a contributor row
     const contributorId = await insertContributor(tx, { email: input.contributorEmail, organisation: input.organisation })
+    const { key, hash } = createContributionKey()
 
     const deployment = await insertDeployment(tx, {
       siteId,
@@ -83,6 +108,8 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       commissioningDate: input.commissioning?.date ?? null,
       commissioningYear: input.commissioning?.year ?? null,
     })
+    await insertContributionKey(tx, deployment.id, hash)
+    if (input.resubmissionOf) await insertResubmission(tx, deployment.id, input.resubmissionOf.id)
 
     await insertEvidence(tx, deployment.id, input.evidenceUrls)
     await insertRevision(tx, {
@@ -93,6 +120,6 @@ export async function createContribution(input: ContributionInput): Promise<Cont
       changeNote: null,
     })
 
-    return deployment
+    return { ...deployment, key }
   })
 }

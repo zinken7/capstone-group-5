@@ -1,5 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render as renderUi, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import ContributePage from './ContributePage'
@@ -8,6 +10,9 @@ import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../types'
 afterEach(() => {
   vi.unstubAllGlobals()
 })
+
+// The page keeps its tab in the address, so it renders inside a router
+const render = (ui: ReactElement) => renderUi(ui, { wrapper: MemoryRouter })
 
 async function fillMinimumForm() {
   const user = userEvent.setup()
@@ -27,7 +32,7 @@ describe('ContributePage', () => {
   test('renders the contribution form instead of the Sprint 3 placeholder', () => {
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
-    expect(screen.getByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^contribute$/i, level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /submit deployment/i })).toBeInTheDocument()
     expect(screen.queryByText(/submission workflow planned/i)).not.toBeInTheDocument()
   })
@@ -55,7 +60,7 @@ describe('ContributePage', () => {
     expect(screen.getByText('Machine model is required.')).toBeInTheDocument()
     expect(screen.getByText('Technology supplier is required.')).toBeInTheDocument()
     expect(screen.getByText('Automation level is required.')).toBeInTheDocument()
-    expect(screen.getByText('Quantity must be a positive whole number.')).toBeInTheDocument()
+    expect(screen.getByText('Quantity must be a whole number between 1 and 100000.')).toBeInTheDocument()
     expect(screen.getByText('Confirm that you are authorised to disclose this information.')).toBeInTheDocument()
     expect(screen.getByLabelText(/mine site name/i)).toHaveFocus()
   })
@@ -101,7 +106,7 @@ describe('ContributePage', () => {
     const user = userEvent.setup()
     render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
 
-    const page = screen.getByRole('heading', { name: /contribute a deployment/i }).closest('section')
+    const page = screen.getByRole('heading', { name: /^contribute$/i, level: 1 }).closest('section')
     const form = screen.getByRole('button', { name: /submit deployment/i }).closest('form')
     expect(page).toHaveClass('contribute-page')
     expect(form).toHaveClass('contribution-form')
@@ -137,7 +142,7 @@ describe('ContributePage', () => {
     await user.click(screen.getByLabelText(/authorised to disclose/i))
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
-    expect(screen.getByText(/year \(yyyy\) or a full date/i)).toBeInTheDocument()
+    expect(screen.getByText(/year between 1900 and 2100/i)).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText(/commissioning date or year/i))
     await user.type(screen.getByLabelText(/commissioning date or year/i), '2025')
@@ -156,9 +161,10 @@ describe('ContributePage', () => {
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
     expect(await screen.findByRole('heading', { name: /contribution received/i })).toBeInTheDocument()
+    // A first submission names no rejected one to replace
     expect(submitContribution).toHaveBeenCalledWith(expect.objectContaining({
       siteName: 'Roy Hill', countryCode: 'AU', machineType: 'haul_truck', quantity: '10',
-    }))
+    }), undefined)
     expect(screen.getByText(/pending review/i)).toBeInTheDocument()
   })
 
@@ -222,7 +228,7 @@ describe('ContributePage', () => {
 
     render(<ContributePage />)
 
-    expect(await screen.findByRole('heading', { name: /contribute a deployment/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^contribute$/i, level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Highly Autonomous' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Australia (AU)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Anonymised (XR)' })).toBeInTheDocument()
@@ -249,5 +255,27 @@ describe('ContributePage', () => {
     expect(await screen.findByRole('heading', { name: /submission failed/i })).toBeInTheDocument()
     expect(screen.getByText('Server rejected submission')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Roy Hill')).toBeInTheDocument()
+  })
+
+  test('limits optional text fields to the backend maximum lengths', async () => {
+    const user = userEvent.setup()
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
+
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
+
+    const cases = [
+      { label: /state or region/i, max: 100 },
+      { label: /commodity/i, max: 100 },
+      { label: /machine model variant/i, max: 100 },
+      { label: /technology product/i, max: 200 },
+      { label: /organisation/i, max: 200 },
+    ]
+
+    for (const { label, max } of cases) {
+      const input = screen.getByLabelText(label) as HTMLInputElement
+
+      expect(input).toHaveAttribute('maxLength', String(max))
+      expect(input.maxLength).toBe(max)
+    }
   })
 })

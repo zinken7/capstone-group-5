@@ -3,6 +3,7 @@ import type { SQL } from 'drizzle-orm'
 
 import type { Tx } from '../database.js'
 import * as tables from '../db/schema.js'
+import { isoTimestamp } from '../lib/iso-timestamp.js'
 
 type DeploymentInsert = typeof tables.deployment.$inferInsert
 type MachineModelInsert = typeof tables.machineModel.$inferInsert
@@ -198,6 +199,16 @@ export async function insertDeployment(tx: Tx, deployment: NewDeployment): Promi
   return { id: row.id, verificationStatus: row.verificationStatus }
 }
 
+/** Stores the hash of a new submission's private key (FR-59); the key itself is never stored. */
+export async function insertContributionKey(tx: Tx, deploymentId: number, keyHash: string): Promise<void> {
+  await tx.db.insert(tables.contributionKey).values({ deploymentId, keyHash })
+}
+
+/** Links a resubmission to the rejected record it replaces (FR-60). */
+export async function insertResubmission(tx: Tx, deploymentId: number, previousDeploymentId: number): Promise<void> {
+  await tx.db.insert(tables.resubmission).values({ deploymentId, previousDeploymentId })
+}
+
 /** Adds evidence URLs, skipping any already attached to the deployment. */
 export async function insertEvidence(tx: Tx, deploymentId: number, urls: readonly string[]): Promise<void> {
   for (const url of urls) {
@@ -246,6 +257,8 @@ export interface CurrentDeployment {
   validTo: string | null
   technologyProductId: number | null
   verificationStatus: string
+  /** As the API serialises updated_at, to compare with the version an administrator saw */
+  updatedAt: string
 }
 
 /** Reads a deployment and locks its row until the transaction ends, so concurrent corrections queue up. */
@@ -268,6 +281,7 @@ export async function lockDeployment(tx: Tx, id: number): Promise<CurrentDeploym
       validTo: tables.deployment.validTo,
       technologyProductId: tables.deployment.technologyProductId,
       verificationStatus: tables.deployment.verificationStatus,
+      updatedAt: isoTimestamp(tables.deployment.updatedAt),
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))

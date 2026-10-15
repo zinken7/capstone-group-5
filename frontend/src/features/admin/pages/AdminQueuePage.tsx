@@ -70,7 +70,15 @@ function AdminQueuePage() {
                       </span>
                     </td>
                     <td data-label="Kind">
-                      <span className={`admin-kind admin-kind--${item.kind}`}>{formatEnumLabel(item.kind)}</span>
+                      {/* An update that answers a request for changes is told apart from any other returned record */}
+                      {item.afterChangesRequested
+                        ? <span className="admin-kind admin-kind--changes">Changes made</span>
+                        : item.updatedWhilePending
+                          ? <span className="admin-kind admin-kind--changes">Updated while waiting</span>
+                        : item.resubmissionOf !== null
+                          ? <span className="admin-kind admin-kind--resubmission">Resubmission</span>
+                          : <span className={`admin-kind admin-kind--${item.kind}`}>{formatEnumLabel(item.kind)}</span>}
+                      {item.resubmissionOf !== null && <small>Replaces rejected record {item.resubmissionOf}</small>}
                       {item.changedFields.length > 0 && <small>{item.changedFields.map(formatEnumLabel).join(', ')}</small>}
                       {(item.contributorEmail || item.contributorOrganisation) && <small>{[item.contributorEmail, item.contributorOrganisation].filter(Boolean).join(' · ')}</small>}
                     </td>

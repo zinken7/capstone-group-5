@@ -108,15 +108,97 @@ export type ContributionField = keyof ContributionFormValues | 'deployment'
 
 export type ContributionErrors = Partial<Record<ContributionField, string>>
 
-export type ContributionVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected'
+export type ContributionVerificationStatus = 'unverified' | 'pending_review' | 'changes_requested' | 'verified' | 'rejected'
 
 export interface ContributionSubmissionResult {
   /** The record id returned by the API, used as the follow-up reference. */
   id?: number
   verificationStatus: ContributionVerificationStatus
+  /** The submission's private key, returned once; kept in this browser to follow it (FR-59) */
+  key?: string
 }
 
-export type ContributionSubmitter = (values: ContributionFormValues) => Promise<ContributionSubmissionResult | void>
+/** A submission as the contributor follows it: its status and the latest decision on it (FR-59) */
+export interface ContributionStatus {
+  id: number
+  verificationStatus: string
+  siteId: number
+  siteName: string
+  /** Manufacturer and model, or the machine type when no model is named */
+  machine: string
+  quantity: number
+  submittedAt: string
+  updatedAt: string
+  decision: { decision: string; note: string | null; decidedAt: string } | null
+  /** The rejected submission this one replaces, and the latest one that replaced it (FR-60) */
+  resubmissionOf: number | null
+  resubmittedAs: number | null
+}
+
+/** A proposed correction to a verified record, as its proposer follows it (#223) */
+export interface CorrectionTracking {
+  id: number
+  deploymentId: number
+  /** pending, approved, rejected or needs_changes */
+  status: string
+  submittedAt: string
+  siteId: number
+  siteName: string
+  machine: string
+  changeNote: string | null
+  evidenceUrls: string[]
+  /** Each proposed field with its value when the correction was sent */
+  changes: { field: string; before: unknown; proposed: unknown }[]
+  decision: { decision: string; note: string | null; decidedAt: string } | null
+}
+
+/** The values of one's own submission that the update form starts from */
+export interface OwnContribution extends ContributionStatus {
+  /** The site's location; null when it has none, which approval needs */
+  latitude: number | null
+  longitude: number | null
+  /** Another open or public record is at the site, so only an administrator may locate it */
+  siteShared: boolean
+  /** The rest of the submission, which a resubmission starts from (FR-60) */
+  countryCode: string
+  region: string | null
+  commodity: string | null
+  machineType: string
+  machineManufacturer: string
+  machineModel: string | null
+  machineModelVariant: string | null
+  technologySupplier: string
+  technologyProduct: string | null
+  environment: string | null
+  deploymentStatus: string | null
+  automationLevel: string
+  installationType: string
+  /** A date, or the year alone */
+  commissioningDate: string | null
+  evidenceUrls: string[]
+}
+
+/** The changes a contributor sends when asked for them; omitted fields stay as they are */
+export interface OwnContributionUpdate {
+  quantity?: number
+  environment?: string
+  deploymentStatus?: string
+  automationLevel?: string
+  installationType?: string
+  commissioningDate?: string
+  evidenceUrls?: string[]
+  changeNote?: string
+  /** Only for a site with no location yet */
+  latitude?: number
+  longitude?: number
+}
+
+/** A submission that replaces a rejected one names it with that submission's key (FR-60) */
+export interface ContributionSubmitOptions {
+  resubmissionOf?: { id: number; key: string }
+}
+
+export type ContributionSubmitter = (values: ContributionFormValues, options?: ContributionSubmitOptions) => Promise<ContributionSubmissionResult | void>
 
 export const EMPTY_CONTRIBUTION_FORM: ContributionFormValues = {
   siteName: '',

@@ -9,6 +9,8 @@ export type ReviewDecision = (typeof REVIEW_DECISIONS)[number]
 export interface ReviewInput {
   decision: ReviewDecision
   note: string | null
+  /** The record's updated_at when the administrator opened it; a later change refuses the decision */
+  version: string | null
 }
 
 /** Validates a POST /api/admin/deployments/:id/reviews body; a note is required unless approving. */
@@ -19,13 +21,14 @@ export function validateReview(body: unknown): ValidationResult<ReviewInput> {
   const read = new FieldReader(object)
   const decision = read.choice('decision', REVIEW_DECISIONS, true) as ReviewDecision | null
   const note = read.text('note', 2000)
+  const version = read.text('version', 40)
   if (decision !== null && decision !== 'approved' && note === null && !read.errors.note) {
     read.errors.note = 'is required when rejecting or requesting changes'
   }
 
   return decision === null || Object.keys(read.errors).length > 0
     ? { ok: false, errors: read.errors }
-    : { ok: true, value: { decision, note } }
+    : { ok: true, value: { decision, note, version } }
 }
 
 export interface AdminCorrectionInput {
