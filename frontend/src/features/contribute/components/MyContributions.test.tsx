@@ -479,9 +479,10 @@ describe('Following a proposed correction (#223)', () => {
   test('proposes a correction again from the earlier proposal, and follows the new one', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify([storedCorrection]))
+    const earlierProposal = correctionItem({ evidence_urls: ['https://example.com/operator-report', 'https://example.com/press-release'] })
     const calls = stubApi({
-      'POST /api/corrections/status': () => Response.json({ items: [correctionItem()] }),
-      'GET /api/corrections/5': () => Response.json({ ...correctionItem(), record: registerRecord }),
+      'POST /api/corrections/status': () => Response.json({ items: [earlierProposal] }),
+      'GET /api/corrections/5': () => Response.json({ ...earlierProposal, record: registerRecord }),
       'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
       'PATCH /api/deployments/10': () => Response.json({ id: 10, correction_id: 6, verification_status: 'verified', key: 'n'.repeat(43) }, { status: 202 }),
     })
@@ -492,8 +493,11 @@ describe('Following a proposed correction (#223)', () => {
     const dialog = await screen.findByRole('dialog', { name: /correct this record/i })
     expect(within(dialog).getByRole('textbox', { name: /quantity/i })).toHaveValue('100')
     expect(within(dialog).getByText('Which source says 100?')).toBeInTheDocument()
+    // The earlier sources and note come with it, so nothing has to be typed again
+    expect(within(dialog).getByRole('textbox', { name: /evidence url/i })).toHaveValue('https://example.com/operator-report')
+    expect(within(dialog).getByText(/Also sent again from your earlier proposal: https:\/\/example.com\/press-release/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('textbox', { name: /note/i })).toHaveValue('Fleet grew')
 
-    await user.type(within(dialog).getByRole('textbox', { name: /evidence url/i }), 'https://example.com/fleet-report')
     await user.click(within(dialog).getByRole('checkbox'))
     await user.click(within(dialog).getByRole('button', { name: /submit correction/i }))
 
@@ -506,7 +510,7 @@ describe('Following a proposed correction (#223)', () => {
     expect(earlier).toHaveTextContent('Quantity 96 → 100')
     expect(earlier).toHaveTextContent('Which source says 100?')
     expect(JSON.parse(String(calls.find((call) => call.key === 'PATCH /api/deployments/10')?.init?.body))).toEqual(expect.objectContaining({
-      quantity: 100, evidence_urls: ['https://example.com/fleet-report'],
+      quantity: 100, evidence_urls: ['https://example.com/operator-report', 'https://example.com/press-release'], change_note: 'Fleet grew',
     }))
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'correction', id: 6, deploymentId: 10 }),

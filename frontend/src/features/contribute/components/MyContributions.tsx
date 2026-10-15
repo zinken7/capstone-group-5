@@ -11,6 +11,7 @@ import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import MapIcon from '../../map/components/MapIcon'
 import CorrectionDialog from '../../equipment/components/CorrectionDialog'
+import type { ProposalValues } from '../../equipment/components/CorrectionDialog'
 import type { EquipmentRecord } from '../../equipment/types'
 import CopyTrackingLink from './CopyTrackingLink'
 import { groupContributions, isCorrection, useMyContributions } from '../my-contributions'
@@ -360,8 +361,10 @@ function describeValue(value: unknown): string {
 interface Proposing {
   record: EquipmentRecord
   reference: ContributionReferenceData
-  values: Partial<Record<'quantity' | 'environment' | 'deploymentStatus' | 'automationLevel' | 'installationType' | 'commissioningDate', string>>
+  values: ProposalValues
   request: string | null
+  /** The earlier proposal's sources after the first, which the dialog's one field cannot hold */
+  keptEvidence: string[]
 }
 
 /** A proposed correction to a verified record: what it changes, where its review stands, and what to do next (#223) */
@@ -389,7 +392,11 @@ function CorrectionRow({ item, removable = true }: { item: TrackedContribution; 
           const field = DIALOG_FIELDS[change.field]
           if (field && change.proposed !== null && change.proposed !== undefined) values[field] = String(change.proposed)
         }
-        setProposing({ record: own.record, reference, values, request: own.decision?.note ?? null })
+        // The sources and note go with it too, so nothing has to be found and typed again
+        const [firstSource, ...otherSources] = own.evidenceUrls
+        if (firstSource) values.evidenceUrl = firstSource
+        if (own.changeNote) values.changeNote = own.changeNote
+        setProposing({ record: own.record, reference, values, request: own.decision?.note ?? null, keptEvidence: otherSources })
       })
       .catch((cause: unknown) => setOpenError(cause instanceof Error ? cause.message : 'The correction could not be opened.'))
       .finally(() => setOpening(false))
@@ -452,7 +459,7 @@ function CorrectionRow({ item, removable = true }: { item: TrackedContribution; 
         <CorrectionDialog
           record={proposing.record}
           referenceData={proposing.reference}
-          proposal={{ values: proposing.values, request: proposing.request }}
+          proposal={{ values: proposing.values, request: proposing.request, keptEvidence: proposing.keptEvidence }}
           onClose={() => setProposing(null)}
           onSubmitted={(result) => {
             setProposing(null)
