@@ -55,7 +55,7 @@ describe('ContributePage', () => {
     expect(screen.getByText('Machine model is required.')).toBeInTheDocument()
     expect(screen.getByText('Technology supplier is required.')).toBeInTheDocument()
     expect(screen.getByText('Automation level is required.')).toBeInTheDocument()
-    expect(screen.getByText('Quantity must be a positive whole number.')).toBeInTheDocument()
+    expect(screen.getByText('Quantity must be a whole number between 1 and 100000.')).toBeInTheDocument()
     expect(screen.getByText('Confirm that you are authorised to disclose this information.')).toBeInTheDocument()
     expect(screen.getByLabelText(/mine site name/i)).toHaveFocus()
   })
@@ -137,7 +137,7 @@ describe('ContributePage', () => {
     await user.click(screen.getByLabelText(/authorised to disclose/i))
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
-    expect(screen.getByText(/year \(yyyy\) or a full date/i)).toBeInTheDocument()
+    expect(screen.getByText(/year between 1900 and 2100/i)).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText(/commissioning date or year/i))
     await user.type(screen.getByLabelText(/commissioning date or year/i), '2025')
