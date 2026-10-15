@@ -23,7 +23,7 @@ decommissioned deployments.
   **Clear all** resets them. **Sites in view** lists the sites that match.
 - **Open a site** by clicking its marker or its name in the list. The panel
   shows each deployment there with its machine, supplier, quantity and status.
-  **View in register** opens those records in the Equipment Register;
+  **View in register** opens those records on the Equipment page;
   **Zoom to site** centres the map on it.
 - **Go back in time** with the slider at the bottom: *Deployments in service
   at the end of* a given year. The counts and markers follow it, so you can see
@@ -31,7 +31,7 @@ decommissioned deployments.
 - **Include decommissioned deployments** adds equipment that has been
   withdrawn from service.
 
-## Equipment Register
+## Equipment
 
 The register is the data itself, one row per deployment. **Search** by site,
 machine model or company; filter by machine type, automation level, status,
