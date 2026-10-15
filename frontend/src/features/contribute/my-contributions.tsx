@@ -1,13 +1,23 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 
-import { checkContributionStatuses } from '../../lib/api/contributions'
+import { checkContributionStatuses, getOwnContribution } from '../../lib/api/contributions'
 import type { ContributionStatus } from './types'
 
 /** Where this browser keeps the submissions made from it (FR-59) */
 export const STORAGE_KEY = 'mining-market-map.my-contributions.v1'
 /** The status check takes this many submissions per request */
 const BATCH_SIZE = 50
+/** #track=<id>.<key>: the fragment never reaches the server, its logs or a Referer (FR-61) */
+const TRACKING_FRAGMENT = /^#track=(\d+)\.([A-Za-z0-9_-]{43})$/
+
+/** The private link that adds a submission to the list in another browser (FR-61) */
+export function trackingLink(id: number, key: string): string {
+  return `${window.location.origin}/contribute?tab=mine#track=${id}.${key}`
+}
+
+/** What happened to a tracking link opened in this browser */
+export type LinkNotice = { kind: 'added' | 'already'; id: number } | { kind: 'invalid' }
 
 /** A submission made from this browser, with the last status the site reported for it */
 export interface TrackedContribution {
@@ -59,6 +69,9 @@ interface MyContributionsValue {
   setStatus: (id: number, verificationStatus: string) => void
   /** Notes that a rejected submission has been resubmitted, before the next status check says so */
   markResubmitted: (id: number, resubmittedAs: number) => void
+  /** The outcome of a tracking link opened in this browser, until dismissed */
+  linkNotice: LinkNotice | null
+  dismissLinkNotice: () => void
   refresh: () => void
 }
 
@@ -73,6 +86,8 @@ const MyContributionsContext = createContext<MyContributionsValue>({
   remove: noop,
   setStatus: noop,
   markResubmitted: noop,
+  linkNotice: null,
+  dismissLinkNotice: noop,
   refresh: noop,
 })
 
@@ -142,6 +157,40 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
       : item))
   }, [update])
 
+  const [linkNotice, setLinkNotice] = useState<LinkNotice | null>(null)
+  const dismissLinkNotice = useCallback(() => setLinkNotice(null), [])
+
+  // A tracking link adds its submission to this browser; the key leaves the address bar at once
+  useEffect(() => {
+    function openLink() {
+      const match = TRACKING_FRAGMENT.exec(window.location.hash)
+      if (!match) return
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
+      const id = Number(match[1])
+      const key = match[2]
+      if (readTracked().some((item) => item.id === id)) {
+        setLinkNotice({ kind: 'already', id })
+        return
+      }
+      getOwnContribution(id, key)
+        .then((contribution) => {
+          update((current) => [{
+            id,
+            key,
+            siteName: contribution.siteName,
+            machine: contribution.machine,
+            submittedAt: contribution.submittedAt,
+            last: contribution,
+          }, ...current.filter((item) => item.id !== id)])
+          setLinkNotice({ kind: 'added', id })
+        })
+        .catch(() => setLinkNotice({ kind: 'invalid' }))
+    }
+    openLink()
+    window.addEventListener('hashchange', openLink)
+    return () => window.removeEventListener('hashchange', openLink)
+  }, [update])
+
   const markResubmitted = useCallback((id: number, resubmittedAs: number) => {
     update((current) => current.map((item) => item.id === id && item.last
       ? { ...item, last: { ...item.last, resubmittedAs } }
@@ -149,8 +198,8 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
   }, [update])
 
   const value = useMemo(
-    () => ({ items, checking, checkFailed, add, remove, setStatus, markResubmitted, refresh }),
-    [items, checking, checkFailed, add, remove, setStatus, markResubmitted, refresh],
+    () => ({ items, checking, checkFailed, add, remove, setStatus, markResubmitted, linkNotice, dismissLinkNotice, refresh }),
+    [items, checking, checkFailed, add, remove, setStatus, markResubmitted, linkNotice, dismissLinkNotice, refresh],
   )
   return <MyContributionsContext.Provider value={value}>{children}</MyContributionsContext.Provider>
 }

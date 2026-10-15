@@ -315,6 +315,47 @@ describe('My contributions', () => {
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([])
   })
 
+  test('adds a submission from its tracking link and takes the key out of the address bar', async () => {
+    stubApi({
+      'GET /api/contributions/20412': (init) => new Headers(init?.headers).get('X-Contribution-Key') === KEY
+        ? Response.json({
+            ...statusItem({ verification_status: 'changes_requested' }),
+            latitude: -30.7, longitude: 121.4, region: null, commodity: null, machine_model_variant: null,
+            technology_supplier: 'Caterpillar', technology_product: null, environment: null, deployment_status: null,
+            automation_level: 'autonomous', installation_type: 'unknown', commissioning_date: null, evidence_urls: [],
+          })
+        : Response.json({ error: 'contribution not found' }, { status: 404 }),
+    })
+    renderPage(`/contribute?tab=mine#track=20412.${KEY}`)
+
+    expect(window.location.hash).toBe('')
+    expect(window.location.search).toBe('?tab=mine')
+    expect(await screen.findByText('Added #20412 to this browser from its tracking link.')).toBeInTheDocument()
+    const row = screen.getByRole('listitem', { name: /ashgrove mine/i })
+    expect(within(row).getByText('Changes requested')).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([expect.objectContaining({ id: 20412, key: KEY })])
+  })
+
+  test('says when a tracking link does not open a submission', async () => {
+    stubApi({ 'GET /api/contributions/20412': () => Response.json({ error: 'contribution not found' }, { status: 404 }) })
+    renderPage(`/contribute?tab=mine#track=20412.${'z'.repeat(43)}`)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('This tracking link is not valid, or the submission no longer exists.')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+  })
+
+  test('copies a private tracking link for a submission', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    stubApi({ 'POST /api/contributions/status': () => Response.json({ items: [statusItem()] }) })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    await user.click(within(row).getByRole('button', { name: 'Copy tracking link' }))
+    expect(await navigator.clipboard.readText()).toBe(`${window.location.origin}/contribute?tab=mine#track=20412.${KEY}`)
+    expect(within(row).getByRole('status')).toHaveTextContent(/Copied. Anyone with this link can see and update the submission/)
+  })
+
   test('still works when the browser blocks storage', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })

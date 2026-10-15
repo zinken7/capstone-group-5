@@ -6,6 +6,7 @@ import { formatEnumLabel } from '../../../lib/format'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import MapIcon from '../../map/components/MapIcon'
+import CopyTrackingLink from '../components/CopyTrackingLink'
 import MyContributions from '../components/MyContributions'
 import { useMyContributions } from '../my-contributions'
 import type { TrackedContribution } from '../my-contributions'
@@ -111,7 +112,8 @@ function NewContribution({
   onClearResubmission,
 }: NewContributionProps) {
   const { add, markResubmitted } = useMyContributions()
-  const [tracked, setTracked] = useState(false)
+  // The submission this browser now follows, with the key its tracking link carries
+  const [tracked, setTracked] = useState<{ id: number; key: string } | null>(null)
   const [values, setValues] = useState<ContributionFormValues>(() => resubmission?.values ?? { ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
   const [errors, setErrors] = useState<ContributionErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
@@ -252,7 +254,7 @@ function NewContribution({
           submittedAt: new Date().toISOString(),
         })
       }
-      setTracked(followed)
+      setTracked(followed ? { id: result.id as number, key: result.key as string } : null)
       setSubmitState('success')
       // Both are optional when submitting (FR-07) but needed for approval, so the contributor hears it now
       const missing = [
@@ -288,6 +290,12 @@ function NewContribution({
         <div>
           <h2 id="contribution-success-heading">Contribution received</h2>
           <p>{submitMessage}</p>
+          {tracked && (
+            <div className="success-panel__link">
+              <p>To follow it on another device, open its private tracking link there.</p>
+              <CopyTrackingLink id={tracked.id} contributionKey={tracked.key} />
+            </div>
+          )}
           <div className="form-actions">
             {tracked && <button className="button button--primary" type="button" onClick={onShowMine}>See my contributions</button>}
             <button className="button button--secondary" type="button" onClick={resetForm}>Submit another contribution</button>

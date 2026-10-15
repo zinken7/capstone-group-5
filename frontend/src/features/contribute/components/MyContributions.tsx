@@ -9,6 +9,7 @@ import { formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import MapIcon from '../../map/components/MapIcon'
+import CopyTrackingLink from './CopyTrackingLink'
 import { useMyContributions } from '../my-contributions'
 import type { TrackedContribution } from '../my-contributions'
 import { DEFAULT_CONTRIBUTION_REFERENCE_DATA } from '../types'
@@ -314,6 +315,7 @@ function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onRe
         )}
       </div>
       {!editing && <div className="my-contribution__remove">
+        {!confirmingRemoval && !item.missing && <CopyTrackingLink id={item.id} contributionKey={item.key} />}
         {confirmingRemoval ? (
           <div className="my-contribution__confirm" role="group" aria-label={`Remove submission ${item.id} from this browser`}>
             <span>Remove #{item.id} from this browser? You will not be able to follow it here again.</span>
@@ -330,11 +332,22 @@ function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onRe
 
 /** The submissions made from this browser, with their review status (FR-59) */
 function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; onResubmit: (item: TrackedContribution) => Promise<void> }) {
-  const { items, checking, checkFailed, refresh } = useMyContributions()
+  const { items, checking, checkFailed, refresh, linkNotice, dismissLinkNotice } = useMyContributions()
+  const notice = linkNotice && (
+    <div className={linkNotice.kind === 'invalid' ? 'form-summary-error my-contributions__notice' : 'form-summary-success my-contributions__notice'} role={linkNotice.kind === 'invalid' ? 'alert' : 'status'}>
+      <span>
+        {linkNotice.kind === 'added' && `Added #${linkNotice.id} to this browser from its tracking link.`}
+        {linkNotice.kind === 'already' && `#${linkNotice.id} is already in this browser.`}
+        {linkNotice.kind === 'invalid' && 'This tracking link is not valid, or the submission no longer exists.'}
+      </span>
+      <button className="text-button text-button--flush" type="button" onClick={dismissLinkNotice}>Dismiss</button>
+    </div>
+  )
 
   if (items.length === 0) {
     return (
       <div className="my-contributions">
+        {notice}
         <StateMessage title="No contributions in this browser yet" message="Submissions you make here are listed with their review status, so you can come back to them without an account." />
         <div className="form-actions"><button className="button button--primary" type="button" onClick={onStartNew}>Contribute a deployment</button></div>
       </div>
@@ -343,6 +356,7 @@ function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; o
 
   return (
     <div className="my-contributions">
+      {notice}
       <div className="my-contributions__bar">
         <p className="form-help">Kept in this browser only. Statuses are checked each time you open the site.</p>
         {checking
