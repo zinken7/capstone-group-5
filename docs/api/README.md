@@ -436,7 +436,10 @@ A contributor follows their submissions with the key each one was given (FR-59).
 A wrong key, a missing key and an unknown or keyless record all look the same
 from outside: the item is left out, or the request answers `404`. Records loaded
 without review have no key and are never reachable here. Keys travel in the
-request body or the `X-Contribution-Key` header, never in a URL.
+request body or the `X-Contribution-Key` header, never in a URL that reaches the
+server. The site's private tracking link (FR-61) carries the id and key after
+`#` (`/contribute?tab=mine#track=<id>.<key>`): browsers never send the fragment,
+and the page removes it from the address bar as soon as it has read it.
 
 ### `POST /api/contributions/status`
 

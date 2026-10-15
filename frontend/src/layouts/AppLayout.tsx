@@ -1,3 +1,4 @@
+import { useMyContributions } from '../features/contribute/my-contributions'
 import type { PropsWithChildren } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
@@ -20,6 +21,8 @@ const pageTitles: [string, string][] = [
 function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
   const inAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/')
+  // Submissions from this browser waiting on the contributor (FR-59)
+  const needsChanges = useMyContributions().items.filter((item) => !item.missing && item.last?.verificationStatus === 'changes_requested').length
 
   useEffect(() => {
     // Only routes explicitly ending in `/` own nested paths. Public pages and
@@ -57,7 +60,15 @@ function AppLayout({ children }: PropsWithChildren) {
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/map">Map</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/equipment">Equipment</NavLink>
           <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/analytics">Analytics</NavLink>
-          <NavLink className={({ isActive }) => isActive ? 'active' : undefined} to="/contribute">Contribute</NavLink>
+          <NavLink
+            className={({ isActive }) => isActive ? 'active' : undefined}
+            // With requests waiting, the link opens the contributor's list
+            to={needsChanges > 0 ? '/contribute?tab=mine' : '/contribute'}
+            aria-label={needsChanges > 0 ? `Contribute, ${needsChanges} ${needsChanges === 1 ? 'submission needs' : 'submissions need'} changes` : undefined}
+          >
+            Contribute
+            {needsChanges > 0 && <span className="nav-badge" aria-hidden="true">{needsChanges}</span>}
+          </NavLink>
         </nav>
         {/* On phones the footer link is a long scroll away, so the header carries it as an icon, after the navigation in tab order */}
         <Link className="site-header__admin" to="/admin" aria-label="Administrator sign-in" title="Administrator sign-in">

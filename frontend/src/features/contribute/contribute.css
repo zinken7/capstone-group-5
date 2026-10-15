@@ -346,7 +346,14 @@
   display: none;
 }
 
-/* Removing is rare and only affects this browser, so it stays quiet */
+.my-contribution__remove {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-5);
+}
+
+/* Copying the link and removing are rare, and removing only affects this browser, so both stay quiet */
 .my-contribution__remove .text-button {
   color: var(--text-muted);
   font-weight: 500;
@@ -402,6 +409,40 @@
 
 .my-contribution__form > p {
   margin: 0;
+}
+
+.my-contributions__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* A private link that adds a submission to another browser */
+.tracking-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.tracking-link__manual {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--space-1);
+}
+
+.tracking-link__manual input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--type-xs);
+}
+
+.success-panel__link {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
 }
 
 /* Asked for only when the site has no location yet */
