@@ -54,8 +54,7 @@ and documentation-only PRs do not start PostGIS.
 
 ## Staging deployment
 
-On pushes to `main` only, three more jobs run after the checks, in order. Main push workflows use a shared concurrency group with `cancel-in-progress: false`, so a later merge waits for the current staging migration and both deployments to finish before its own staging jobs start. This keeps the database and both applications on the same release even when a deployment fails.
-
+On pushes to `main` only, three more jobs run after the checks, in order:
 
 1. **Check deploy author** runs after the `Backend Lint` gate succeeds. It
    depends on the gate rather than on a path-selected job, so it runs after
@@ -66,8 +65,15 @@ On pushes to `main` only, three more jobs run after the checks, in order. Main p
 2. **Migrate staging database** applies pending migrations to Neon staging.
 3. **Deploy staging frontend** and **Deploy staging backend** deploy each
    Vercel project to production with `vercel deploy --prod`, with a 10-minute
-   timeout. They run only after the migration job succeeds, and the workflow
-   concurrency rule keeps the two projects together with that migration.
+   timeout. They run only after the migration job succeeds.
+
+Runs on `main` go one at a time: a later merge waits until the current run has
+migrated and deployed, so an older run never deploys over a newer one. GitHub
+keeps only the newest waiting run, and its commit includes those of any run it
+drops. On a pull request, a new push cancels the run it replaces instead. If a
+deploy fails after the migration, staging runs the new schema with the previous
+code, and the two projects may run different commits, until the failed job is
+re-run or the next merge deploys.
 
 The migration and deploy jobs use the `staging` GitHub environment, whose
 secrets (`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`.

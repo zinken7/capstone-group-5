@@ -62,8 +62,7 @@ Production deployments run from GitHub Actions. Vercel's Git integration is
 turned off (`git.deploymentEnabled: false` in each `vercel.json`), so Vercel
 builds no Git or preview deployments.
 
-On every push to `main`, `.github/workflows/lint.yml` runs CI, then the staging release jobs. Main push workflows are serialized with `cancel-in-progress: false`, so a later merge waits for the current migration and both deployments to finish; staging never advances its schema without deploying the matching code.
-
+On every push to `main`, `.github/workflows/lint.yml` runs CI, then:
 
 1. **Check deploy author** reads the author of the merge commit. If anyone but
    M1 authored it, Vercel would block the deployment, so the job skips the
@@ -77,7 +76,10 @@ On every push to `main`, `.github/workflows/lint.yml` runs CI, then the staging 
    project's root directory. Each job times out after 10 minutes.
 
 A failed check or migration stops both deploys, so new code never runs against
-an old schema.
+an old schema. Runs on `main` go one at a time, so a later merge waits until the
+current one has migrated and deployed ([`docs/ci.md`](ci.md#staging-deployment)).
+A failed deploy is the exception: staging then runs the new schema with the
+previous code until the job is re-run or the next merge deploys.
 
 So that changes to the application deploy when they merge, M1 merges pull
 requests that change `frontend/` or `backend/`, normally through auto-merge:
