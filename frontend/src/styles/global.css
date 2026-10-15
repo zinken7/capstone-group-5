@@ -188,6 +188,8 @@ a { color: inherit; }
 .form-help { color: var(--text-muted); font-size: var(--type-sm); font-weight: 400; line-height: 1.45; }
 .form-error { margin: 0; color: #b42318; font-size: var(--type-sm); font-weight: 600; }
 .form-summary-error { margin: 0; padding: 0.8rem 1rem; border: 1px solid #e9a7a7; border-radius: 0.6rem; color: #8f1d1d; background: #fff1f1; }
+.form-summary-success { margin: 0; padding: 0.8rem 1rem; border: 1px solid #86efac; border-radius: 0.6rem; color: #166534; background: #f0fdf4; }
+.field-error { color: #b42318; font-size: 0.78rem; font-weight: 600; }
 .form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
 .status-badge {
   display: inline-flex;

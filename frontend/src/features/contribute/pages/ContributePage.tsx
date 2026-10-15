@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, KeyboardEvent } from 'react'
 
 import { postContribution } from '../../../lib/api/contributions'
+import { formatEnumLabel } from '../../../lib/format'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import MapIcon from '../../map/components/MapIcon'
+import MyContributions from '../components/MyContributions'
+import { useMyContributions } from '../my-contributions'
 import {
   COUNTRIES,
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
@@ -28,8 +31,12 @@ export interface ContributePageProps {
   loadReferenceData?: () => Promise<ContributionReferenceData>
 }
 
-function submissionMessage(status: ContributionVerificationStatus, id?: number): string {
-  const reference = typeof id === 'number' ? ` Your submission reference is #${id}. Keep it if the team needs to follow up.` : ''
+function submissionMessage(status: ContributionVerificationStatus, id?: number, tracked = false): string {
+  const reference = typeof id === 'number'
+    ? tracked
+      ? ` Your submission reference is #${id}. Follow its review, and answer any request for changes, under My contributions in this browser.`
+      : ` Your submission reference is #${id}. Keep it if the team needs to follow up.`
+    : ''
   if (status === 'verified') {
     return `Your contribution has been received and marked as verified. It is now eligible for the public verified views.${reference}`
   }
@@ -47,12 +54,21 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   return <p className="form-error" id={id} role="alert">{message}</p>
 }
 
-function ContributePage({
+interface NewContributionProps extends ContributePageProps {
+  /** Shows the My contributions tab, from the confirmation */
+  onShowMine: () => void
+}
+
+/** The submission form, its loading and failure states, and the confirmation */
+function NewContribution({
   submitContribution = postContribution,
   referenceData: providedReferenceData,
   referenceDataLoading = false,
   loadReferenceData = getContributionReferenceData,
-}: ContributePageProps) {
+  onShowMine,
+}: NewContributionProps) {
+  const { add } = useMyContributions()
+  const [tracked, setTracked] = useState(false)
   const [values, setValues] = useState<ContributionFormValues>({ ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
   const [errors, setErrors] = useState<ContributionErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
@@ -179,8 +195,21 @@ function ContributePage({
     setSubmitMessage('')
     try {
       const result = await submitContribution(values)
+      // This browser keeps the submission and its key, so the contributor can follow it without an account (FR-59)
+      const followed = typeof result?.id === 'number' && typeof result.key === 'string'
+      if (followed) {
+        const machine = [values.manufacturer.trim(), values.machineModel.trim()].filter(Boolean).join(' ')
+        add({
+          id: result.id as number,
+          key: result.key as string,
+          siteName: values.siteName.trim(),
+          machine: values.machineModel.trim() ? machine : `${machine} ${formatEnumLabel(values.machineType)}`.trim(),
+          submittedAt: new Date().toISOString(),
+        })
+      }
+      setTracked(followed)
       setSubmitState('success')
-      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id))
+      setSubmitMessage(submissionMessage(result?.verificationStatus ?? 'pending_review', result?.id, followed))
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'We could not submit your contribution. Please try again.')
@@ -198,67 +227,42 @@ function ContributePage({
 
   if (submitState === 'success') {
     return (
-      <section className="product-page contribute-page" aria-labelledby="contribution-success-heading">
-        <header className="page-heading">
-          <div><p className="eyebrow">Community data</p><h1>Contribute</h1></div>
-        </header>
-        <section className="success-panel" role="status">
-          <span className="success-panel__icon" aria-hidden="true">✓</span>
-          <div>
-            <h2 id="contribution-success-heading">Contribution received</h2>
-            <p>{submitMessage}</p>
+      <section className="success-panel" role="status" aria-labelledby="contribution-success-heading">
+        <span className="success-panel__icon" aria-hidden="true">✓</span>
+        <div>
+          <h2 id="contribution-success-heading">Contribution received</h2>
+          <p>{submitMessage}</p>
+          <div className="form-actions">
+            {tracked && <button className="button button--primary" type="button" onClick={onShowMine}>See my contributions</button>}
             <button className="button button--secondary" type="button" onClick={resetForm}>Submit another contribution</button>
           </div>
-        </section>
+        </div>
       </section>
     )
   }
 
   if (referenceDataIsLoading) {
     return (
-      <section className="product-page contribute-page" aria-labelledby="contribute-heading">
-        <header className="page-heading">
-          <div>
-            <p className="eyebrow">Community data</p>
-            <h1 id="contribute-heading">Contribute a deployment</h1>
-          </div>
-        </header>
-        <StateMessage
-          variant="loading"
-          title="Loading reference data"
-          message="The controlled values for this form are being loaded."
-        />
-      </section>
+      <StateMessage
+        variant="loading"
+        title="Loading reference data"
+        message="The controlled values for this form are being loaded."
+      />
     )
   }
 
   if (!referenceDataAvailable) {
     return (
-      <section className="product-page contribute-page" aria-labelledby="contribute-heading">
-        <header className="page-heading">
-          <div>
-            <p className="eyebrow">Community data</p>
-            <h1 id="contribute-heading">Contribute a deployment</h1>
-          </div>
-        </header>
-        <StateMessage
-          variant="error"
-          title="Reference data unavailable"
-          message="The controlled values needed for this form could not be loaded. Please try again later."
-        />
-      </section>
+      <StateMessage
+        variant="error"
+        title="Reference data unavailable"
+        message="The controlled values needed for this form could not be loaded. Please try again later."
+      />
     )
   }
 
   return (
-    <section className="product-page contribute-page" aria-labelledby="contribute-heading">
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">Community data</p>
-          <h1 id="contribute-heading">Contribute a deployment</h1>
-        </div>
-      </header>
-
+    <>
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
         <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. Enter both site coordinates so a new location can appear on the map after approval. Contributions are checked before they become part of the public market map.</p>
@@ -409,7 +413,7 @@ function ContributePage({
 
         <aside className="contribution-notice contribution-notice--next" aria-labelledby="contribution-next-heading">
           <h2 id="contribution-next-heading">What happens next</h2>
-          <p>We review the submission and its sources before publishing it. Your submission reference appears on the confirmation screen. Contact details are used only for clarification and are not published.</p>
+          <p>We review the submission and its sources before publishing it. Follow its review, and answer any request for changes, under My contributions in this browser; no account is needed. Contact details are used only for clarification and are not published.</p>
         </aside>
 
         {submitMessage && submitState === 'idle' && <p className="form-summary-error" role="alert">{submitMessage}</p>}
@@ -419,6 +423,69 @@ function ContributePage({
           {submitState === 'submitting' && <span className="form-help" role="status">Sending your contribution…</span>}
         </div>
       </form>
+    </>
+  )
+}
+
+type Tab = 'new' | 'mine'
+const TABS: readonly [Tab, string][] = [['new', 'New contribution'], ['mine', 'My contributions']]
+
+/** /contribute?tab=mine opens the list, for example from a link back to it */
+function initialTab(): Tab {
+  return new URLSearchParams(window.location.search).get('tab') === 'mine' ? 'mine' : 'new'
+}
+
+function ContributePage(props: ContributePageProps) {
+  const [tab, setTab] = useState<Tab>(initialTab)
+  const { items } = useMyContributions()
+
+  function select(next: Tab, focus = false) {
+    setTab(next)
+    if (focus) document.getElementById(`contribute-tab-${next}`)?.focus()
+  }
+
+  // Arrow keys move between the tabs, as the ARIA tabs pattern expects
+  function moveFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home' && event.key !== 'End') return
+    event.preventDefault()
+    const index = TABS.findIndex(([value]) => value === tab)
+    const next = event.key === 'Home' ? 0
+      : event.key === 'End' ? TABS.length - 1
+        : (index + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length
+    select(TABS[next][0], true)
+  }
+
+  return (
+    <section className="product-page contribute-page" aria-labelledby="contribute-heading">
+      <header className="page-heading">
+        <div>
+          <p className="eyebrow">Community data</p>
+          <h1 id="contribute-heading">Contribute</h1>
+        </div>
+      </header>
+      <div className="contribute-tabs" role="tablist" aria-label="Contribute" onKeyDown={moveFocus}>
+        {TABS.map(([value, label]) => (
+          <button
+            key={value}
+            id={`contribute-tab-${value}`}
+            className="contribute-tabs__tab"
+            type="button"
+            role="tab"
+            aria-selected={tab === value}
+            aria-controls={`contribute-panel-${value}`}
+            tabIndex={tab === value ? 0 : -1}
+            onClick={() => select(value)}
+          >
+            {label}
+            {value === 'mine' && items.length > 0 && <span className="contribute-tabs__count">{items.length}</span>}
+          </button>
+        ))}
+      </div>
+      <div className="contribute-panel" id={`contribute-panel-${tab}`} role="tabpanel" aria-labelledby={`contribute-tab-${tab}`}>
+        {tab === 'new'
+          ? <NewContribution {...props} onShowMine={() => select('mine')} />
+          : <MyContributions onStartNew={() => select('new')} />}
+      </div>
     </section>
   )
 }

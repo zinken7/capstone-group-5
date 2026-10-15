@@ -50,7 +50,7 @@ a deactivated account is signed out immediately.
 | Decision | Result |
 |---|---|
 | Approve | The record is verified and appears in public views. It needs at least one evidence URL and site coordinates. |
-| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it. |
+| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it under **My contributions** on the Contribute page, in the browser they submitted from. When they update the record, it returns to the queue marked **Changes made**, and its page shows your request beside what they changed. |
 | Reject | The record is closed: it stays out of public views and can no longer be corrected or decided. The contributor can submit it again as a new contribution. A note is required, and the contributor sees it. |
 
 A record needs at least one evidence URL and site coordinates before it can

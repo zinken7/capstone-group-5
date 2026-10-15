@@ -1,14 +1,19 @@
 import { requestJson } from './http'
 import type {
   ContributionFormValues,
+  ContributionStatus,
   ContributionSubmissionResult,
   ContributionVerificationStatus,
+  OwnContribution,
+  OwnContributionUpdate,
 } from '../../features/contribute/types'
+import { formatEnumLabel } from '../format'
 
 interface ContributionResponseDto {
   id?: number
   verification_status?: string
   verificationStatus?: string
+  key?: string
 }
 
 interface ContributionRequestDto {
@@ -64,7 +69,7 @@ function toContributionRequest(values: ContributionFormValues): ContributionRequ
 }
 
 function verificationStatus(value: string | undefined): ContributionVerificationStatus {
-  if (value === 'unverified' || value === 'pending_review' || value === 'verified' || value === 'rejected') {
+  if (value === 'unverified' || value === 'pending_review' || value === 'changes_requested' || value === 'verified' || value === 'rejected') {
     return value
   }
   return 'pending_review'
@@ -85,5 +90,88 @@ export async function postContribution(values: ContributionFormValues): Promise<
   return {
     id: typeof response.id === 'number' ? response.id : undefined,
     verificationStatus: verificationStatus(response.verification_status ?? response.verificationStatus),
+    key: typeof response.key === 'string' ? response.key : undefined,
   }
+}
+
+interface ContributionStatusDto {
+  id: number
+  verification_status: string
+  site_id: number
+  site_name: string
+  machine_manufacturer: string
+  machine_model: string | null
+  machine_type: string
+  quantity: number
+  submitted_at: string
+  updated_at: string
+  decision: { decision: string; note: string | null; decided_at: string } | null
+}
+
+interface OwnContributionDto extends ContributionStatusDto {
+  environment: string | null
+  deployment_status: string | null
+  automation_level: string
+  installation_type: string
+  commissioning_date: string | null
+  evidence_urls: string[]
+}
+
+function toStatus(dto: ContributionStatusDto): ContributionStatus {
+  return {
+    id: dto.id,
+    verificationStatus: dto.verification_status,
+    siteId: dto.site_id,
+    siteName: dto.site_name,
+    machine: dto.machine_model ? `${dto.machine_manufacturer} ${dto.machine_model}` : `${dto.machine_manufacturer} ${formatEnumLabel(dto.machine_type)}`,
+    quantity: dto.quantity,
+    submittedAt: dto.submitted_at,
+    updatedAt: dto.updated_at,
+    decision: dto.decision && { decision: dto.decision.decision, note: dto.decision.note, decidedAt: dto.decision.decided_at },
+  }
+}
+
+/** The submissions whose keys match, at most 50 per request; any other is left out (FR-59). */
+export async function checkContributionStatuses(items: readonly { id: number; key: string }[]): Promise<ContributionStatus[]> {
+  const response = await requestJson<{ items: ContributionStatusDto[] }>('contributions/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
+  return response.items.map(toStatus)
+}
+
+/** One's own submission, with the values the update form starts from. */
+export async function getOwnContribution(id: number, key: string): Promise<OwnContribution> {
+  const dto = await requestJson<OwnContributionDto>(`contributions/${id}`, { headers: { 'X-Contribution-Key': key } })
+  return {
+    ...toStatus(dto),
+    environment: dto.environment,
+    deploymentStatus: dto.deployment_status,
+    automationLevel: dto.automation_level,
+    installationType: dto.installation_type,
+    commissioningDate: dto.commissioning_date,
+    evidenceUrls: dto.evidence_urls,
+  }
+}
+
+/** Answers a request for changes; returns the new verification status (pending review). */
+export async function updateOwnContribution(id: number, key: string, update: OwnContributionUpdate): Promise<string> {
+  const response = await requestJson<{ verification_status: string }>(`contributions/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-Contribution-Key': key },
+    // JSON.stringify drops the fields left undefined
+    body: JSON.stringify({
+      quantity: update.quantity,
+      environment: update.environment,
+      deployment_status: update.deploymentStatus,
+      automation_level: update.automationLevel,
+      installation_type: update.installationType,
+      commissioning_date: update.commissioningDate,
+      evidence_urls: update.evidenceUrls,
+      change_note: update.changeNote,
+      disclosure_accepted: true,
+    }),
+  })
+  return response.verification_status
 }
