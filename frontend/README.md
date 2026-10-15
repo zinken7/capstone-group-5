@@ -77,8 +77,8 @@ src/
 └── main.tsx
 ```
 
-Some folders hold only a `.gitkeep` from the original scaffold. Keep
-feature-specific components, hooks, and presentation types inside their feature.
+Keep feature-specific components, hooks, and presentation types inside their
+feature.
 All transport and endpoint functions belong in the single shared `src/lib/api/`
 boundary; later register, export and analytics clients should extend it.
 
