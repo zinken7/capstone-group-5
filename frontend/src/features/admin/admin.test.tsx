@@ -170,6 +170,47 @@ describe('review queue', () => {
     expect(within(row).getByRole('link', { name: /review kalgoorlie super pit record 12/i })).toHaveAttribute('href', '/admin/deployments/12')
   })
 
+  test('marks a record its contributor changed while it waited', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 12, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: 'Sandvik', technology_product: null, evidence_count: 2, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'correction', correction_id: null, changed_fields: ['evidence_urls'], after_changes_requested: false, updated_while_pending: true,
+          resubmission_of: null, contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Updated while waiting')).toHaveClass('admin-kind--changes')
+  })
+
+  test('marks a resubmission of a rejected record', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 14, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: 'Sandvik', technology_product: null, evidence_count: 1, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'submission', correction_id: null, changed_fields: [], after_changes_requested: false, resubmission_of: 12,
+          contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Resubmission')).toHaveClass('admin-kind--resubmission')
+    expect(within(row).getByText('Replaces rejected record 12')).toBeInTheDocument()
+  })
+
   test('marks a record its contributor updated after a request for changes', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),
@@ -301,7 +342,7 @@ describe('record review', () => {
     expect(screen.getByRole('button', { name: 'Edit record' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Record decision' }))
-    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'approved', note: null })
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'approved', note: null, version: '2026-10-02T00:00:00Z' })
   })
 
   test('starts a record that lacks evidence and coordinates on asking the contributor for them', async () => {
@@ -349,6 +390,54 @@ describe('record review', () => {
     renderAt('/admin/deployments/13')
     expect(await screen.findByText(/No contact email was given/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Email contributor' })).not.toBeInTheDocument()
+  })
+
+  test('shows the rejected record a resubmission replaces, and links back from it', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/14': () => Response.json(recordDto({
+        id: 14,
+        resubmission_of: { id: 12, verification_status: 'rejected', decision: 'rejected', note: 'Wrong site', administrator: 'lead@example.com', reviewed_at: '2026-10-04T01:00:00Z' },
+        resubmitted_as: [],
+      })),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'rejected',
+        resubmission_of: null,
+        resubmitted_as: [{ id: 14, verification_status: 'pending_review' }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/14')
+
+    const panel = await screen.findByRole('region', { name: 'Resubmission of a rejected record' })
+    expect(panel).toHaveTextContent('rejected by lead@example.com')
+    expect(panel).toHaveTextContent('Wrong site')
+    await user.click(within(panel).getByRole('link', { name: 'record 12' }))
+
+    expect(await screen.findByText(/Resubmitted as/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'record 14' })).toHaveAttribute('href', '/admin/deployments/14')
+  })
+
+  test('reloads the record instead of deciding on a version the contributor has since changed', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': [
+        () => Response.json(recordDto()),
+        () => Response.json(recordDto({ quantity: 10, updated_at: '2026-10-03T00:00:00Z' })),
+      ],
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ error: 'the record changed since you opened it', updated_at: '2026-10-03T00:00:00Z' }, { status: 409 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    await screen.findByRole('heading', { name: 'Kalgoorlie Super Pit' })
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+
+    expect(await screen.findByText(/changed this record while you had it open/)).toBeInTheDocument()
+    expect(screen.getByText('10', { selector: 'dd' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record decision' })).toBeEnabled()
   })
 
   test('closes a rejected record: no decision and no editing', async () => {
@@ -402,7 +491,7 @@ describe('record review', () => {
     expect(screen.getByText('Rejected', { selector: '.status-badge' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
     expect(screen.getByText(/by reviewer@example.com/)).toBeInTheDocument()
-    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate' })
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'rejected', note: 'Duplicate', version: '2026-10-02T00:00:00Z' })
   })
 
   test('shows possible duplicate deployments with a link to the matching record', async () => {
@@ -584,10 +673,10 @@ describe('buildCorrection', () => {
   const record = {
     id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
-    technologySupplier: null, technologyProduct: null, possibleDuplicates: [],
+    technologySupplier: null, technologyProduct: null, possibleDuplicates: [], resubmissionOf: null, resubmittedAs: [],
     automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
-    validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],
+    validFrom: null, validTo: null, updatedAt: '2026-10-02T00:00:00.000Z', evidence: [], reviews: [], revisions: [], corrections: [],
   } satisfies ReviewRecord
   const unchanged = {
     quantity: '8', environment: '', deploymentStatus: '', automationLevel: '', installationType: 'unknown',

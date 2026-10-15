@@ -130,6 +130,9 @@ export interface ContributionStatus {
   submittedAt: string
   updatedAt: string
   decision: { decision: string; note: string | null; decidedAt: string } | null
+  /** The rejected submission this one replaces, and the latest one that replaced it (FR-60) */
+  resubmissionOf: number | null
+  resubmittedAs: number | null
 }
 
 /** The values of one's own submission that the update form starts from */
@@ -137,6 +140,16 @@ export interface OwnContribution extends ContributionStatus {
   /** The site's location; null when it has none, which approval needs */
   latitude: number | null
   longitude: number | null
+  /** The rest of the submission, which a resubmission starts from (FR-60) */
+  countryCode: string
+  region: string | null
+  commodity: string | null
+  machineType: string
+  machineManufacturer: string
+  machineModel: string | null
+  machineModelVariant: string | null
+  technologySupplier: string
+  technologyProduct: string | null
   environment: string | null
   deploymentStatus: string | null
   automationLevel: string
@@ -161,7 +174,12 @@ export interface OwnContributionUpdate {
   longitude?: number
 }
 
-export type ContributionSubmitter = (values: ContributionFormValues) => Promise<ContributionSubmissionResult | void>
+/** A submission that replaces a rejected one names it with that submission's key (FR-60) */
+export interface ContributionSubmitOptions {
+  resubmissionOf?: { id: number; key: string }
+}
+
+export type ContributionSubmitter = (values: ContributionFormValues, options?: ContributionSubmitOptions) => Promise<ContributionSubmissionResult | void>
 
 export const EMPTY_CONTRIBUTION_FORM: ContributionFormValues = {
   siteName: '',

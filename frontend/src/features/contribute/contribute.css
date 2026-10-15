@@ -17,6 +17,23 @@
   margin: 0;
 }
 
+/* Sending a rejected submission again */
+.contribution-notice--resubmit {
+  display: grid;
+  gap: var(--space-2);
+  border-color: #f2c078;
+  background: var(--color-warning-surface);
+}
+
+/* The grid spaces the heading, text and link, so the paragraph keeps no margin of its own */
+.contribution-notice.contribution-notice--resubmit p {
+  margin-top: 0;
+}
+
+.contribution-notice--resubmit .text-button {
+  justify-self: start;
+}
+
 .contribution-notice--next {
   border-color: #c7d2fe;
   background: #eef2ff;

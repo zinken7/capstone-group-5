@@ -2,6 +2,7 @@ import { requestJson } from './http'
 import type {
   ContributionFormValues,
   ContributionStatus,
+  ContributionSubmitOptions,
   ContributionSubmissionResult,
   ContributionVerificationStatus,
   OwnContribution,
@@ -39,6 +40,7 @@ interface ContributionRequestDto {
   contributor_email: string | null
   organisation: string | null
   disclosure_accepted: boolean
+  resubmission_of?: { id: number; key: string }
 }
 
 function toContributionRequest(values: ContributionFormValues): ContributionRequestDto {
@@ -80,11 +82,13 @@ function verificationStatus(value: string | undefined): ContributionVerification
  * The endpoint is implemented by backend Issue #64; until then, the API error
  * is surfaced by the page rather than being presented as a false success.
  */
-export async function postContribution(values: ContributionFormValues): Promise<ContributionSubmissionResult> {
+export async function postContribution(values: ContributionFormValues, options: ContributionSubmitOptions = {}): Promise<ContributionSubmissionResult> {
+  const body: ContributionRequestDto = toContributionRequest(values)
+  if (options.resubmissionOf) body.resubmission_of = options.resubmissionOf
   const response = await requestJson<ContributionResponseDto>('contributions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(toContributionRequest(values)),
+    body: JSON.stringify(body),
   })
 
   return {
@@ -106,11 +110,19 @@ interface ContributionStatusDto {
   submitted_at: string
   updated_at: string
   decision: { decision: string; note: string | null; decided_at: string } | null
+  resubmission_of: number | null
+  resubmitted_as: number | null
+  country_code: string
 }
 
 interface OwnContributionDto extends ContributionStatusDto {
   latitude: number | null
   longitude: number | null
+  region: string | null
+  commodity: string | null
+  machine_model_variant: string | null
+  technology_supplier: string
+  technology_product: string | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -130,6 +142,8 @@ function toStatus(dto: ContributionStatusDto): ContributionStatus {
     submittedAt: dto.submitted_at,
     updatedAt: dto.updated_at,
     decision: dto.decision && { decision: dto.decision.decision, note: dto.decision.note, decidedAt: dto.decision.decided_at },
+    resubmissionOf: dto.resubmission_of ?? null,
+    resubmittedAs: dto.resubmitted_as ?? null,
   }
 }
 
@@ -150,6 +164,15 @@ export async function getOwnContribution(id: number, key: string): Promise<OwnCo
     ...toStatus(dto),
     latitude: dto.latitude,
     longitude: dto.longitude,
+    countryCode: dto.country_code,
+    region: dto.region,
+    commodity: dto.commodity,
+    machineType: dto.machine_type,
+    machineManufacturer: dto.machine_manufacturer,
+    machineModel: dto.machine_model,
+    machineModelVariant: dto.machine_model_variant,
+    technologySupplier: dto.technology_supplier,
+    technologyProduct: dto.technology_product,
     environment: dto.environment,
     deploymentStatus: dto.deployment_status,
     automationLevel: dto.automation_level,

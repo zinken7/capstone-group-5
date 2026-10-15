@@ -199,6 +199,19 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             </dl>
           </section>}
 
+          {record.resubmissionOf && (
+            <section className="admin-panel admin-record__lead admin-resubmission" aria-labelledby="resubmission-heading">
+              <h2 id="resubmission-heading">Resubmission of a rejected record</h2>
+              <p className="form-help">
+                This replaces <Link to={`/admin/deployments/${record.resubmissionOf.id}`}>record {record.resubmissionOf.id}</Link>
+                {record.resubmissionOf.administrator && record.resubmissionOf.reviewedAt
+                  ? `, rejected by ${record.resubmissionOf.administrator}, ${formatDateTime(record.resubmissionOf.reviewedAt)}:`
+                  : '.'}
+              </p>
+              {record.resubmissionOf.note && <blockquote>{record.resubmissionOf.note}</blockquote>}
+            </section>
+          )}
+
           {record.possibleDuplicates.length > 0 && (
             <section
               className="admin-panel admin-record__lead"
@@ -276,7 +289,18 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             <DecisionForm
               // A new form once the record changes what it lacks, so the starting decision and note follow it
               key={approvalBlockers.map((blocker) => blocker.label).join('|')}
-              submit={(decision, note) => submitDecision(record.id, decision, note)}
+              submit={async (decision, note) => {
+                try {
+                  await submitDecision(record.id, decision, note, record.updatedAt)
+                } catch (cause) {
+                  // The contributor changed the record while it was open: show the latest version instead of deciding on the old one
+                  if (cause instanceof ApiError && cause.status === 409 && cause.message === 'the record changed since you opened it') {
+                    onChanged('The contributor changed this record while you had it open. Check the latest version below, then record your decision again.')
+                    throw new Error('This record changed while you had it open.', { cause })
+                  }
+                  throw cause
+                }
+              }}
               onDecided={() => onChanged('Decision recorded.')}
               noteShownToContributor
               approvalBlockers={approvalBlockers}
@@ -284,6 +308,13 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
           )}
           {!decidable && pendingCorrections.length === 0 && (
             <p className="admin-notice">{closedNotice(record.verificationStatus)}</p>
+          )}
+          {record.resubmittedAs.length > 0 && (
+            <p className="admin-notice">
+              Resubmitted as {record.resubmittedAs.map((item, index) => (
+                <span key={item.id}>{index > 0 && ', '}<Link to={`/admin/deployments/${item.id}`}>record {item.id}</Link> ({formatEnumLabel(item.verificationStatus).toLowerCase()})</span>
+              ))}.
+            </p>
           )}
           {submitter && (
             <section className="admin-panel admin-contact" aria-labelledby="contact-heading">

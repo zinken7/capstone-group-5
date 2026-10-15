@@ -7,6 +7,7 @@ import * as tables from '../db/schema.js'
 import { isoTimestamp } from '../lib/iso-timestamp.js'
 
 const manufacturer = alias(tables.company, 'manufacturer')
+const supplier = alias(tables.company, 'supplier')
 
 /**
  * The latest decision on the record itself, as the contributor reads it (FR-59).
@@ -38,6 +39,9 @@ const summaryColumns = {
   decision: latestDecision<string | null>('vr.decision::text'),
   decision_note: latestDecision<string | null>('vr.review_note'),
   decided_at: latestDecision<string | null>(`to_char(vr.reviewed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`),
+  // The rejected record this one replaces, and the latest record that replaced this one (FR-60)
+  resubmission_of: sql<number | null>`(SELECT r.previous_deployment_id::int FROM ${tables.resubmission} r WHERE r.deployment_id = ${tables.deployment.id})`,
+  resubmitted_as: sql<number | null>`(SELECT MAX(r.deployment_id)::int FROM ${tables.resubmission} r WHERE r.previous_deployment_id = ${tables.deployment.id})`,
 }
 
 export interface ContributionSummaryRow {
@@ -56,6 +60,8 @@ export interface ContributionSummaryRow {
   decision: string | null
   decision_note: string | null
   decided_at: string | null
+  resubmission_of: number | null
+  resubmitted_as: number | null
 }
 
 /** Submissions that hold a key, by id, with their key hash for the caller to check. */
@@ -75,6 +81,11 @@ export async function findContributionSummaries(ids: readonly number[]): Promise
 export interface ContributionDetailRow extends ContributionSummaryRow {
   latitude: number | null
   longitude: number | null
+  region: string | null
+  commodity: string | null
+  machine_model_variant: string | null
+  technology_supplier: string
+  technology_product: string | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -91,6 +102,11 @@ export async function findContributionDetail(id: number): Promise<ContributionDe
       ...summaryColumns,
       latitude: sql<number | null>`ST_Y(${tables.site.point4326})`,
       longitude: sql<number | null>`ST_X(${tables.site.point4326})`,
+      region: tables.region.name,
+      commodity: tables.site.commodity,
+      machine_model_variant: tables.machineModel.modelVariant,
+      technology_supplier: supplier.name,
+      technology_product: tables.technologyProduct.productName,
       environment: tables.deployment.environment,
       deployment_status: tables.deployment.status,
       automation_level: tables.deployment.automationLevel,
@@ -103,6 +119,9 @@ export async function findContributionDetail(id: number): Promise<ContributionDe
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
     .innerJoin(tables.machineModel, eq(tables.machineModel.id, tables.deployment.machineModelId))
     .innerJoin(manufacturer, eq(manufacturer.id, tables.machineModel.manufacturerId))
+    .leftJoin(tables.region, eq(tables.region.id, tables.site.regionId))
+    .innerJoin(supplier, eq(supplier.id, tables.deployment.technologySupplierId))
+    .leftJoin(tables.technologyProduct, eq(tables.technologyProduct.id, tables.deployment.technologyProductId))
     .where(eq(tables.deployment.id, id))
   const row = rows[0]
   if (!row) return null

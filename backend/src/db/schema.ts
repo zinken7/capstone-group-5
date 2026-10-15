@@ -338,3 +338,23 @@ export const contributionKey = pgTable("contribution_key", {
 		}).onDelete("cascade"),
 	check("contribution_key_hash_format", sql`key_hash ~ '^[0-9a-f]{64}$'::text`),
 ]);
+
+export const resubmission = pgTable("resubmission", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	deploymentId: bigint("deployment_id", { mode: "number" }).primaryKey().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	previousDeploymentId: bigint("previous_deployment_id", { mode: "number" }).notNull(),
+}, (table) => [
+	index("resubmission_previous_deployment_id_idx").using("btree", table.previousDeploymentId.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+			columns: [table.deploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_deployment_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.previousDeploymentId],
+			foreignColumns: [deployment.id],
+			name: "resubmission_previous_deployment_id_fkey"
+		}),
+	check("resubmission_not_itself", sql`deployment_id <> previous_deployment_id`),
+]);

@@ -39,6 +39,7 @@ describe('validateContribution', () => {
         evidenceUrls: [],
         contributorEmail: null,
         organisation: null,
+        resubmissionOf: null,
       },
     })
   })

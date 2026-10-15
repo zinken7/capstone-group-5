@@ -22,6 +22,8 @@ const statusItem = (overrides: Record<string, unknown> = {}) => ({
   submitted_at: '2026-10-02T03:00:00.000Z',
   updated_at: '2026-10-09T03:00:00.000Z',
   decision: null,
+  resubmission_of: null,
+  resubmitted_as: null,
   ...overrides,
 })
 
@@ -151,7 +153,8 @@ describe('My contributions', () => {
 
     expect(await within(row).findByText(/Sent for review/)).toBeInTheDocument()
     expect(within(row).getByText('Pending review')).toBeInTheDocument()
-    expect(within(row).queryByRole('button', { name: 'Update submission' })).not.toBeInTheDocument()
+    // Back in review, it can still be updated, now as a secondary action
+    expect(within(row).getByRole('button', { name: 'Update submission' })).toHaveClass('button--secondary')
     const patch = calls.find((call) => call.key === 'PATCH /api/contributions/20412')
     expect(new Headers(patch?.init?.headers).get('X-Contribution-Key')).toBe(KEY)
     expect(JSON.parse(String(patch?.init?.body))).toEqual({ quantity: 14, evidence_urls: ['https://example.com/annual-report'], disclosure_accepted: true })
@@ -211,6 +214,87 @@ describe('My contributions', () => {
     expect(within(verified).getByRole('link', { name: 'View on register' })).toHaveAttribute('href', '/equipment?site_id=9')
     const missing = screen.getByRole('listitem', { name: /old pit/i })
     expect(within(missing).getByText('No longer available')).toBeInTheDocument()
+  })
+
+  test('lets a submission waiting for review be updated, and keeps it waiting', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    const calls = stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [statusItem()] }),
+      'GET /api/contributions/20412': () => Response.json({
+        ...statusItem(),
+        latitude: -30.7, longitude: 121.4, region: null, commodity: null, machine_model_variant: null,
+        technology_supplier: 'Caterpillar', technology_product: null,
+        environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
+        commissioning_date: null, evidence_urls: [],
+      }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'PATCH /api/contributions/20412': () => Response.json({ id: 20412, verification_status: 'pending_review' }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    const button = await within(row).findByRole('button', { name: 'Update submission' })
+    expect(button).toHaveClass('button--secondary')
+    await user.click(button)
+    await user.type(await within(row).findByRole('textbox', { name: /new source url/i }), 'https://example.com/annual-report')
+    await user.click(within(row).getByLabelText(/i confirm that this information is accurate/i))
+    await user.click(within(row).getByRole('button', { name: 'Send for review' }))
+
+    expect(await within(row).findByText(/still waiting for review, now with your changes/)).toBeInTheDocument()
+    expect(within(row).getByText('Pending review')).toBeInTheDocument()
+    expect(JSON.parse(String(calls.find((call) => call.key === 'PATCH /api/contributions/20412')?.init?.body))).toEqual({
+      evidence_urls: ['https://example.com/annual-report'], disclosure_accepted: true,
+    })
+  })
+
+  test('resubmits a rejected submission from a prefilled form, linked to it', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    const calls = stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [statusItem({
+        verification_status: 'rejected',
+        decision: { decision: 'rejected', note: 'This is the processing plant, not the mine.', decided_at: '2026-09-18T03:00:00.000Z' },
+      })] }),
+      'GET /api/contributions/20412': () => Response.json({
+        ...statusItem({ verification_status: 'rejected' }),
+        latitude: -30.7, longitude: 121.4, region: 'Goldfields', commodity: 'gold', machine_model_variant: null,
+        technology_supplier: 'Caterpillar', technology_product: 'Cat Command',
+        environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
+        commissioning_date: '2021', evidence_urls: ['https://example.com/plant'],
+      }),
+      'POST /api/contributions': () => Response.json({ id: 20460, verification_status: 'pending_review', key: 'n'.repeat(43) }, { status: 201 }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    await user.click(await within(row).findByRole('button', { name: 'Resubmit' }))
+
+    expect(await screen.findByRole('heading', { name: 'Resubmitting #20412' })).toBeInTheDocument()
+    expect(screen.getByText('This is the processing plant, not the mine.')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'New contribution' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText(/mine site name/i)).toHaveValue('Ashgrove Mine')
+    expect(screen.getByPlaceholderText('e.g. 793F')).toHaveValue('793F')
+    expect(screen.getByLabelText(/site latitude/i)).toHaveValue(-30.7)
+    expect(screen.getByDisplayValue('https://example.com/plant')).toBeInTheDocument()
+
+    const site = screen.getByLabelText(/mine site name/i)
+    await user.clear(site)
+    await user.type(site, 'Ashgrove North Pit')
+    await user.click(screen.getByLabelText(/authorised to disclose/i))
+    await user.click(screen.getByRole('button', { name: /submit deployment/i }))
+
+    expect(await screen.findByRole('heading', { name: /contribution received/i })).toBeInTheDocument()
+    const post = calls.find((call) => call.key === 'POST /api/contributions')
+    expect(JSON.parse(String(post?.init?.body))).toEqual(expect.objectContaining({
+      site_name: 'Ashgrove North Pit',
+      machine_manufacturer: 'Caterpillar',
+      resubmission_of: { id: 20412, key: KEY },
+    }))
+
+    await user.click(screen.getByRole('button', { name: 'See my contributions' }))
+    expect(within(screen.getByRole('listitem', { name: /ashgrove mine/i })).getByText(/You resubmitted it as #20460/)).toBeInTheDocument()
+    expect(screen.getByRole('listitem', { name: /ashgrove north pit/i })).toBeInTheDocument()
   })
 
   test('removes a submission from this browser only after confirming', async () => {
