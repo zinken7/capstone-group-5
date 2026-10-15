@@ -31,20 +31,17 @@ router.patch('/deployments/:id', async (req, res, next) => {
       res.status(404).json({ error: 'deployment not found' })
       return
     }
+    if (outcome.kind === 'not_verified') {
+      // The status is not named: a record that is not verified is not public
+      res.status(403).json({ error: 'only verified records can be corrected' })
+      return
+    }
     if (outcome.kind === 'unchanged') {
       res.status(400).json({ error: 'correction does not change the record' })
       return
     }
-    if (outcome.kind === 'invalid_window') {
-      res.status(400).json({ error: 'invalid correction', fields: { commissioning_date: 'must not be after valid_to' } })
-      return
-    }
-    if (outcome.kind === 'proposed') {
-      // Accepted for review: the verified record stays public and unchanged until an administrator decides
-      res.status(202).json({ id: outcome.id, correction_id: outcome.correctionId, verification_status: outcome.verificationStatus })
-      return
-    }
-    res.status(200).json({ id: outcome.id, verification_status: outcome.verificationStatus })
+    // Accepted for review: the verified record stays public and unchanged until an administrator decides
+    res.status(202).json({ id: outcome.id, correction_id: outcome.correctionId, verification_status: outcome.verificationStatus })
   } catch (error) {
     next(error)
   }

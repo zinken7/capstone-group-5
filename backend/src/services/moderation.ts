@@ -27,7 +27,11 @@ import {
 import type { QueueItem, ReviewRecord, SubmissionHistoryOptions } from '../repositories/moderation.js'
 import { alignValidity, changesFromProposed, diffChanges, windowOrdered } from './corrections.js'
 
-/** Verification status after each decision. A record that needs changes leaves the queue until a correction returns it. */
+/**
+ * Verification status after each decision. A record that needs changes leaves
+ * the queue and nothing returns it until the changes requested status (#204),
+ * so the administration interface does not offer that decision meanwhile.
+ */
 const STATUS_AFTER: Record<ReviewDecision, string> = {
   approved: 'verified',
   rejected: 'rejected',
