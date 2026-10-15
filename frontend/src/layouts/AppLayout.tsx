@@ -70,12 +70,13 @@ function AppLayout({ children }: PropsWithChildren) {
               type="button"
               onClick={() => {
                 // Stays on this page; focus goes to its content, as the strip is gone
-                void session.signOut().then(() => document.getElementById('main-content')?.focus())
+                void session.signOut().then((signedOut) => { if (signedOut) document.getElementById('main-content')?.focus() })
               }}
             >
               Sign out
             </button>
           </div>
+          {session.signOutFailed && <p className="admin-strip__error" role="alert">Sign-out failed, so you are still signed in. Check your connection and try again.</p>}
         </div>
       )}
       <header className="site-header">

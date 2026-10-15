@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
@@ -19,7 +19,10 @@ interface AdminSessionValue {
   state: SessionState
   load: () => void
   setProfile: (profile: AdminProfile | null) => void
-  signOut: () => Promise<void>
+  /** Resolves to whether the server ended the session; on failure the administrator stays signed in */
+  signOut: () => Promise<boolean>
+  /** Set when the last sign-out did not reach the server */
+  signOutFailed: boolean
   /** Turns an API error into a message, and reacts to an ended session or a pending password change. */
   handleError: (error: unknown) => string
 }
@@ -81,12 +84,25 @@ export function AdminSessionProvider({ children }: PropsWithChildren) {
     setState(profile ? { status: 'signed-in', profile } : { status: 'signed-out' })
   }, [])
 
+  const [signOutFailed, setSignOutFailed] = useState(false)
+  // The session to go back to if signing out fails
+  const lastSignedIn = useRef<SessionState | null>(null)
+  useEffect(() => {
+    if (state.status === 'signed-in') lastSignedIn.current = state
+  }, [state])
+
   const signOut = useCallback(async () => {
+    setSignOutFailed(false)
     setState({ status: 'signing-out' })
     try {
       await apiSignOut()
-    } finally {
       setState({ status: 'signed-out' })
+      return true
+    } catch {
+      // The cookie may still work, so showing the administrator as signed out would be wrong on a shared computer
+      setState(lastSignedIn.current ?? { status: 'unknown' })
+      setSignOutFailed(true)
+      return false
     }
   }, [])
 
@@ -104,7 +120,7 @@ export function AdminSessionProvider({ children }: PropsWithChildren) {
     return error instanceof Error ? error.message : 'Something went wrong.'
   }, [])
 
-  const value = useMemo(() => ({ state, load, setProfile, signOut, handleError }), [state, load, setProfile, signOut, handleError])
+  const value = useMemo(() => ({ state, load, setProfile, signOut, signOutFailed, handleError }), [state, load, setProfile, signOut, signOutFailed, handleError])
   return <AdminSessionContext.Provider value={value}>{children}</AdminSessionContext.Provider>
 }
 

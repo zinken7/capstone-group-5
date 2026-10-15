@@ -185,6 +185,23 @@ describe('administration access', () => {
     expect(window.localStorage.getItem('mining-market-map.admin-signed-in')).toBeNull()
   })
 
+  test('keeps the administrator signed in, and says so, when sign-out does not reach the server', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'DELETE /api/admin/session': () => { throw new TypeError('Failed to fetch') },
+    })
+    window.localStorage.setItem('mining-market-map.admin-signed-in', '1')
+    const user = userEvent.setup()
+    renderAt('/contribute')
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByText(/Sign-out failed, so you are still signed in./)).toHaveAttribute('role', 'alert')
+    expect(screen.getByText('Signed in as administrator')).toBeInTheDocument()
+    expect(window.localStorage.getItem('mining-market-map.admin-signed-in')).toBe('1')
+  })
+
   test('does not ask for a session on public pages when no administrator signed in here', async () => {
     const calls = stubApi({ 'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }) })
     renderAt('/contribute')
