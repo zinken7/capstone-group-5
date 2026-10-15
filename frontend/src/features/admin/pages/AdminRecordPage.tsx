@@ -231,7 +231,7 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             <p className="admin-notice">
               {record.verificationStatus === 'verified'
                 ? 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
-                : 'Decisions apply to records pending review. A record sent back for changes cannot return to the queue or be decided until #204 is built.'}
+                : 'Decisions apply to records pending review. A record sent back for changes waits here until contributors can update their submissions.'}
             </p>
           )}
           <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />
