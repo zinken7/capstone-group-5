@@ -12,6 +12,8 @@ author-meta: "Group 5 — CITS5206 Capstone Project"
      LINKS MUST BE FULL URLs. This PDF is submitted on its own, so a
      repo-relative path is not resolvable by a marker. -->
 
+\vspace{1.5em}
+
 # Resources {-}
 
 The client and the facilitator have access to every resource listed below. Issue and pull request numbers in this report, such as #212, refer to the repository: <https://github.com/zinken7/capstone-group-5/issues> and <https://github.com/zinken7/capstone-group-5/pulls>.
@@ -25,5 +27,7 @@ The client and the facilitator have access to every resource listed below. Issue
 | Meeting minutes | [github.com/zinken7/capstone-group-5/tree/main/docs/meeting_minutes](https://github.com/zinken7/capstone-group-5/tree/main/docs/meeting_minutes) |
 | Project plan | [github.com/zinken7/capstone-group-5/blob/main/docs/project_plan.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/project_plan.md) |
 | Requirements (SRS) | [github.com/zinken7/capstone-group-5/blob/main/docs/SRS/SRS.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/SRS/SRS.md) |
+| User guide | [github.com/zinken7/capstone-group-5/blob/main/docs/user-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/user-guide.md) |
+| Administrator guide | [github.com/zinken7/capstone-group-5/blob/main/docs/admin-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/admin-guide.md) |
 | Correspondence log | [github.com/zinken7/capstone-group-5/blob/main/docs/correspondence-log.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/correspondence-log.md) |
 | MS Teams, Group 5 channel | [Group 5](https://teams.microsoft.com/l/channel/19%3AfvBJwIlvNLIFMkJIF_iFXR2U_5aoDH6Dy1oAl_S1FJI1%40thread.tacv2/Group%205?groupId=4259f431-6994-4e09-90b6-cac70831356a&tenantId=05894af0-cb28-46d8-8716-74cdb46e2226) |
