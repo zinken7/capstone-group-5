@@ -12,7 +12,7 @@ We built an open, crowdsourced and queryable map of autonomous and teleremote mi
 
 **The need.** Deployment data is sold in market reports at about $50,000–100,000 each, and each report is a single source that nobody can check (client meeting, 6 August \[5\]). No open dataset exists, so startups, analysts and researchers are locked out.
 
-**Requirements.** The written brief names four functions: an interactive map, an analytics dashboard, a queryable register, and verified crowdsourcing. We turned three client meetings and two industry users' input into a specification, now at version 0.6, with version 0.7 in review (PR #210) \[1\], following our project plan \[3\]. Every requirement records its source, and anything the team proposed without a source is marked as such. The client received an MVP scope agreement on 8 October, and a revision matching the build to sign on 16 October \[2\]. **\[UPDATE once signed.\]**
+**Requirements.** The written brief names four functions: an interactive map, an analytics dashboard, a queryable register, and verified crowdsourcing. We turned three client meetings and two industry users' input into a specification, now at version 0.7 (PR #210) \[1\], following our project plan \[3\]. Every requirement records its source, and anything the team proposed without a source is marked as such. The client received an MVP scope agreement on 8 October, and a revision matching the build to sign on 16 October \[2\]. **\[UPDATE once signed.\]**
 
 **Solution.** The system is written in TypeScript: a React front end with a Leaflet map, and a Node API using Drizzle ORM over PostgreSQL with PostGIS. Staging runs on Vercel and redeploys from the main branch. Public pages show verified records only; a record needs at least one evidence link before it can be verified, and nothing is published until an administrator approves it.
 
@@ -25,7 +25,7 @@ We built an open, crowdsourced and queryable map of autonomous and teleremote mi
 | All pages | Accessibility to WCAG 2.1 AA (NFR-01) | — |
 | Optional: evidence check (FR-55) | Separate module that checks a submission against its evidence link | Connection to the review screen, awaiting the client's decision |
 
-Beyond the MVP, staging also has extra map filters (country, machine type, automation level) and a breakdown of machines by automation level. **\[CONFIRM the full list of Should items delivered.\]**
+Beyond the MVP, staging also has extra map filters (country, machine type, automation level) and a breakdown of machines by automation level. Section 7 records the remaining Should-scope gaps: FR-12 is partly delivered because regions are matched from text, FR-13 is present in the data model and seed only, and FR-32, FR-33, FR-38, FR-49 and FR-50 are not delivered this semester.
 
 # Verification and testing
 
@@ -33,7 +33,7 @@ Every change passed automated tests in CI and a review by another member before 
 
 | Activity | What it checks | Evidence |
 | ---- | -------------- | ----- |
-| Automated tests in CI | Every pull request runs the test suite, and our definition of done requires it to pass before merge. On main at PR #212 (15 October), the backend suite has 360 tests and the frontend suite 209; run `npm test` in `backend/` or `frontend/`. **\[RE-RUN before submission: main has moved since.\]** | [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
+| Automated tests in CI | Every pull request runs the test suite, and our definition of done requires it to pass before merge. On main after the latest release merges (15 October), the backend suite has 413 tests and the frontend suite 246; run `npm test` in `backend/` or `frontend/`. | [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
 | Schema check in CI | The build fails if the code and the database schema drift apart, after the data layer moved to Drizzle ORM. The move itself caught two bugs. | PR #102 |
 | Code review | No pull request merges without review. Reviewers reproduce problems before reporting them: a reported data leak was reproduced locally first and fixed before merge. | PR #173 |
 | Manual QA | Each page checked against a written checklist on staging, by a member other than its author. | [QA checklist](https://github.com/zinken7/capstone-group-5/blob/main/docs/sprint-2-frontend-qa-checklist.md) |
@@ -51,7 +51,7 @@ The README sets out how to install, run and test the system, and each user role 
 | ---- | ---- | -------- | ------- |
 | README | Developers, markers | Requirements, downloading the code, starting the backend, database and frontend, creating an administrator, environment variables, troubleshooting | [README](https://github.com/zinken7/capstone-group-5#readme); tested by following it on a clean Ubuntu VM, macOS and Windows (#189, PR #190) |
 | Administrator guide | Reviewers | Signing in, reviewing the queue, approving, rejecting and correcting a record | [admin-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/admin-guide.md) |
-| User guide | Public users and contributors | Using the map, analytics and register; submitting a record with evidence | **\[MISSING: no user guide in docs yet\]** |
+| User guide | Public users and contributors | Using the map, analytics and register; submitting a record with evidence | [user-guide.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/user-guide.md) |
 | Deployment and CI | Whoever hosts it next | How staging deploys from main, database migrations, CI checks | [staging.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/staging.md), [ci.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/ci.md) |
 | API reference | Developers | Endpoints and their parameters | [api/README.md](https://github.com/zinken7/capstone-group-5/blob/main/docs/api/README.md) |
 | Data model and architecture | Developers | Entity-relationship diagram, architecture diagram | [ERD](https://github.com/zinken7/capstone-group-5/blob/main/docs/database/ERD.md), [architecture](https://github.com/zinken7/capstone-group-5/blob/main/docs/images/mvp_architecture.pdf) |
@@ -67,10 +67,10 @@ All must-have items in the agreed MVP are delivered, and the remaining gaps are 
 
 **Open issues at submission** ([issue list](https://github.com/zinken7/capstone-group-5/issues)):
 
-- \#203 to \#209, with SRS version 0.7 (PR #210): closing the review loop. Requesting changes only works if the contributor can answer, and contributors have no account. Version 0.7 proposes a private submission key so contributors can follow and update their own submissions, and asks the client to confirm the loop (Q-23); the team is still agreeing whether the key is a Must for this semester. Until then, "request changes" is held back (PR #212): an administrator corrects and approves a record, or rejects it with a note.
-- Optional contributor email: FR-40 lets a contributor leave an email so an administrator can follow up. The correction form collects one; the submission form does not yet.
+- \#203 to \#209, with SRS version 0.7 (PR #210): the closed review loop is implemented. Contributors can follow submissions without an account, update pending or changes-requested records, resubmit rejected records as linked submissions, and use a private tracking link; administrators still make the final decisions. The client confirmation of this team proposal remains to be collected.
+- Optional contributor email: FR-40 lets a contributor leave an email so an administrator can follow up. It is available in the expanded submission form and in the correction form, and is shown only to administrators.
 - \#83 and \#69: the evidence check works as a separate module but is not yet connected to the review screen. Connecting it needs the client's decision, a rebase onto main, a guard on outbound requests, and a background worker, which the current serverless host cannot run.
-- Abuse protection: the public forms have no rate limiting, so a script could flood the review queue. **\[CHECK: whether the FR-51 submission challenge is built.\]**
+- Abuse protection: the public contribution and correction forms now use a hidden `website` honeypot that rejects automated submissions before validation (FR-51, PR #165). Rate limiting is not implemented, so a shared-store solution would be the next hardening step.
 
 **What worked.** Tracing every requirement to its source kept scope discussions short: when a feature was questioned, the source settled it. Delivering one complete slice per sprint meant there was always something to show the client.
 
@@ -78,8 +78,8 @@ All must-have items in the agreed MVP are delivered, and the remaining gaps are 
 
 **Future work:**
 
-1. Close the review loop: collect the optional email on the submission form, with an "Email contributor" link for administrators, then add the private submission key so contributors can follow and update their own submissions (#204 to #209).
-2. Add rate limiting and an automated-submission challenge (FR-51) to the public forms.
+1. Complete the handover: confirm the MVP scope agreement and licences with the client, and publish the final user, administrator and deployment guides.
+2. Add rate limiting or another shared-store abuse-control layer; the hidden honeypot challenge is already in place.
 3. Connect the evidence check to the review screen, if the client agrees, and fix its three known weaknesses (planned deployments, wrong site, company relationships).
 4. Extend it to use source publication dates, detect page language, and learn from reviewers' decisions.
 5. Replace the placeholder data with real records from industry contributors.
@@ -104,7 +104,6 @@ We used generative AI in documents, code and review, under two team rules.
 | Shee Wang | Codex/ChatGPT, for checking frontend code and improving English wording. I used it to review UI changes in the map, Equipment register and contribution/correction forms, and to organise explanations for the report and presentation. | I checked suggestions against the code, tests, staging behaviour and project requirements. I made the final decisions and edits myself. For example, I rejected a suggested mobile map layout change when it did not preserve the existing marker focus and detail-panel behaviour, and I rewrote AI-provided English before adding it to the report. |
 | Hengan Weng | Codex/ChatGPT, for technical guidance, debugging, testing, code review, and documentation across various project tasks. | I independently reviewed and verified AI suggestions through code inspection, testing, and CI. For Issue #168, I checked the suggested implementation against the existing code and reviewer feedback, revised the changes rather than accepting the initial output unchanged, and validated the updated implementation through testing and CI before merging PR #192. |
 
-**\[NOTE FOR TEAM, delete before submission\]** The top band of the AI criterion asks for evidence that AI output was critically evaluated and adapted. Each row needs one concrete case, such as a suggestion you tested and fixed, or one you rejected and why. “Used ChatGPT for code” alone scores Competent at best. PR #147 came from a `codex/` branch, so its author should list Codex.
 
 # References
 
