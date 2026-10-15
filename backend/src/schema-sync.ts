@@ -128,6 +128,71 @@ async function resolveIntrospectionUrl(): Promise<string> {
   )
 }
 
+/**
+ * drizzle-kit reads the catalogs without ORDER BY, so the order of tables
+ * and of a composite foreign key's columns follows the plan and the rows'
+ * physical position, which autovacuum and HOT updates change from run to
+ * run: the same migrations then introspect differently and the drift check
+ * fails at random. Forcing index scans and nested loops for this connection
+ * only makes PostgreSQL return catalog rows in index order, the same every time.
+ */
+function introspectionUrl(url: URL): string {
+  const deterministic = new URL(url)
+  deterministic.searchParams.set('options', '-c enable_seqscan=off -c enable_hashjoin=off -c enable_mergejoin=off')
+  return deterministic.toString()
+}
+
+interface CompositeForeignKey {
+  name: string
+  table: string
+  foreign_table: string
+  columns: string[]
+  foreign_columns: string[]
+}
+
+/** Each foreign key over several columns, with its columns paired as the catalog defines them. */
+async function compositeForeignKeys(url: string): Promise<CompositeForeignKey[]> {
+  return withClient(url, async (client) => (await client.query<CompositeForeignKey>(`
+    SELECT con.conname::text AS name, rel.relname::text AS "table", frel.relname::text AS foreign_table,
+      (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(con.conkey) WITH ORDINALITY AS k(attnum, ord)
+        JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum) AS columns,
+      (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(con.confkey) WITH ORDINALITY AS k(attnum, ord)
+        JOIN pg_attribute a ON a.attrelid = con.confrelid AND a.attnum = k.attnum) AS foreign_columns
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_class frel ON frel.oid = con.confrelid
+    WHERE con.contype = 'f' AND cardinality(con.conkey) > 1
+    ORDER BY con.conname
+  `)).rows)
+}
+
+const camelCase = (name: string) => name.replace(/_([a-z0-9])/g, (_, letter: string) => letter.toUpperCase())
+
+/**
+ * drizzle-kit collects a composite foreign key's columns from a cross join
+ * and keeps first-seen order on each side, so it can pair them wrongly
+ * (site.country_code with region.id). This rewrites each such key, and the
+ * relation drizzle-kit derives from it, with the catalog's own pairing.
+ */
+function pairCompositeForeignKeys(filename: string, source: string, keys: readonly CompositeForeignKey[]): string {
+  let result = source
+  for (const key of keys) {
+    const tableName = camelCase(key.table)
+    const foreignName = camelCase(key.foreign_table)
+    if (filename === 'schema.ts') {
+      const block = new RegExp(`columns: \\[[^\\]]*\\],(\\s*)foreignColumns: \\[[^\\]]*\\],(\\s*)name: "${key.name}"`)
+      const columns = key.columns.map((column) => `table.${camelCase(column)}`).join(', ')
+      const foreignColumns = key.foreign_columns.map((column) => `${foreignName}.${camelCase(column)}`).join(', ')
+      result = result.replace(block, (_match, gap1: string, gap2: string) => `columns: [${columns}],${gap1}foreignColumns: [${foreignColumns}],${gap2}name: "${key.name}"`)
+    } else {
+      // The derived relation names one pair of columns: the catalog's first
+      const relation = new RegExp(`fields: \\[${tableName}\\.(?:${key.columns.map(camelCase).join('|')})\\],(\\s*)references: \\[${foreignName}\\.(?:${key.foreign_columns.map(camelCase).join('|')})\\]`)
+      result = result.replace(relation, (_match, gap: string) => `fields: [${tableName}.${camelCase(key.columns[0] ?? '')}],${gap}references: [${foreignName}.${camelCase(key.foreign_columns[0] ?? '')}]`)
+    }
+  }
+  return result
+}
+
 /** Prints a unified diff between the committed and freshly introspected file. */
 function printDiff(committedPath: string, freshPath: string): void {
   const result = spawnSync(
@@ -152,12 +217,15 @@ async function syncSchema(update: boolean): Promise<void> {
   try {
     const env = { ...process.env, DATABASE_URL: scratchUrl.toString() }
     run('npm', ['run', '--silent', 'db:migrate'], env)
-    run('npx', ['drizzle-kit', 'pull'], { ...env, DRIZZLE_OUT: outDirectory })
+    // Fresh statistics, so the planner chooses the same plan however autovacuum ran during the migrations
+    await withClient(scratchUrl.toString(), (client) => client.query('ANALYZE'))
+    run('npx', ['drizzle-kit', 'pull'], { ...env, DATABASE_URL: introspectionUrl(scratchUrl), DRIZZLE_OUT: outDirectory })
 
+    const keys = await compositeForeignKeys(scratchUrl.toString())
     let drifted = false
     for (const filename of SCHEMA_FILES) {
       const freshPath = path.join(outDirectory, filename)
-      const fresh = normalise(await readFile(freshPath, 'utf8'))
+      const fresh = pairCompositeForeignKeys(filename, normalise(await readFile(freshPath, 'utf8')), keys)
       await writeFile(freshPath, fresh)
       const committedPath = path.join(committedDirectory, filename)
 
