@@ -251,4 +251,26 @@ describe('ContributePage', () => {
     expect(screen.getByText('Server rejected submission')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Roy Hill')).toBeInTheDocument()
   })
+
+  test('limits optional text fields to the backend maximum lengths', async () => {
+    const user = userEvent.setup()
+    render(<ContributePage referenceData={DEFAULT_CONTRIBUTION_REFERENCE_DATA} />)
+
+    await user.click(screen.getByRole('button', { name: /add more detail/i }))
+
+    const cases = [
+      { label: /state or region/i, max: 100 },
+      { label: /commodity/i, max: 100 },
+      { label: /machine model variant/i, max: 100 },
+      { label: /technology product/i, max: 200 },
+      { label: /organisation/i, max: 200 },
+    ]
+
+    for (const { label, max } of cases) {
+      const input = screen.getByLabelText(label) as HTMLInputElement
+
+      expect(input).toHaveAttribute('maxLength', String(max))
+      expect(input.maxLength).toBe(max)
+    }
+  })
 })
