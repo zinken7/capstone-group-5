@@ -64,10 +64,15 @@ the numbers behind any chart. The counts are over verified records only.
    Autonomous. Both are required; the product is optional. **Add more detail**
    opens optional fields: region, commodity, model variant, environment,
    deployment status and installation type.
-4. Add at least one **evidence** link, a public web page that supports what
-   you entered. A record cannot be approved without one.
-5. **Submit**. The confirmation tells you if anything approval needs is still
-   missing, and links to **My contributions**.
+4. Under **Evidence and contact**, add at least one **evidence** link, a public
+   web page that supports what you entered (**Add another source** for more, up
+   to 10). A record cannot be approved without one. **Contact email** is
+   optional: it is used only if the team needs clarification, and never
+   published.
+5. Tick the box confirming that you are authorised to disclose the
+   information, then **Submit deployment**. The confirmation tells you if
+   anything approval needs is still missing, offers a private tracking link,
+   and has **See my contributions**.
 
 Your submission goes into the review queue. It becomes public when an
 administrator approves it.
