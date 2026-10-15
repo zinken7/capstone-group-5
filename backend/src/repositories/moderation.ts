@@ -41,6 +41,8 @@ export interface QueueItem {
   changed_fields: string[]
   /** The contributor's update answers an administrator's request for changes (FR-59) */
   after_changes_requested: boolean
+  /** The contributor changed the record while it waited for review */
+  updated_while_pending: boolean
   /** The rejected record this submission replaces (FR-60) */
   resubmission_of: number | null
   contributor_email: string | null
@@ -111,6 +113,7 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
       correction_id: null,
       changed_fields: changedFields,
       after_changes_requested: revision?.action === 'update' && revision.previous_values?.verification_status === 'changes_requested',
+      updated_while_pending: revision?.action === 'update' && revision.previous_values?.verification_status === 'pending_review',
       contributor_email: revision?.contributor_email ?? null,
       contributor_organisation: revision?.contributor_organisation ?? null,
     }
@@ -247,6 +250,7 @@ export async function listPendingCorrections(): Promise<QueueItem[]> {
     kind: 'correction',
     changed_fields: [...Object.keys(proposed_values), ...(row.evidence_count > 0 ? ['evidence_urls'] : [])],
     after_changes_requested: false,
+    updated_while_pending: false,
     resubmission_of: null,
   }))
 }
@@ -525,10 +529,13 @@ export async function lockDecisionState(tx: Tx, id: number): Promise<{
   verificationStatus: string
   evidenceCount: number
   hasCoordinates: boolean
+  /** As the API serialises updated_at, to compare with the version the administrator saw */
+  updatedAt: string
 } | null> {
   const rows = await tx.db
     .select({
       verificationStatus: tables.deployment.verificationStatus,
+      updatedAt: isoTimestamp(tables.deployment.updatedAt),
       evidenceCount,
       hasCoordinates: sql<boolean>`${tables.site.point4326} IS NOT NULL`,
     })

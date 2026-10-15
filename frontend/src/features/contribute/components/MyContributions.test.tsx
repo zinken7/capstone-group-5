@@ -153,7 +153,8 @@ describe('My contributions', () => {
 
     expect(await within(row).findByText(/Sent for review/)).toBeInTheDocument()
     expect(within(row).getByText('Pending review')).toBeInTheDocument()
-    expect(within(row).queryByRole('button', { name: 'Update submission' })).not.toBeInTheDocument()
+    // Back in review, it can still be updated, now as a secondary action
+    expect(within(row).getByRole('button', { name: 'Update submission' })).toHaveClass('button--secondary')
     const patch = calls.find((call) => call.key === 'PATCH /api/contributions/20412')
     expect(new Headers(patch?.init?.headers).get('X-Contribution-Key')).toBe(KEY)
     expect(JSON.parse(String(patch?.init?.body))).toEqual({ quantity: 14, evidence_urls: ['https://example.com/annual-report'], disclosure_accepted: true })
@@ -213,6 +214,38 @@ describe('My contributions', () => {
     expect(within(verified).getByRole('link', { name: 'View on register' })).toHaveAttribute('href', '/equipment?site_id=9')
     const missing = screen.getByRole('listitem', { name: /old pit/i })
     expect(within(missing).getByText('No longer available')).toBeInTheDocument()
+  })
+
+  test('lets a submission waiting for review be updated, and keeps it waiting', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([stored()]))
+    const calls = stubApi({
+      'POST /api/contributions/status': () => Response.json({ items: [statusItem()] }),
+      'GET /api/contributions/20412': () => Response.json({
+        ...statusItem(),
+        latitude: -30.7, longitude: 121.4, region: null, commodity: null, machine_model_variant: null,
+        technology_supplier: 'Caterpillar', technology_product: null,
+        environment: 'surface', deployment_status: 'operational', automation_level: 'autonomous', installation_type: 'unknown',
+        commissioning_date: null, evidence_urls: [],
+      }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+      'PATCH /api/contributions/20412': () => Response.json({ id: 20412, verification_status: 'pending_review' }),
+    })
+    renderPage()
+
+    const row = await screen.findByRole('listitem', { name: /ashgrove mine/i })
+    const button = await within(row).findByRole('button', { name: 'Update submission' })
+    expect(button).toHaveClass('button--secondary')
+    await user.click(button)
+    await user.type(await within(row).findByRole('textbox', { name: /new source url/i }), 'https://example.com/annual-report')
+    await user.click(within(row).getByLabelText(/i confirm that this information is accurate/i))
+    await user.click(within(row).getByRole('button', { name: 'Send for review' }))
+
+    expect(await within(row).findByText(/still waiting for review, now with your changes/)).toBeInTheDocument()
+    expect(within(row).getByText('Pending review')).toBeInTheDocument()
+    expect(JSON.parse(String(calls.find((call) => call.key === 'PATCH /api/contributions/20412')?.init?.body))).toEqual({
+      evidence_urls: ['https://example.com/annual-report'], disclosure_accepted: true,
+    })
   })
 
   test('resubmits a rejected submission from a prefilled form, linked to it', async () => {

@@ -58,6 +58,7 @@ export function getReviewRecord(id: number): Promise<ReviewRecord | null> {
 export type DecisionOutcome =
   | { kind: 'not_found' }
   | { kind: 'not_pending'; verificationStatus: string }
+  | { kind: 'stale'; updatedAt: string }
   | { kind: 'missing_evidence' }
   | { kind: 'missing_coordinates' }
   | { kind: 'decided'; reviewId: number; verificationStatus: string }
@@ -73,6 +74,8 @@ export async function decide(deploymentId: number, adminUserId: number, input: R
     if (!DECIDABLE.includes(state.verificationStatus)) {
       return { kind: 'not_pending', verificationStatus: state.verificationStatus }
     }
+    // A contributor may change a record while it waits, so a decision must be on the version the administrator saw
+    if (input.version !== null && input.version !== state.updatedAt) return { kind: 'stale', updatedAt: state.updatedAt }
     // Supplier and level are always present (migration 005); a product is not needed to verify (FR-08)
     if (input.decision === 'approved') {
       if (state.evidenceCount === 0) return { kind: 'missing_evidence' }

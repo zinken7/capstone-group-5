@@ -478,11 +478,13 @@ of a site that has none, which approval needs (FR-04). A site that already has
 coordinates is shared by every record at it, so moving it returns `400` with
 `"the site already has coordinates"` on both fields.
 
-Only a record with `verification_status = changes_requested` can be updated.
-The change applies to the record, an `update` revision attributed to the
-original contributor keeps the previous values, the previous status and, when
-evidence is added, the previous evidence list, and the record returns to
-`pending_review`. The validity window follows the change as it does for an
+A record that is `pending_review` or `changes_requested` can be updated: while
+it waits, so a contributor can add a source before anyone looks, and when
+changes are requested. The change applies to the record, an `update` revision
+attributed to the original contributor keeps the previous values, the previous
+status and, when evidence is added, the previous evidence list, and the record
+is `pending_review`. A decision then made on the version before the change is
+refused (see `version` below). The validity window follows the change as it does for an
 administrator's correction (#156).
 
 | Status | Body |
@@ -490,7 +492,7 @@ administrator's correction (#156).
 | `200` | `{"id": 42, "verification_status": "pending_review"}` |
 | `400` | `{"error": "invalid update", "fields": {...}}`, `{"error": "update does not change the submission"}`, or `{"error": "invalid update"}` when the hidden `website` field is filled |
 | `404` | `{"error": "contribution not found"}` |
-| `409` | `{"error": "only a submission with changes requested can be updated", "verification_status": "…"}` |
+| `409` | `{"error": "only a submission waiting for review or with changes requested can be updated", "verification_status": "…"}` |
 
 ## Administrator sign-in
 
@@ -557,6 +559,8 @@ every deployment with `verification_status = pending_review` (`kind:
   `evidence_urls` when it adds sources (`[]` for a submission);
 - `after_changes_requested`: `true` when the contributor's update answers an
   administrator's request for changes;
+- `updated_while_pending`: `true` when the contributor changed the record while
+  it waited for review;
 - `resubmission_of`: the rejected record this submission replaces, or `null`;
 - `evidence_count`: the record's evidence for a submission, or the sources
   supplied with a correction;
@@ -644,9 +648,14 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
 
 ### `POST /api/admin/deployments/{id}/reviews`
 
-Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`.
+Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…", "version": "…"}`.
 The note (up to 2,000 characters) is required unless approving, and is shown to
-the contributor (FR-45).
+the contributor (FR-45). `version` is the record's `updated_at` as the
+administrator opened it. A contributor may change a record while it waits, so
+when `version` is given and the record has changed since, the decision is
+refused with `409 {"error": "the record changed since you opened it",
+"updated_at": "…"}` and nothing is recorded. The administration interface
+always sends it.
 
 A decision can be recorded on a record that is `pending_review` or
 `changes_requested` (FR-45). An administrator who fixes a record with changes
@@ -671,6 +680,7 @@ present, since every deployment carries them.
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "deployment not found"}` |
 | `409` | `{"error": "only records pending review or with changes requested can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "the record changed since you opened it", "updated_at": "…"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
 | `409` | `{"error": "site coordinates are required before the record can be verified"}` |
 

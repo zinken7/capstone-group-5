@@ -271,23 +271,27 @@ function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onRe
         ? <p className="form-help my-contribution__wide">This submission is closed. You resubmitted it as #{item.last.resubmittedAs}.</p>
         : <p className="form-help my-contribution__wide">This submission is closed. Resubmit it to correct the details: the form opens with what you sent, and the new submission stays linked to this one.</p>)}
       {openError && <p className="form-summary-error my-contribution__wide" role="alert">{openError}</p>}
-      {status === 'pending_review' && <p className="form-help my-contribution__wide">Waiting for review. You will see the decision here.</p>}
+      {status === 'pending_review' && <p className="form-help my-contribution__wide">Waiting for review. You will see the decision here; until then you can still add a source or fix a detail.</p>}
       {item.missing && <p className="form-help my-contribution__wide">The site no longer reports this submission. You can remove it from this browser.</p>}
       {notice && <p className="form-summary-success my-contribution__wide" role="status">{notice}</p>}
       {editing && (
         <div className="my-contribution__wide">
           <UpdateForm
             item={item}
-            onSent={() => { setEditing(false); setNotice('Sent for review. The reviewer sees what you changed.') }}
+            onSent={() => {
+              setEditing(false)
+              setNotice(status === 'pending_review' ? 'Saved. It is still waiting for review, now with your changes.' : 'Sent for review. The reviewer sees what you changed.')
+            }}
             onCancel={() => { setEditing(false); window.setTimeout(() => updateButtonRef.current?.focus(), 0) }}
-            onStale={() => { setEditing(false); setNotice('This submission is no longer waiting for changes. Its status has been checked again.'); refresh() }}
+            onStale={() => { setEditing(false); setNotice('This submission has been decided meanwhile, so it can no longer be updated. Its status has been checked again.'); refresh() }}
           />
         </div>
       )}
       {/* After the request in reading order; on wide screens it sits beside the summary */}
       <div className="my-contribution__actions">
-        {status === 'changes_requested' && !editing && (
-          <button ref={updateButtonRef} className="button button--primary" type="button" onClick={() => { setEditing(true); setNotice(null) }}>Update submission</button>
+        {/* Answering a request comes first; while waiting, a source or detail can still be added */}
+        {(status === 'changes_requested' || status === 'pending_review') && !editing && (
+          <button ref={updateButtonRef} className={status === 'changes_requested' ? 'button button--primary' : 'button button--secondary'} type="button" onClick={() => { setEditing(true); setNotice(null) }}>Update submission</button>
         )}
         {status === 'rejected' && !item.last?.resubmittedAs && (
           <button
