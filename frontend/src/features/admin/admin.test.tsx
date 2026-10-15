@@ -257,6 +257,45 @@ describe('proposed corrections', () => {
 })
 
 describe('record review', () => {
+  test('shows the request a record with changes requested waits on, and still lets the administrator decide', async () => {
+    const calls = stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'changes_requested',
+        reviews: [{ decision: 'needs_changes', note: 'Add the operator announcement', administrator: 'lead@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
+      })),
+      'POST /api/admin/deployments/12/reviews': () => Response.json({ id: 2, verification_status: 'verified' }, { status: 201 }),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/12')
+
+    const waiting = await screen.findByRole('region', { name: 'Waiting for the contributor' })
+    expect(waiting).toHaveTextContent('Changes requested by lead@example.com')
+    expect(waiting).toHaveTextContent('Add the operator announcement')
+    expect(screen.getByText('Changes requested', { selector: '.status-badge' })).toBeInTheDocument()
+    // Fixing it and approving it here does not need the queue
+    expect(screen.getByRole('button', { name: 'Edit record' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Record decision' }))
+    expect(calls.find((call) => call.key === 'POST /api/admin/deployments/12/reviews')?.body).toEqual({ decision: 'approved', note: null })
+  })
+
+  test('closes a rejected record: no decision and no editing', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'rejected',
+        reviews: [{ decision: 'rejected', note: 'Duplicate', administrator: 'reviewer@example.com', reviewed_at: '2026-10-05T01:00:00Z', correction_id: null }],
+      })),
+    })
+    renderAt('/admin/deployments/12')
+
+    expect(await screen.findByText(/This record is rejected and closed/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record decision' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit record' })).not.toBeInTheDocument()
+  })
+
   test('shows the record, opens evidence safely, and records a rejection with a note', async () => {
     const calls = stubApi({
       'GET /api/admin/session': () => profile(),
@@ -278,8 +317,9 @@ describe('record review', () => {
     const evidence = screen.getByRole('link', { name: 'https://example.com/evidence/12' })
     expect(evidence).toHaveAttribute('target', '_blank')
     expect(evidence).toHaveAttribute('rel', 'noopener noreferrer')
-    // Not offered until the changes requested status (#204): a record sent back could never be decided again
-    expect(screen.queryByLabelText(/^Needs changes/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Needs changes/)).toBeInTheDocument()
+    // The contributor reads the decision on their own submission
+    expect(screen.getByLabelText(/^Note/)).toHaveAccessibleDescription('Shown to the contributor.')
 
     await user.click(screen.getByLabelText(/^Reject/))
     await user.click(screen.getByRole('button', { name: 'Record decision' }))

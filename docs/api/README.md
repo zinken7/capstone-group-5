@@ -407,7 +407,7 @@ At least one correctable field or evidence URL must be supplied.
 
 Only a verified record can be corrected (#114). The correction is stored as a proposal and the record is not changed. It stays in public views with its current values until an administrator decides the correction (`POST /api/admin/corrections/{id}/reviews`). Only the fields that differ from the current record are kept, together with their values at submission time. New evidence URLs are kept with the proposal and are added to the record only if it is approved.
 
-A record in any other status (`pending_review`, `unverified`, `rejected`) returns `403 {"error":"only verified records can be corrected"}` and nothing is stored. Before verification only a record's contributor may change it (FR-46), which needs the submission key (#205).
+A record in any other status (`pending_review`, `changes_requested`, `unverified`, `rejected`) returns `403 {"error":"only verified records can be corrected"}` and nothing is stored. Before verification only a record's contributor may change it (FR-46), which needs the submission key (#205).
 
 ### Response — `202 Accepted`
 
@@ -503,6 +503,7 @@ Query parameters:
 | `q` | Omitted | Free text: deployments whose ID starts with these digits, or whose site name contains the text (case-insensitive; `%` and `_` match themselves). Blank means no search |
 | `sort` | `updated` | `id`, `site`, `decision`, `status` or `updated`. `decision` and `status` sort by their stored value, which follows their labels; records without a decision come last in either order. Ties go to the newest record |
 | `order` | `desc` for `updated`, otherwise `asc` | `asc` or `desc` |
+| `status` | Omitted | One verification status: `unverified`, `pending_review`, `changes_requested`, `verified` or `rejected`. `changes_requested` lists the records waiting on their contributor; `updated_at` is when they were sent back |
 
 Success: `200 OK`, returning `{"items": [...]}`. Each item includes
 `id`, `site_name`, `country_code`, `verification_status`,
@@ -518,7 +519,8 @@ Invalid parameters return `400 Bad Request` with
 `{"error":"invalid pagination or submission ID"}`.
 Examples: `limit=0`, `limit=101`, `offset=-1`, `id=0`, `id=abc`.
 A repeated `q` returns `{"error":"invalid q parameter"}`. An unknown `sort` returns `{"error":"invalid sort parameter"}` and an unknown
-`order` returns `{"error":"invalid order parameter"}`, both with `400`.
+`order` returns `{"error":"invalid order parameter"}`, and an unknown `status` returns
+`{"error":"invalid status parameter"}`, all with `400`.
 
 Unauthenticated requests return `401 Unauthorized`.
 
@@ -561,13 +563,19 @@ machine, technology, deployment fields (as in the register, plus `valid_from`,
 ### `POST /api/admin/deployments/{id}/reviews`
 
 Request: `{"decision": "approved" | "rejected" | "needs_changes", "note": "…"}`.
-The note (up to 2,000 characters) is required unless approving.
+The note (up to 2,000 characters) is required unless approving, and is shown to
+the contributor (FR-45).
+
+A decision can be recorded on a record that is `pending_review` or
+`changes_requested` (FR-45). An administrator who fixes a record with changes
+requested can approve it without sending it back to the queue, and one whose
+changes never arrive can be rejected.
 
 | Decision | New `verification_status` |
 |---|---|
 | `approved` | `verified` |
-| `rejected` | `rejected` |
-| `needs_changes` | `unverified`; the record leaves the queue, and nothing returns it to `pending_review` until #204. The administration interface does not offer this decision meanwhile |
+| `rejected` | `rejected`. The record is closed: it cannot be decided or corrected again |
+| `needs_changes` | `changes_requested`. The record leaves the queue and waits on its contributor |
 
 The review row, the new status and a `verification_change` revision holding the
 previous status are written in one transaction.
@@ -580,7 +588,7 @@ present, since every deployment carries them.
 | `201` | `{"id": <review id>, "verification_status": "verified"}` |
 | `400` | `{"error": "invalid review", "fields": {...}}` |
 | `404` | `{"error": "deployment not found"}` |
-| `409` | `{"error": "only records pending review can be decided", "verification_status": "…"}` |
+| `409` | `{"error": "only records pending review or with changes requested can be decided", "verification_status": "…"}` |
 | `409` | `{"error": "at least one evidence URL is required before the record can be verified"}` |
 | `409` | `{"error": "site coordinates are required before the record can be verified"}` |
 
@@ -628,9 +636,10 @@ The automation level can be corrected but not cleared:
 level (FR-57).
 There are no contributor fields and no disclosure. The previous values are kept
 in an `update` revision attributed to the administrator, and the verification
-status does not change. Responses: `200 {"id",
-"verification_status"}`, `400` for invalid input or a correction that changes
-nothing, `404` for an unknown record.
+status does not change. A rejected record is closed and returns `409
+{"error": "a rejected record is closed and cannot be corrected"}` (FR-45).
+Other responses: `200 {"id", "verification_status"}`, `400` for invalid input
+or a correction that changes nothing, `404` for an unknown record.
 
 ### Validity window on corrections (#156)
 

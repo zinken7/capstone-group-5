@@ -6,10 +6,10 @@ import type { ReviewDecision } from '../types'
 
 type DecisionOptions = readonly [ReviewDecision, string, string][]
 
-// Needs changes returns with the changes requested status (#204); until then a record sent back could never be decided again
 export const RECORD_DECISIONS: DecisionOptions = [
   ['approved', 'Approve', 'The record is verified and appears in public views.'],
-  ['rejected', 'Reject', 'The record stays out of public views. The contributor can submit it again as a new contribution.'],
+  ['needs_changes', 'Needs changes', 'The record leaves the queue and waits for its contributor to update it.'],
+  ['rejected', 'Reject', 'The record is closed and stays out of public views. The contributor can submit it again as a new contribution.'],
 ]
 
 export const CORRECTION_DECISIONS: DecisionOptions = [
@@ -27,9 +27,11 @@ interface DecisionFormProps {
   idPrefix?: string
   /** Inside another panel (a proposed correction): no panel of its own, and a smaller heading */
   embedded?: boolean
+  /** The contributor reads a decision on their own submission, note included (FR-45) */
+  noteShownToContributor?: boolean
 }
 
-function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECORD_DECISIONS, idPrefix = 'decision', embedded = false }: DecisionFormProps) {
+function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECORD_DECISIONS, idPrefix = 'decision', embedded = false, noteShownToContributor = false }: DecisionFormProps) {
   const { handleError } = useAdminSession()
   const [decision, setDecision] = useState<ReviewDecision>('approved')
   const [note, setNote] = useState('')
@@ -70,8 +72,9 @@ function DecisionForm({ submit, onDecided, heading = 'Decision', options = RECOR
         ))}
       </fieldset>
       <div className="form-field">
-        <label htmlFor={`${idPrefix}-note`}>Note{noteRequired ? ' (required)' : ' (optional)'}</label>
-        <textarea id={`${idPrefix}-note`} rows={3} maxLength={2000} value={note} aria-required={noteRequired} onChange={(event) => setNote(event.target.value)} />
+        <label htmlFor={`${idPrefix}-note`}>Note <span className="form-help-inline">{noteRequired ? '(required)' : '(optional)'}</span></label>
+        <textarea id={`${idPrefix}-note`} rows={3} maxLength={2000} value={note} aria-required={noteRequired} aria-describedby={noteShownToContributor ? `${idPrefix}-note-help` : undefined} onChange={(event) => setNote(event.target.value)} />
+        {noteShownToContributor && <small id={`${idPrefix}-note-help`} className="form-help">Shown to the contributor.</small>}
       </div>
       <div className="form-actions">
         <button className="button button--primary" type="submit" disabled={submitting}>

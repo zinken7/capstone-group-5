@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { getReviewRecord, submitDecision } from '../../../lib/api/admin'
 import { ApiError } from '../../../lib/api/errors'
-import { formatCommissioning, formatDate, formatEnumLabel, formatNumber } from '../../../lib/format'
+import { formatCommissioning, formatDate, formatDateTime, formatEnumLabel, formatNumber } from '../../../lib/format'
 import StateMessage from '../../../shared/components/StateMessage'
 import StatusBadge from '../../../shared/components/StatusBadge'
 import AdminBar from '../components/AdminBar'
@@ -105,6 +105,16 @@ function EditRecordPanel({ record, onCorrected }: { record: ReviewRecord; onCorr
   )
 }
 
+/** Statuses a decision can be recorded on (FR-45): changes requested too, so a record fixed here can be approved or a silent one closed */
+const DECIDABLE = ['pending_review', 'changes_requested']
+
+/** What happens next for a record no decision can be made on */
+function closedNotice(status: string): string {
+  if (status === 'verified') return 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
+  if (status === 'rejected') return 'This record is rejected and closed. It cannot be corrected or decided again; the contributor can submit it again as a new contribution.'
+  return 'This record was loaded without review and is not in the review queue.'
+}
+
 function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notice: string | null; onChanged: (message?: string) => void }) {
   const machine = [record.machineManufacturer, record.machineModel, record.modelVariant].filter(Boolean).join(' ')
   const pendingCorrections = record.corrections.filter((correction) => correction.status === 'pending')
@@ -123,6 +133,11 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
     ['Commissioning', formatCommissioning(record.commissioningDate, record.commissioningYear)],
     ['In service', `${formatDate(record.validFrom)} to ${record.validTo ? formatDate(record.validTo) : 'present'}`],
   ]
+  const decidable = DECIDABLE.includes(record.verificationStatus)
+  // The request a record with changes requested is waiting on: the latest decision on the record itself
+  const request = record.verificationStatus === 'changes_requested'
+    ? [...record.reviews].reverse().find((review) => review.correctionId === null)
+    : undefined
   // A contributor's direct correction that returned this record to the queue; a verified record's proposals show above instead
   const latestCorrection = record.verificationStatus === 'pending_review'
     ? [...record.revisions].reverse().find((revision) => revision.action !== 'verification_change' && revision.administrator === null)
@@ -140,7 +155,7 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
       </header>
       {notice && <p className="admin-notice admin-notice--success" role="status">{notice}</p>}
 
-      <div className={record.verificationStatus === 'pending_review' ? 'admin-record admin-record--decide' : 'admin-record'}>
+      <div className={decidable ? 'admin-record admin-record--decide' : 'admin-record'}>
         <div className="admin-record__main">
           {pendingCorrections.map((correction) => (
             <CorrectionReview key={correction.id} correction={correction} onDecided={() => onChanged('Decision on the correction recorded.')} />
@@ -224,17 +239,22 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
         </div>
 
         <aside className="admin-record__side" aria-label="Decision and editing">
-          {record.verificationStatus === 'pending_review' && (
-            <DecisionForm submit={(decision, note) => submitDecision(record.id, decision, note)} onDecided={() => onChanged('Decision recorded.')} />
+          {request && (
+            <section className="admin-panel admin-waiting" aria-labelledby="waiting-heading">
+              <h2 id="waiting-heading">Waiting for the contributor</h2>
+              <p className="form-help">Changes requested by {request.administrator}, {formatDateTime(request.reviewedAt)}.</p>
+              {request.note && <blockquote>{request.note}</blockquote>}
+              <p className="form-help">If you fix the record yourself, approve it here. Reject it if the changes never arrive.</p>
+            </section>
           )}
-          {record.verificationStatus !== 'pending_review' && pendingCorrections.length === 0 && (
-            <p className="admin-notice">
-              {record.verificationStatus === 'verified'
-                ? 'This record is verified. Corrections that contributors propose appear here for a decision; the public record stays as it is until then.'
-                : 'Decisions apply to records pending review. A record sent back for changes waits here until contributors can update their submissions.'}
-            </p>
+          {decidable && (
+            <DecisionForm submit={(decision, note) => submitDecision(record.id, decision, note)} onDecided={() => onChanged('Decision recorded.')} noteShownToContributor />
           )}
-          <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />
+          {!decidable && pendingCorrections.length === 0 && (
+            <p className="admin-notice">{closedNotice(record.verificationStatus)}</p>
+          )}
+          {/* A rejected record is closed (FR-45) */}
+          {record.verificationStatus !== 'rejected' && <EditRecordPanel record={record} onCorrected={() => onChanged('Correction saved.')} />}
         </aside>
       </div>
     </>

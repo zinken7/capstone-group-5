@@ -13,7 +13,7 @@ export const miningEnvironment = pgEnum("mining_environment", ['surface', 'under
 export const revisionAction = pgEnum("revision_action", ['create', 'update', 'verification_change'])
 export const siteStatus = pgEnum("site_status", ['operating', 'commissioning'])
 export const verificationDecision = pgEnum("verification_decision", ['approved', 'rejected', 'needs_changes'])
-export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'verified', 'rejected'])
+export const verificationStatus = pgEnum("verification_status", ['unverified', 'pending_review', 'changes_requested', 'verified', 'rejected'])
 
 
 export const region = pgTable("region", {

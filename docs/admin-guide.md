@@ -49,16 +49,20 @@ a deactivated account is signed out immediately.
 
 | Decision | Result |
 |---|---|
-| Approve | The record is verified and appears in public views. It needs a technology product and at least one evidence URL. |
-| Reject | The record stays out of public views for good. The contributor can submit it again as a new contribution. A note is required. |
+| Approve | The record is verified and appears in public views. It needs at least one evidence URL and site coordinates. |
+| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it. |
+| Reject | The record is closed: it stays out of public views and can no longer be corrected or decided. The contributor can submit it again as a new contribution. A note is required, and the contributor sees it. |
 
-**Needs changes** is not offered for a record until #204 is built: a record
-sent back for changes could not return to the queue or be decided again.
-Reject it instead. A record sent back earlier stays out of the queue until then.
+Decisions apply to records pending review and to records with changes
+requested. If you fix a record with changes requested yourself, approve it from
+its page: it does not need to go back through the queue. To find the records
+waiting on their contributors, filter **Submission history** by
+**Changes requested**; *Last updated* shows when each was sent back. Reject one
+whose changes never arrive, with a note such as "No reply after 30 days".
 
-Decisions apply only to records pending review. Each one is kept, with your
-email, the note and the time, in the record's history, together with every
-correction and the contributor's original submission.
+Each decision is kept, with your email, the note and the time, in the record's
+history, together with every correction and the contributor's original
+submission.
 
 ## Reviewing a proposed correction
 

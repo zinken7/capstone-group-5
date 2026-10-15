@@ -201,13 +201,15 @@ a { color: inherit; }
 }
 .status-badge::before { width: 0.75rem; height: 0.75rem; flex: 0 0 auto; border: 2px solid currentColor; border-radius: 50%; content: ''; }
 .status-badge--operational { color: var(--color-success); }
-.status-badge--operational::before, .status-badge--commissioning::before, .status-badge--verified::before, .status-badge--pending-review::before, .status-badge--rejected::before { background: currentColor; }
+.status-badge--operational::before, .status-badge--commissioning::before, .status-badge--verified::before, .status-badge--pending-review::before, .status-badge--changes-requested::before, .status-badge--rejected::before { background: currentColor; }
 .status-badge--commissioning { color: var(--color-warning); }
 .status-badge--announced { color: var(--color-info); }
 .status-badge--announced::before { border-style: dashed; }
 .status-badge--decommissioned, .status-badge--unknown, .status-badge--unverified { color: var(--color-neutral); }
 .status-badge--verified { color: var(--color-success); }
 .status-badge--pending-review { color: var(--color-warning); }
+/* Waiting on the contributor rather than the administrator */
+.status-badge--changes-requested { color: var(--color-info); }
 .status-badge--rejected { color: var(--color-danger); }
 /* Quiet text button for secondary filter actions (More filters, Clear all); matches the map's filter panel */
 .text-button { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--control-height); padding: 0 var(--space-2); border: 0; border-radius: var(--control-radius); background: none; color: var(--color-primary); font: inherit; font-size: var(--type-sm); font-weight: 600; white-space: nowrap; cursor: pointer; }

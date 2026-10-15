@@ -15,12 +15,15 @@ const SEARCH_DELAY_MS = 250
 
 type SortOrder = 'asc' | 'desc'
 
-/** The status colour each decision leads to; needs changes sends a record back to unverified */
+/** The status colour each decision leads to */
 const DECISION_STATUS: Record<string, string> = {
   approved: 'verified',
   rejected: 'rejected',
-  needs_changes: 'unverified',
+  needs_changes: 'changes_requested',
 }
+
+/** Verification statuses to filter by; Changes requested lists the records waiting on their contributor */
+const STATUS_CHOICES = ['pending_review', 'changes_requested', 'verified', 'rejected', 'unverified'] as const
 
 /** The sort choices offered on small screens, where the table's headings are hidden */
 const SORT_CHOICES: { value: `${SubmissionHistorySort}:${SortOrder}`; label: string }[] = [
@@ -56,6 +59,7 @@ function AdminSubmissionHistoryPage() {
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [offset, setOffset] = useState(0)
+  const [status, setStatus] = useState('')
   const [sort, setSort] = useState<{ key: SubmissionHistorySort; order: SortOrder }>({ key: 'updated', order: 'desc' })
 
   // Searches as you type, like the register, once typing pauses
@@ -69,7 +73,7 @@ function AdminSubmissionHistoryPage() {
   useEffect(() => {
     let active = true
 
-    getSubmissionHistory({ limit: PAGE_SIZE + 1, offset, q: query || undefined, sort: sort.key, order: sort.order })
+    getSubmissionHistory({ limit: PAGE_SIZE + 1, offset, q: query || undefined, sort: sort.key, order: sort.order, status: status || undefined })
       .then((items) => {
         if (active) {
           setPage({
@@ -91,7 +95,7 @@ function AdminSubmissionHistoryPage() {
     return () => {
       active = false
     }
-  }, [query, offset, sort])
+  }, [query, offset, sort, status])
 
   function runSearch(value: string) {
     setQuery(value)
@@ -127,17 +131,26 @@ function AdminSubmissionHistoryPage() {
           </div>
         </header>
 
-        {/* Enter searches at once instead of waiting for the pause; the field's own clear button empties it, as on the register */}
-        <form role="search" className="admin-search" onSubmit={(event) => { event.preventDefault(); runSearch(search.trim()) }}>
-          <label htmlFor="submission-search">Search</label>
-          <input
-            id="submission-search"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Submission ID or site name"
-          />
-        </form>
+        <div className="admin-filters">
+          {/* Enter searches at once instead of waiting for the pause; the field's own clear button empties it, as on the register */}
+          <form role="search" className="admin-search" onSubmit={(event) => { event.preventDefault(); runSearch(search.trim()) }}>
+            <label htmlFor="submission-search">Search</label>
+            <input
+              id="submission-search"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Submission ID or site name"
+            />
+          </form>
+          <div className="admin-filter">
+            <label htmlFor="history-status">Status</label>
+            <select id="history-status" value={status} onChange={(event) => { setStatus(event.target.value); setOffset(0) }}>
+              <option value="">All statuses</option>
+              {STATUS_CHOICES.map((value) => <option key={value} value={value}>{formatEnumLabel(value)}</option>)}
+            </select>
+          </div>
+        </div>
 
         {page.status === 'loading' && (
           <StateMessage variant="loading" title="Loading submission history" message="Fetching historical submissions." />
@@ -146,7 +159,7 @@ function AdminSubmissionHistoryPage() {
           <StateMessage variant="error" title="History unavailable" message={page.message} />
         )}
         {page.status === 'ready' && page.items.length === 0 && (
-          <StateMessage title="No submissions found" message="Try another ID or site name, or clear the search." />
+          <StateMessage title="No submissions found" message={status ? 'Try another status, ID or site name, or clear the filters.' : 'Try another ID or site name, or clear the search.'} />
         )}
         {page.status === 'ready' && page.items.length > 0 && (
           <>
