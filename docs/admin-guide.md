@@ -6,9 +6,14 @@ Analytics until an administrator approves it.
 
 The administration pages are at `/admin` (for example
 https://capstone-group-5.vercel.app/admin). Every public page links there from
-the **Administrator sign-in** link in the footer; the main navigation does not.
+the **Administrator sign-in** link in the footer, shown on phones as a lock icon
+in the header; the main navigation does not.
 Following the link opens the review queue when you are signed in, and the
 sign-in page otherwise.
+
+While you are signed in, public pages show a strip at the top with
+**Administration** and **Sign out** in place of that link. **Sign out** in
+administration returns you to the public page you came from, or to the map.
 
 ## Accounts
 
