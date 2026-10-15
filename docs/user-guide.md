@@ -99,9 +99,9 @@ see and update the submission, so treat it like a password.
 
 ## Correct a verified record
 
-**Correct**, at the end of a row in the Equipment Register, proposes a change to
+**Correct**, at the end of a row on the Equipment page, proposes a change to
 a verified record: the quantity, status, automation level, environment,
-installation type, dates or evidence. Your proposal is reviewed like a new
+installation type, commissioning date or evidence, with a note for the reviewer. Your proposal is reviewed like a new
 submission, and the record stays as it is in public until an administrator
 accepts it. A record's site, manufacturer, model or machine type cannot be
 corrected; if one is wrong, say so in a note and the reviewer will reject and
