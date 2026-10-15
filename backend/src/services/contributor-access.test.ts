@@ -64,7 +64,7 @@ describe('updateOwnContribution', () => {
     expect(await query('SELECT url FROM evidence WHERE deployment_id = 12')).toEqual([])
   })
 
-  it('applies one of two updates sent at once and refuses the other, which finds the record back in review', async () => {
+  it('applies two updates sent at once one after another, without losing either', async () => {
     const holder = new Client({ connectionString: config.databaseUrl })
     await holder.connect()
     try {
@@ -78,13 +78,15 @@ describe('updateOwnContribution', () => {
       await holder.query('COMMIT')
       const outcomes = await pending
 
-      expect(outcomes.map((outcome) => outcome.kind).sort()).toEqual(['not_open', 'updated'])
-      const applied = outcomes.find((outcome) => outcome.kind === 'updated')
-      expect(applied).toBeDefined()
+      // The first answers the request and returns the record to review; the second is a change while it waits
+      expect(outcomes.map((outcome) => outcome.kind)).toEqual(['updated', 'updated'])
       const final = (await deployment(12))?.quantity
-      expect([100, 120]).toContain(final)
-      expect(await query<{ previous_values: unknown }>("SELECT previous_values FROM revision WHERE deployment_id = 12 AND action = 'update'"))
-        .toEqual([{ previous_values: { quantity: 8, verification_status: 'changes_requested' } }])
+      const revisions = await query<{ previous_values: unknown }>("SELECT previous_values FROM revision WHERE deployment_id = 12 AND action = 'update' ORDER BY id")
+      // The second revision sees the first update's value, not the original 8
+      expect(revisions.map((revision) => revision.previous_values)).toEqual([
+        { quantity: 8, verification_status: 'changes_requested' },
+        { quantity: final === 100 ? 120 : 100, verification_status: 'pending_review' },
+      ])
     } finally {
       await holder.end()
     }

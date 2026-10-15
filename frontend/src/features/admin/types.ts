@@ -26,6 +26,10 @@ export interface ReviewQueueItem {
   changedFields: string[]
   /** The contributor's update answers a request for changes */
   afterChangesRequested: boolean
+  /** The contributor changed the record while it waited */
+  updatedWhilePending: boolean
+  /** The rejected record this submission replaces */
+  resubmissionOf: number | null
   contributorEmail: string | null
   contributorOrganisation: string | null
 }
@@ -92,6 +96,17 @@ export interface ReviewRecord {
   quantity: number
   technologySupplier: string | null
   technologyProduct: string | null
+  /** The rejected record this one replaces, with the decision that closed it */
+  resubmissionOf: {
+    id: number
+    verificationStatus: string
+    decision: string | null
+    note: string | null
+    administrator: string | null
+    reviewedAt: string | null
+  } | null
+  /** Records submitted to replace this one */
+  resubmittedAs: { id: number; verificationStatus: string }[]
   possibleDuplicates: {
     id: number
     verificationStatus: string
@@ -111,6 +126,8 @@ export interface ReviewRecord {
   commissioningYear: number | null
   validFrom: string | null
   validTo: string | null
+  /** The version a decision is made on; a later change refuses it */
+  updatedAt: string
   evidence: EvidenceItem[]
   reviews: ReviewHistoryItem[]
   revisions: RevisionHistoryItem[]

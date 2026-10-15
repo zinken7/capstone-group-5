@@ -110,6 +110,9 @@ router.post('/admin/deployments/:id/reviews', ...requireAdmin(), async (req, res
       case 'not_pending':
         res.status(409).json({ error: 'only records pending review or with changes requested can be decided', verification_status: outcome.verificationStatus })
         return
+      case 'stale':
+        res.status(409).json({ error: 'the record changed since you opened it', updated_at: outcome.updatedAt })
+        return
       case 'missing_evidence':
         res.status(409).json({ error: 'at least one evidence URL is required before the record can be verified' })
         return

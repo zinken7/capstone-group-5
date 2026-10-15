@@ -50,7 +50,7 @@ a deactivated account is signed out immediately.
 | Decision | Result |
 |---|---|
 | Approve | The record is verified and appears in public views. It needs at least one evidence URL and site coordinates. |
-| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it. |
+| Needs changes | The record leaves the queue with the status **Changes requested** and waits for its contributor. A note is required, and the contributor sees it under **My contributions** on the Contribute page, in the browser they submitted from. When they update the record, it returns to the queue marked **Changes made**, and its page shows your request beside what they changed. |
 | Reject | The record is closed: it stays out of public views and can no longer be corrected or decided. The contributor can submit it again as a new contribution. A note is required, and the contributor sees it. |
 
 A record needs at least one evidence URL and site coordinates before it can
@@ -58,6 +58,18 @@ be approved, and a contributor may leave both out when submitting. When either
 is missing, the decision panel says **Not ready to approve**, Approve is
 unavailable, and **Needs changes** is selected with a note asking for what is
 missing. Add it yourself with **Edit record**, or send the request.
+
+A contributor can also change a record while it waits for review, for example
+to add a source; the queue then marks it **Updated while waiting**. If they
+change it while you have it open, your decision is not recorded: the page
+reloads with the latest version and says so, and you decide again.
+
+A contributor whose record you reject can resubmit it from **My contributions**:
+the form opens with what they sent, and the new record is linked to the rejected
+one. The queue marks it **Resubmission**, its page shows the record it replaces
+with your reason, and the rejected record's page links to the new one. The
+earlier attempt also appears among the possible duplicates, labelled
+**Rejected**.
 
 When the contributor left an email address, the **Contributor** panel on the
 record page offers **Email contributor**, which opens your email app with the

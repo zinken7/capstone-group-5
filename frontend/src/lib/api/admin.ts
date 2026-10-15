@@ -75,6 +75,8 @@ interface QueueItemDto {
   correction_id: number | null
   changed_fields: string[]
   after_changes_requested: boolean
+  updated_while_pending: boolean
+  resubmission_of: number | null
   contributor_email: string | null
   contributor_organisation: string | null
 }
@@ -98,6 +100,8 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     correctionId: item.correction_id,
     changedFields: item.changed_fields,
     afterChangesRequested: item.after_changes_requested,
+    updatedWhilePending: item.updated_while_pending ?? false,
+    resubmissionOf: item.resubmission_of ?? null,
     contributorEmail: item.contributor_email,
     contributorOrganisation: item.contributor_organisation,
   }))
@@ -119,6 +123,15 @@ interface RecordDto {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  resubmission_of: {
+    id: number
+    verification_status: string
+    decision: string | null
+    note: string | null
+    administrator: string | null
+    reviewed_at: string | null
+  } | null
+  resubmitted_as: { id: number; verification_status: string }[]
   possible_duplicates: {
     id: number
     verification_status: string
@@ -138,6 +151,7 @@ interface RecordDto {
   commissioning_year: number | null
   valid_from: string | null
   valid_to: string | null
+  updated_at: string
   evidence: { url: string; source_type: string; publisher: string | null; published_date: string | null }[]
   reviews: { decision: ReviewDecision; note: string | null; administrator: string; reviewed_at: string; correction_id: number | null }[]
   revisions: {
@@ -179,6 +193,17 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     quantity: dto.quantity,
     technologySupplier: dto.technology_supplier,
     technologyProduct: dto.technology_product,
+    resubmissionOf: dto.resubmission_of
+      ? {
+          id: dto.resubmission_of.id,
+          verificationStatus: dto.resubmission_of.verification_status,
+          decision: dto.resubmission_of.decision,
+          note: dto.resubmission_of.note,
+          administrator: dto.resubmission_of.administrator,
+          reviewedAt: dto.resubmission_of.reviewed_at,
+        }
+      : null,
+    resubmittedAs: (dto.resubmitted_as ?? []).map((item) => ({ id: item.id, verificationStatus: item.verification_status })),
     possibleDuplicates: dto.possible_duplicates.map((item) => ({
       id: item.id,
       verificationStatus: item.verification_status,
@@ -198,6 +223,7 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     commissioningYear: dto.commissioning_year,
     validFrom: dto.valid_from,
     validTo: dto.valid_to,
+    updatedAt: dto.updated_at,
     evidence: dto.evidence.map((item) => ({
       url: item.url,
       sourceType: item.source_type,
@@ -233,11 +259,12 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
   }
 }
 
-export async function submitDecision(id: number, decision: ReviewDecision, note: string): Promise<string> {
+/** Records a decision on the version of the record the administrator opened (its updated_at). */
+export async function submitDecision(id: number, decision: ReviewDecision, note: string, version?: string): Promise<string> {
   const response = await requestJson<{ verification_status: string }>(`admin/deployments/${id}/reviews`, {
     method: 'POST',
     headers: MODIFYING_HEADERS,
-    body: JSON.stringify({ decision, note: note.trim() || null }),
+    body: JSON.stringify({ decision, note: note.trim() || null, version }),
   })
   return response.verification_status
 }
