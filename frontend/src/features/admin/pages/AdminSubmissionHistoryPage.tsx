@@ -49,6 +49,15 @@ type PageState =
   | { status: 'error'; message: string }
   | { status: 'ready'; items: SubmissionHistoryItem[]; hasNextPage: boolean }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** How long a record has waited on its contributor since changes were requested, for closing ones that get no reply */
+function waitingLabel(since: string, now = Date.now()): string {
+  const days = Math.floor((now - new Date(since).getTime()) / DAY_MS)
+  if (!(days >= 1)) return 'waiting since today'
+  return `waiting ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
 function decisionLabel(decision: string, isCorrection: boolean | null): string {
   const label = formatEnumLabel(decision)
   return isCorrection ? `Correction ${label.toLowerCase()}` : label
@@ -205,6 +214,7 @@ function AdminSubmissionHistoryPage() {
                       <td data-label="Current status"><StatusBadge status={item.verificationStatus} /></td>
                       <td data-label="Last updated">
                         {formatDateTime(item.updatedAt)}
+                        {item.verificationStatus === 'changes_requested' && <small className="admin-waiting-age">{waitingLabel(item.updatedAt)}</small>}
                       </td>
                       <td data-label="Action">
                         <Link className="admin-review-link" to={`/admin/deployments/${item.id}`}>

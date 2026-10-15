@@ -67,7 +67,7 @@ Decisions apply to records pending review and to records with changes
 requested. If you fix a record with changes requested yourself, approve it from
 its page: it does not need to go back through the queue. To find the records
 waiting on their contributors, filter **Submission history** by
-**Changes requested**; *Last updated* shows when each was sent back. Reject one
+**Changes requested**; *Last updated* shows when each was sent back and how many days it has waited. Reject one
 whose changes never arrive, with a note such as "No reply after 30 days".
 
 Each decision is kept, with your email, the note and the time, in the record's

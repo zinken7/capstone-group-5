@@ -250,6 +250,26 @@ describe('AdminSubmissionHistoryPage', () => {
     expect(screen.getAllByText('Verified', { selector: '.status-badge' }).every((badge) => badge.className.includes('status-badge--verified'))).toBe(true)
   })
 
+  it('shows how long a record has waited on its contributor', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-15T03:00:00Z'))
+    try {
+      getSubmissionHistoryMock.mockResolvedValue([
+        { ...sampleItems[0], id: 1, verificationStatus: 'changes_requested', latestDecision: 'needs_changes', latestDecisionIsCorrection: false, updatedAt: '2026-10-03T01:00:00Z' },
+        { ...sampleItems[0], id: 2, verificationStatus: 'changes_requested', latestDecision: 'needs_changes', latestDecisionIsCorrection: false, updatedAt: '2026-10-15T01:00:00Z' },
+        { ...sampleItems[0], id: 3, verificationStatus: 'verified', updatedAt: '2026-10-01T01:00:00Z' },
+      ])
+      useAdminSessionMock.mockReturnValue(signedIn)
+      renderPage()
+
+      expect(await screen.findByText('waiting 12 days')).toBeTruthy()
+      expect(screen.getByText('waiting since today')).toBeTruthy()
+      expect(screen.getAllByText(/^waiting/)).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('filters by status on the server, starting from the first page', async () => {
     getSubmissionHistoryMock.mockResolvedValue(sampleItems)
     useAdminSessionMock.mockReturnValue(signedIn)

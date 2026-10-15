@@ -721,6 +721,14 @@
   margin: 0;
 }
 
+/* How long a record has waited on its contributor */
+.admin-waiting-age {
+  display: block;
+  color: var(--color-info);
+  font-size: var(--type-xs);
+  font-weight: 600;
+}
+
 /* Who submitted the record, for following up by email */
 .admin-contact p {
   margin: 0;
