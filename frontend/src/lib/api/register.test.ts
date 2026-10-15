@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { getRegister, getRegisterExport, getRegisterPage } from './register'
+import { getRegisterExport, getRegisterPage } from './register'
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('getRegister', () => {
+describe('register API', () => {
   test('serializes server-side filters, sorting and pagination', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ total: 0, limit: 10, offset: 20, items: [] }))
     vi.stubGlobal('fetch', fetchMock)
@@ -68,7 +68,7 @@ describe('getRegister', () => {
     }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(getRegister()).resolves.toEqual([{
+    await expect(getRegisterPage().then((page) => page.records)).resolves.toEqual([{
       id: '20202',
       siteName: 'aaaa',
       country: 'AU',
@@ -84,7 +84,7 @@ describe('getRegister', () => {
       commissioningDate: undefined,
     }])
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/register?limit=500', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.objectContaining({
       headers: expect.any(Headers),
     }))
   })
@@ -116,7 +116,7 @@ describe('getRegister', () => {
       }],
     })))
 
-    await expect(getRegister()).resolves.toEqual([expect.objectContaining({
+    await expect(getRegisterPage().then((page) => page.records)).resolves.toEqual([expect.objectContaining({
       commissioningDate: '2022',
       supplier: 'Not recorded',
       environment: '',
@@ -159,52 +159,6 @@ describe('getRegister', () => {
         environment: 'both',
         installationType: 'factory_installed',
       })],
-    }))
-  })
-
-  test('loads subsequent pages when the register exceeds the API page size', async () => {
-    const item = (id: number) => ({
-      id,
-      site_name: `Site ${id}`,
-      country_code: 'AU',
-      region: 'Pilbara',
-      machine_manufacturer: 'Caterpillar',
-      machine_model: '789D',
-      model_variant: null,
-      machine_type: 'haul_truck',
-      quantity: 1,
-      technology_supplier: 'Caterpillar',
-      technology_product: 'Command for Hauling',
-      automation_level: 'autonomous',
-      environment: 'surface',
-      installation_type: 'factory_installed',
-      status: 'operational',
-      commissioning_date: null,
-      commissioning_year: 2024,
-      valid_from: null,
-      valid_to: null,
-    })
-    const fetchMock = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json({
-        total: 501,
-        limit: 500,
-        offset: 0,
-        items: Array.from({ length: 500 }, (_, index) => item(index + 1)),
-      }))
-      .mockResolvedValueOnce(Response.json({
-        total: 501,
-        limit: 500,
-        offset: 500,
-        items: [item(501)],
-      }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const records = await getRegister()
-
-    expect(records).toHaveLength(501)
-    expect(records.at(-1)).toEqual(expect.objectContaining({ id: '501', siteName: 'Site 501' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/register?limit=500&offset=500', expect.objectContaining({
-      headers: expect.any(Headers),
     }))
   })
 })

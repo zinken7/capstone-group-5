@@ -130,27 +130,6 @@ export async function getRegisterPage(query: RegisterQuery = {}): Promise<Regist
   }
 }
 
-/** Load every matching row by following the API's bounded pages. */
-export async function getRegisterAll(query: RegisterQuery = {}): Promise<EquipmentRecord[]> {
-  const pageSize = query.limit ?? 500
-  const records: EquipmentRecord[] = []
-  let offset = query.offset ?? 0
-  let total = Number.POSITIVE_INFINITY
-  let firstRequest = true
-
-  while (offset < total) {
-    const page = await getRegisterPage({ ...query, limit: pageSize, ...(firstRequest && query.offset === undefined ? {} : { offset }) })
-    firstRequest = false
-    records.push(...page.records)
-    total = page.total
-    const nextOffset = page.offset + page.records.length
-    if (page.records.length === 0 || nextOffset <= offset) break
-    offset = nextOffset
-  }
-
-  return records
-}
-
 export async function getRegisterExport(query: RegisterQuery = {}): Promise<Blob> {
   const { sort, order, ...filters } = query
   const url = `${getApiBaseUrl()}/register/export${queryString({ ...filters, sort, order })}`
@@ -162,9 +141,4 @@ export async function getRegisterExport(query: RegisterQuery = {}): Promise<Blob
   }
   if (!response.ok) throw new ApiError(`API request failed (${response.status})`, response.status)
   return response.blob()
-}
-
-/** Load every matching verified register row so incomplete records are not lost in site-detail data. */
-export async function getRegister(): Promise<EquipmentRecord[]> {
-  return getRegisterAll({ limit: 500 })
 }
