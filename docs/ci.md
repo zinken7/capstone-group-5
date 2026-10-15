@@ -64,7 +64,10 @@ On pushes to `main` only, three more jobs run after the checks, in order:
 2. **Migrate staging database** applies pending migrations to Neon staging.
 3. **Deploy staging frontend** and **Deploy staging backend** deploy each
    Vercel project to production with `vercel deploy --prod`, with a 10-minute
-   timeout.
+   timeout. Runs of successive merges can overlap, so each deploy first checks
+   `main`: if a newer commit by `DEPLOY_AUTHOR` has landed, that commit's run
+   deploys everything this one has, and this run skips its deploy rather than
+   put older code over it.
 
 The migration and deploy jobs use the `staging` GitHub environment, whose
 secrets (`STAGING_DATABASE_URL`, `VERCEL_TOKEN`) are available only to `main`.
@@ -72,6 +75,11 @@ None of the three is part of the `Backend Lint` gate, because they run after
 the checks rather than as checks, and they are skipped on pull requests.
 
 `.github/workflows/seed-staging.yml` migrates and seeds staging when run by hand.
+It refuses to run while `main` has migrations newer than the last commit by
+`DEPLOY_AUTHOR`, because staging still runs that commit's code.
+
+Every job runs on `ubuntu-24.04` rather than `ubuntu-latest`, which moves to a
+new Ubuntu release on 19 October 2026; the seed steps rely on the runner's `psql`.
 [`staging.md`](staging.md) covers these jobs, the environment and its
 configuration.
 

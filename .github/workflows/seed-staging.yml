@@ -18,7 +18,7 @@ jobs:
   seed-staging:
     name: Migrate and seed staging database
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging
     # Shared with the migrate-staging job in lint.yml.
     concurrency:
@@ -31,6 +31,39 @@ jobs:
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The history of main, to find the commit staging last deployed
+          fetch-depth: 0
+      # Staging runs the code of the last commit by the deploy author (see
+      # lint.yml). Migrations merged by anyone else since then have not been
+      # deployed, so applying them here would put a newer schema under older
+      # code. Refuse until M1's next merge deploys them.
+      - name: Check that staging already runs main's migrations
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_AUTHOR: ${{ vars.DEPLOY_AUTHOR }}
+        run: |
+          if [ -z "$DEPLOY_AUTHOR" ]; then
+            echo '::error::The DEPLOY_AUTHOR repository variable is not set'
+            exit 1
+          fi
+          deployed=''
+          for sha in $(git rev-list --first-parent -n 50 HEAD); do
+            if [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq '.author.login // ""')" = "$DEPLOY_AUTHOR" ]; then
+              deployed=$sha
+              break
+            fi
+          done
+          if [ -z "$deployed" ]; then
+            echo "::error::No recent commit on main by $DEPLOY_AUTHOR, so the deployed migrations are unknown"
+            exit 1
+          fi
+          if ! git diff --quiet "$deployed" HEAD -- backend/migrations; then
+            echo "::error::main has migrations newer than the deployed commit $deployed. They reach staging with M1's next merge; seed after that."
+            exit 1
+          fi
+          echo "Staging runs $deployed, which has every migration on main."
       - uses: actions/setup-node@v4
         with:
           node-version: 22

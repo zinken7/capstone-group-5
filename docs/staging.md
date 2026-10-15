@@ -141,7 +141,10 @@ environment, which only `main` can deploy to. It holds Neon's direct
 (unpooled) connection string: `backend/src/migrate.ts` holds a session-level
 advisory lock, which Neon's pooled endpoint does not preserve between
 statements. The two jobs share a concurrency group, so they never run at the
-same time.
+same time. The seed workflow first checks that staging already runs every
+migration on `main`, that is, that none was merged after the last commit by
+`DEPLOY_AUTHOR`; otherwise it stops before migrating, and should be run again
+after M1's next merge.
 
 The environment is the access boundary for both the database and the Vercel
 token. Its secrets are not defined at repository level, so a job without

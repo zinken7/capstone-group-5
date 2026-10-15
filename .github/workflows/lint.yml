@@ -10,10 +10,14 @@ on:
 permissions:
   contents: read
 
+# Runners are pinned rather than ubuntu-latest, which moves to a new Ubuntu
+# release on 19 October 2026: the seed check and staging seed rely on the
+# runner's psql, and a new image should be adopted on purpose, not mid-handover.
+
 jobs:
   changes:
     name: Detect affected areas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       frontend: ${{ steps.paths.outputs.frontend }}
       backend: ${{ steps.paths.outputs.backend }}
@@ -40,7 +44,7 @@ jobs:
     name: Docker Compose Config
     needs: changes
     if: needs.changes.outputs.compose == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Validate Docker Compose configuration
@@ -50,7 +54,7 @@ jobs:
     name: Backend checks and database tests
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -105,7 +109,7 @@ jobs:
     name: Frontend Lint
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -126,7 +130,7 @@ jobs:
     name: Service checks
     needs: changes
     if: needs.changes.outputs.services == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Run checks declared by the service implementation
@@ -136,7 +140,7 @@ jobs:
     name: Infrastructure validation
     needs: changes
     if: needs.changes.outputs.infra == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Detect Terraform configuration
@@ -160,7 +164,7 @@ jobs:
     name: Backend Lint
     if: always()
     needs: [changes, compose-config, backend-checks, frontend-lint, services-checks, infra-checks]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -181,7 +185,7 @@ jobs:
     name: Check deploy author
     needs: backend-lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
@@ -232,7 +236,7 @@ jobs:
     name: Migrate staging database
     needs: [backend-lint, check-deploy-author]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging
     concurrency:
       group: staging-database
@@ -266,7 +270,7 @@ jobs:
     name: Deploy staging ${{ matrix.project }}
     needs: [backend-lint, check-deploy-author, migrate-staging]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-deploy-author.outputs.allowed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: staging
     strategy:
@@ -282,12 +286,36 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The whole history of main, to see whether a newer commit has landed since
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Runs of successive merges overlap, and a slower one could otherwise
+      # deploy its older code over a newer deploy. A newer commit on main by
+      # the deploy author deploys everything this one has, so this run stands
+      # down; a newer commit by anyone else does not deploy, so this run goes on.
+      - name: Check that no newer commit deploys instead
+        id: newer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_AUTHOR: ${{ vars.DEPLOY_AUTHOR }}
+        run: |
+          git fetch --quiet origin main
+          for sha in $(git rev-list --first-parent "$GITHUB_SHA..origin/main"); do
+            login=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq '.author.login // ""')
+            if [ "$login" = "$DEPLOY_AUTHOR" ]; then
+              echo "::notice::Not deploying $GITHUB_SHA: $sha is newer on main and deploys it instead"
+              echo 'superseded=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo 'superseded=false' >> "$GITHUB_OUTPUT"
       # Run from the repository root: each Vercel project sets its own Root
       # Directory, and Vercel builds it on its own infrastructure.
       - name: Deploy to the Vercel production environment
+        if: steps.newer.outputs.superseded == 'false'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
