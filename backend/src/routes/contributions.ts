@@ -6,7 +6,7 @@ import { validateContribution } from '../lib/contribution-validation.js'
 import { validateCorrection } from '../lib/correction-validation.js'
 import { honeypotFilled } from '../lib/honeypot.js'
 import { parseId } from '../lib/ids.js'
-import { createContribution } from '../services/contributions.js'
+import { createContribution, ResubmissionRefusedError } from '../services/contributions.js'
 import { checkStatuses, readOwnContribution, updateOwnContribution } from '../services/contributor-access.js'
 
 const router = Router()
@@ -32,6 +32,10 @@ router.post('/contributions', async (req, res, next) => {
     // The key is returned once and never again; only its hash is stored (FR-59)
     res.status(201).json({ id: deployment.id, verification_status: deployment.verificationStatus, key: deployment.key })
   } catch (error) {
+    if (error instanceof ResubmissionRefusedError) {
+      res.status(400).json({ error: 'invalid contribution', fields: { resubmission_of: 'is not a rejected submission of yours' } })
+      return
+    }
     next(error)
   }
 })

@@ -170,6 +170,27 @@ describe('review queue', () => {
     expect(within(row).getByRole('link', { name: /review kalgoorlie super pit record 12/i })).toHaveAttribute('href', '/admin/deployments/12')
   })
 
+  test('marks a resubmission of a rejected record', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/reviews': () => Response.json({
+        items: [{
+          id: 14, site_name: 'Kalgoorlie Super Pit', country_code: 'AU', region: 'Goldfields',
+          machine_manufacturer: 'Sandvik', machine_model: 'LH517i', machine_type: 'lhd', quantity: 8,
+          technology_supplier: 'Sandvik', technology_product: null, evidence_count: 1, submitted_at: '2026-10-05T00:00:00Z',
+          kind: 'submission', correction_id: null, changed_fields: [], after_changes_requested: false, resubmission_of: 12,
+          contributor_email: null, contributor_organisation: null,
+        }],
+      }),
+    })
+    renderAt('/admin')
+
+    const row = (await screen.findByText('Kalgoorlie Super Pit')).closest('tr')
+    if (!row) throw new Error('no row')
+    expect(within(row).getByText('Resubmission')).toHaveClass('admin-kind--resubmission')
+    expect(within(row).getByText('Replaces rejected record 12')).toBeInTheDocument()
+  })
+
   test('marks a record its contributor updated after a request for changes', async () => {
     stubApi({
       'GET /api/admin/session': () => profile(),
@@ -349,6 +370,33 @@ describe('record review', () => {
     renderAt('/admin/deployments/13')
     expect(await screen.findByText(/No contact email was given/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Email contributor' })).not.toBeInTheDocument()
+  })
+
+  test('shows the rejected record a resubmission replaces, and links back from it', async () => {
+    stubApi({
+      'GET /api/admin/session': () => profile(),
+      'GET /api/admin/deployments/14': () => Response.json(recordDto({
+        id: 14,
+        resubmission_of: { id: 12, verification_status: 'rejected', decision: 'rejected', note: 'Wrong site', administrator: 'lead@example.com', reviewed_at: '2026-10-04T01:00:00Z' },
+        resubmitted_as: [],
+      })),
+      'GET /api/admin/deployments/12': () => Response.json(recordDto({
+        verification_status: 'rejected',
+        resubmission_of: null,
+        resubmitted_as: [{ id: 14, verification_status: 'pending_review' }],
+      })),
+      'GET /api/reference-data': () => Response.json({ error: 'offline' }, { status: 503 }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/deployments/14')
+
+    const panel = await screen.findByRole('region', { name: 'Resubmission of a rejected record' })
+    expect(panel).toHaveTextContent('rejected by lead@example.com')
+    expect(panel).toHaveTextContent('Wrong site')
+    await user.click(within(panel).getByRole('link', { name: 'record 12' }))
+
+    expect(await screen.findByText(/Resubmitted as/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'record 14' })).toHaveAttribute('href', '/admin/deployments/14')
   })
 
   test('closes a rejected record: no decision and no editing', async () => {
@@ -584,7 +632,7 @@ describe('buildCorrection', () => {
   const record = {
     id: 12, verificationStatus: 'pending_review', siteName: 'S', countryCode: 'AU', latitude: null, longitude: null, region: null, commodity: null,
     machineManufacturer: 'M', machineModel: null, modelVariant: null, machineType: 'lhd', quantity: 8,
-    technologySupplier: null, technologyProduct: null, possibleDuplicates: [],
+    technologySupplier: null, technologyProduct: null, possibleDuplicates: [], resubmissionOf: null, resubmittedAs: [],
     automationLevel: null, environment: null,
     installationType: 'unknown', status: null, commissioningDate: null, commissioningYear: null,
     validFrom: null, validTo: null, evidence: [], reviews: [], revisions: [], corrections: [],

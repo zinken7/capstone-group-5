@@ -235,9 +235,11 @@ function UpdateForm({ item, onSent, onCancel, onStale }: UpdateFormProps) {
 }
 
 /** One submission: what it is, where its review stands, and what the contributor can do next */
-function ContributionRow({ item }: { item: TrackedContribution }) {
+function ContributionRow({ item, onResubmit }: { item: TrackedContribution; onResubmit: (item: TrackedContribution) => Promise<void> }) {
   const { remove, refresh } = useMyContributions()
   const [editing, setEditing] = useState(false)
+  const [opening, setOpening] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
   const [confirmingRemoval, setConfirmingRemoval] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const updateButtonRef = useRef<HTMLButtonElement>(null)
@@ -250,7 +252,7 @@ function ContributionRow({ item }: { item: TrackedContribution }) {
   return (
     <li className="my-contribution" aria-labelledby={titleId}>
       <div className="my-contribution__summary">
-        <p className="my-contribution__ref">#{item.id} · submitted {formatDate(item.submittedAt.slice(0, 10))}</p>
+        <p className="my-contribution__ref">#{item.id} · submitted {formatDate(item.submittedAt.slice(0, 10))}{item.last?.resubmissionOf ? ` · replaces #${item.last.resubmissionOf}` : ''}</p>
         <h3 id={titleId} className="my-contribution__title">
           {item.siteName} · {item.machine}{item.last ? ` × ${formatNumber(item.last.quantity)}` : ''}
         </h3>
@@ -265,7 +267,10 @@ function ContributionRow({ item }: { item: TrackedContribution }) {
           <p>{decision?.note}</p>
         </div>
       )}
-      {status === 'rejected' && <p className="form-help my-contribution__wide">This submission is closed. If the details can be corrected, submit them as a new contribution.</p>}
+      {status === 'rejected' && (item.last?.resubmittedAs
+        ? <p className="form-help my-contribution__wide">This submission is closed. You resubmitted it as #{item.last.resubmittedAs}.</p>
+        : <p className="form-help my-contribution__wide">This submission is closed. Resubmit it to correct the details: the form opens with what you sent, and the new submission stays linked to this one.</p>)}
+      {openError && <p className="form-summary-error my-contribution__wide" role="alert">{openError}</p>}
       {status === 'pending_review' && <p className="form-help my-contribution__wide">Waiting for review. You will see the decision here.</p>}
       {item.missing && <p className="form-help my-contribution__wide">The site no longer reports this submission. You can remove it from this browser.</p>}
       {notice && <p className="form-summary-success my-contribution__wide" role="status">{notice}</p>}
@@ -283,6 +288,22 @@ function ContributionRow({ item }: { item: TrackedContribution }) {
       <div className="my-contribution__actions">
         {status === 'changes_requested' && !editing && (
           <button ref={updateButtonRef} className="button button--primary" type="button" onClick={() => { setEditing(true); setNotice(null) }}>Update submission</button>
+        )}
+        {status === 'rejected' && !item.last?.resubmittedAs && (
+          <button
+            className="button button--primary"
+            type="button"
+            disabled={opening}
+            onClick={() => {
+              setOpening(true)
+              setOpenError(null)
+              onResubmit(item)
+                .catch((cause: unknown) => setOpenError(cause instanceof Error ? cause.message : 'The submission could not be opened.'))
+                .finally(() => setOpening(false))
+            }}
+          >
+            {opening ? 'Opening…' : 'Resubmit'}
+          </button>
         )}
         {status === 'verified' && item.last && (
           <Link className="button button--secondary" to={`/equipment?site_id=${item.last.siteId}`}>View on register</Link>
@@ -304,7 +325,7 @@ function ContributionRow({ item }: { item: TrackedContribution }) {
 }
 
 /** The submissions made from this browser, with their review status (FR-59) */
-function MyContributions({ onStartNew }: { onStartNew: () => void }) {
+function MyContributions({ onStartNew, onResubmit }: { onStartNew: () => void; onResubmit: (item: TrackedContribution) => Promise<void> }) {
   const { items, checking, checkFailed, refresh } = useMyContributions()
 
   if (items.length === 0) {
@@ -326,7 +347,7 @@ function MyContributions({ onStartNew }: { onStartNew: () => void }) {
       </div>
       {checkFailed && <p className="form-summary-error" role="alert">The latest statuses could not be checked. These are the last ones known.</p>}
       <ul className="my-contributions__list">
-        {items.map((item) => <ContributionRow key={item.id} item={item} />)}
+        {items.map((item) => <ContributionRow key={item.id} item={item} onResubmit={onResubmit} />)}
       </ul>
     </div>
   )

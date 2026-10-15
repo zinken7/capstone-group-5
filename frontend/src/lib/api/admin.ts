@@ -75,6 +75,7 @@ interface QueueItemDto {
   correction_id: number | null
   changed_fields: string[]
   after_changes_requested: boolean
+  resubmission_of: number | null
   contributor_email: string | null
   contributor_organisation: string | null
 }
@@ -98,6 +99,7 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     correctionId: item.correction_id,
     changedFields: item.changed_fields,
     afterChangesRequested: item.after_changes_requested,
+    resubmissionOf: item.resubmission_of ?? null,
     contributorEmail: item.contributor_email,
     contributorOrganisation: item.contributor_organisation,
   }))
@@ -119,6 +121,15 @@ interface RecordDto {
   quantity: number
   technology_supplier: string | null
   technology_product: string | null
+  resubmission_of: {
+    id: number
+    verification_status: string
+    decision: string | null
+    note: string | null
+    administrator: string | null
+    reviewed_at: string | null
+  } | null
+  resubmitted_as: { id: number; verification_status: string }[]
   possible_duplicates: {
     id: number
     verification_status: string
@@ -179,6 +190,17 @@ export async function getReviewRecord(id: number): Promise<ReviewRecord> {
     quantity: dto.quantity,
     technologySupplier: dto.technology_supplier,
     technologyProduct: dto.technology_product,
+    resubmissionOf: dto.resubmission_of
+      ? {
+          id: dto.resubmission_of.id,
+          verificationStatus: dto.resubmission_of.verification_status,
+          decision: dto.resubmission_of.decision,
+          note: dto.resubmission_of.note,
+          administrator: dto.resubmission_of.administrator,
+          reviewedAt: dto.resubmission_of.reviewed_at,
+        }
+      : null,
+    resubmittedAs: (dto.resubmitted_as ?? []).map((item) => ({ id: item.id, verificationStatus: item.verification_status })),
     possibleDuplicates: dto.possible_duplicates.map((item) => ({
       id: item.id,
       verificationStatus: item.verification_status,

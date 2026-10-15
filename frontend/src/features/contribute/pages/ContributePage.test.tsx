@@ -156,9 +156,10 @@ describe('ContributePage', () => {
     await user.click(screen.getByRole('button', { name: /submit deployment/i }))
 
     expect(await screen.findByRole('heading', { name: /contribution received/i })).toBeInTheDocument()
+    // A first submission names no rejected one to replace
     expect(submitContribution).toHaveBeenCalledWith(expect.objectContaining({
       siteName: 'Roy Hill', countryCode: 'AU', machineType: 'haul_truck', quantity: '10',
-    }))
+    }), undefined)
     expect(screen.getByText(/pending review/i)).toBeInTheDocument()
   })
 

@@ -304,3 +304,78 @@ describe('PATCH /api/contributions/:id', () => {
     expect(await query("SELECT id FROM revision WHERE deployment_id = $1 AND action = 'update'", [mine.id])).toEqual([])
   })
 })
+
+describe('resubmitting a rejected submission (FR-60)', () => {
+  it('links the new record to the rejected one, both ways, with the reason it was rejected', async () => {
+    const rejected = await submit()
+    expect((await decide(rejected.id, 'rejected', 'The site is the processing plant, not the mine')).status).toBe(201)
+
+    const response = await request(app).post('/api/contributions').send({
+      site_name: 'Jimblebar', country_code: 'AU', machine_type: 'haul_truck', machine_manufacturer: 'Komatsu', machine_model: '930E',
+      quantity: 15, automation_level: 'autonomous', technology_supplier: 'Komatsu', disclosure_accepted: true,
+      evidence_urls: ['https://example.com/jimblebar-mine'],
+      resubmission_of: { id: rejected.id, key: rejected.key },
+    })
+    expect(response.status).toBe(201)
+    const resubmitted = response.body.id as number
+
+    const record = await request(app).get(`/api/admin/deployments/${resubmitted}`).set('Cookie', cookie)
+    expect(record.body.resubmission_of).toEqual({
+      id: rejected.id,
+      verification_status: 'rejected',
+      decision: 'rejected',
+      note: 'The site is the processing plant, not the mine',
+      administrator: expect.any(String),
+      reviewed_at: expect.any(String),
+    })
+    // The earlier attempt also shows among the possible duplicates, labelled rejected
+    expect(record.body.possible_duplicates).toEqual(expect.arrayContaining([expect.objectContaining({ id: rejected.id, verification_status: 'rejected' })]))
+
+    const earlier = await request(app).get(`/api/admin/deployments/${rejected.id}`).set('Cookie', cookie)
+    expect(earlier.body.resubmitted_as).toEqual([{ id: resubmitted, verification_status: 'pending_review' }])
+
+    const queue = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(queue.body.items.find((item: { id: number }) => item.id === resubmitted)).toEqual(expect.objectContaining({ resubmission_of: rejected.id }))
+
+    const statuses = await status([rejected, { id: resubmitted, key: response.body.key as string }])
+    expect(statuses.body.items).toEqual([
+      expect.objectContaining({ id: rejected.id, resubmitted_as: resubmitted, resubmission_of: null }),
+      expect.objectContaining({ id: resubmitted, resubmission_of: rejected.id, resubmitted_as: null }),
+    ])
+  })
+
+  it.each([
+    ['a wrong key', 'rejected', true],
+    ['a record that is not rejected', null, false],
+  ])('refuses %s and stores nothing', async (_label, decision, wrongKey) => {
+    const earlier = await submit()
+    if (decision) expect((await decide(earlier.id, decision, 'Closed')).status).toBe(201)
+    const [before] = await query<{ count: number }>('SELECT COUNT(*)::int AS count FROM deployment')
+
+    const response = await request(app).post('/api/contributions').send({
+      site_name: 'Jimblebar', country_code: 'AU', machine_type: 'haul_truck', machine_manufacturer: 'Komatsu', machine_model: '930E',
+      quantity: 15, automation_level: 'autonomous', technology_supplier: 'Komatsu', disclosure_accepted: true,
+      resubmission_of: { id: earlier.id, key: wrongKey ? OTHER_KEY : earlier.key },
+    })
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'invalid contribution', fields: { resubmission_of: 'is not a rejected submission of yours' } })
+    const [after] = await query<{ count: number }>('SELECT COUNT(*)::int AS count FROM deployment')
+    expect(after?.count).toBe(before?.count)
+  })
+
+  it('rejects a malformed link before anything else', async () => {
+    const response = await request(app).post('/api/contributions').send({ resubmission_of: { id: 'abc', key: 'short' } })
+    expect(response.status).toBe(400)
+    expect(response.body.fields.resubmission_of).toBe('must hold the id and key of the rejected submission')
+  })
+
+  it('returns every field the form is prefilled with', async () => {
+    const mine = await submit({ region: 'Pilbara', commodity: 'iron_ore', machine_model_variant: 'AC', technology_product: 'FrontRunner' })
+    const response = await read(mine.id, mine.key)
+    expect(response.body).toEqual(expect.objectContaining({
+      site_name: 'Jimblebar', country_code: 'AU', region: 'Pilbara', commodity: 'iron_ore', latitude: -22.3, longitude: 118.7,
+      machine_type: 'haul_truck', machine_manufacturer: 'Komatsu', machine_model: '930E', machine_model_variant: 'AC',
+      technology_supplier: 'Komatsu', technology_product: 'FrontRunner',
+    }))
+  })
+})

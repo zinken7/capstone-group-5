@@ -29,12 +29,21 @@ export interface ContributionSummary {
   updated_at: string
   /** The latest decision on the record itself, with the note the administrator wrote for the contributor */
   decision: { decision: string; note: string | null; decided_at: string } | null
+  /** The rejected record this submission replaces, and the latest record that replaced this one (FR-60) */
+  resubmission_of: number | null
+  resubmitted_as: number | null
 }
 
 export interface ContributionDetail extends ContributionSummary {
   /** The site's location; null when it has none, which approval needs */
   latitude: number | null
   longitude: number | null
+  /** The rest of the submission, so a rejected one can be resubmitted from it (FR-60) */
+  region: string | null
+  commodity: string | null
+  machine_model_variant: string | null
+  technology_supplier: string
+  technology_product: string | null
   environment: string | null
   deployment_status: string | null
   automation_level: string
@@ -60,6 +69,8 @@ function toSummary(row: ContributionSummaryRow): ContributionSummary {
     decision: row.decision === null || row.decided_at === null
       ? null
       : { decision: row.decision, note: row.decision_note, decided_at: row.decided_at },
+    resubmission_of: row.resubmission_of,
+    resubmitted_as: row.resubmitted_as,
   }
 }
 
@@ -68,6 +79,11 @@ function toDetail(row: ContributionDetailRow): ContributionDetail {
     ...toSummary(row),
     latitude: row.latitude,
     longitude: row.longitude,
+    region: row.region,
+    commodity: row.commodity,
+    machine_model_variant: row.machine_model_variant,
+    technology_supplier: row.technology_supplier,
+    technology_product: row.technology_product,
     environment: row.environment,
     deployment_status: row.deployment_status,
     automation_level: row.automation_level,

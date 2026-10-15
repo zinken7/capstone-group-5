@@ -57,6 +57,8 @@ interface MyContributionsValue {
   remove: (id: number) => void
   /** Records a new status the site reported for one submission, for example after an update */
   setStatus: (id: number, verificationStatus: string) => void
+  /** Notes that a rejected submission has been resubmitted, before the next status check says so */
+  markResubmitted: (id: number, resubmittedAs: number) => void
   refresh: () => void
 }
 
@@ -70,6 +72,7 @@ const MyContributionsContext = createContext<MyContributionsValue>({
   add: noop,
   remove: noop,
   setStatus: noop,
+  markResubmitted: noop,
   refresh: noop,
 })
 
@@ -139,9 +142,15 @@ export function MyContributionsProvider({ children }: PropsWithChildren) {
       : item))
   }, [update])
 
+  const markResubmitted = useCallback((id: number, resubmittedAs: number) => {
+    update((current) => current.map((item) => item.id === id && item.last
+      ? { ...item, last: { ...item.last, resubmittedAs } }
+      : item))
+  }, [update])
+
   const value = useMemo(
-    () => ({ items, checking, checkFailed, add, remove, setStatus, refresh }),
-    [items, checking, checkFailed, add, remove, setStatus, refresh],
+    () => ({ items, checking, checkFailed, add, remove, setStatus, markResubmitted, refresh }),
+    [items, checking, checkFailed, add, remove, setStatus, markResubmitted, refresh],
   )
   return <MyContributionsContext.Provider value={value}>{children}</MyContributionsContext.Provider>
 }

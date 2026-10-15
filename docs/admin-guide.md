@@ -59,6 +59,13 @@ is missing, the decision panel says **Not ready to approve**, Approve is
 unavailable, and **Needs changes** is selected with a note asking for what is
 missing. Add it yourself with **Edit record**, or send the request.
 
+A contributor whose record you reject can resubmit it from **My contributions**:
+the form opens with what they sent, and the new record is linked to the rejected
+one. The queue marks it **Resubmission**, its page shows the record it replaces
+with your reason, and the rejected record's page links to the new one. The
+earlier attempt also appears among the possible duplicates, labelled
+**Rejected**.
+
 When the contributor left an email address, the **Contributor** panel on the
 record page offers **Email contributor**, which opens your email app with the
 record's number in the subject, for anything the decision note cannot cover.

@@ -41,6 +41,8 @@ export interface QueueItem {
   changed_fields: string[]
   /** The contributor's update answers an administrator's request for changes (FR-59) */
   after_changes_requested: boolean
+  /** The rejected record this submission replaces (FR-60) */
+  resubmission_of: number | null
   contributor_email: string | null
   contributor_organisation: string | null
 }
@@ -61,6 +63,7 @@ export async function listPendingSubmissions(): Promise<QueueItem[]> {
       technology_product: tables.technologyProduct.productName,
       evidence_count: evidenceCount,
       submitted_at: isoTimestamp(tables.deployment.updatedAt),
+      resubmission_of: sql<number | null>`(SELECT r.previous_deployment_id::int FROM ${tables.resubmission} r WHERE r.deployment_id = "deployment"."id")`,
     })
     .from(tables.deployment)
     .innerJoin(tables.site, eq(tables.site.id, tables.deployment.siteId))
@@ -244,6 +247,7 @@ export async function listPendingCorrections(): Promise<QueueItem[]> {
     kind: 'correction',
     changed_fields: [...Object.keys(proposed_values), ...(row.evidence_count > 0 ? ['evidence_urls'] : [])],
     after_changes_requested: false,
+    resubmission_of: null,
   }))
 }
 
@@ -288,6 +292,17 @@ export interface ReviewRecord {
   evidence: { url: string; source_type: string; publisher: string | null; published_date: string | null }[]
   reviews: { decision: string; note: string | null; administrator: string; reviewed_at: string; correction_id: number | null }[]
   corrections: CorrectionView[]
+  /** The rejected record this one replaces, with the decision that closed it (FR-60) */
+  resubmission_of: {
+    id: number
+    verification_status: string
+    decision: string | null
+    note: string | null
+    administrator: string | null
+    reviewed_at: string | null
+  } | null
+  /** Records submitted to replace this one */
+  resubmitted_as: { id: number; verification_status: string }[]
   revisions: {
     action: string
     previous_values: Record<string, unknown> | null
@@ -311,7 +326,7 @@ export interface CorrectionView {
   changes: { field: string; before: unknown; proposed: unknown; current: unknown }[]
 }
 
-type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections' | 'possible_duplicates'>
+type RecordFields = Omit<ReviewRecord, 'evidence' | 'reviews' | 'revisions' | 'corrections' | 'possible_duplicates' | 'resubmission_of' | 'resubmitted_as'>
 
 /** A record's current value for each field a correction can propose, in the stored proposal format. */
 function currentValue(record: RecordFields, field: string): unknown {
@@ -393,13 +408,37 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
       ne(tables.deployment.id, id),
       eq(tables.deployment.siteId, record.site_id),
       eq(tables.deployment.technologySupplierId, record.technology_supplier_id),
-      inArray(tables.deployment.verificationStatus, ['pending_review', 'verified']),
+      // Rejected and waiting records too, so a resubmission shows the earlier attempt
+      inArray(tables.deployment.verificationStatus, ['pending_review', 'changes_requested', 'verified', 'rejected']),
       or(
         eq(tables.deployment.machineModelId, record.machine_model_id),
         eq(tables.machineModel.machineType, record.machine_type),
       ),
     ))
     .orderBy(asc(tables.deployment.id))
+
+  const [resubmissionOf, resubmittedAs] = await Promise.all([
+    db.execute<{ id: number; verification_status: string; decision: string | null; note: string | null; administrator: string | null; reviewed_at: string | null }>(sql`
+      SELECT p.id::int AS id, p.verification_status::text AS verification_status,
+        vr.decision::text AS decision, vr.review_note AS note, a.email AS administrator,
+        to_char(vr.reviewed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS reviewed_at
+      FROM ${tables.resubmission} r
+      JOIN ${tables.deployment} p ON p.id = r.previous_deployment_id
+      LEFT JOIN LATERAL (
+        SELECT * FROM ${tables.verificationReview} v
+        WHERE v.deployment_id = p.id AND v.correction_id IS NULL
+        ORDER BY v.reviewed_at DESC, v.id DESC LIMIT 1
+      ) vr ON TRUE
+      LEFT JOIN ${tables.adminUser} a ON a.id = vr.admin_user_id
+      WHERE r.deployment_id = ${id}
+    `),
+    db
+      .select({ id: tables.resubmission.deploymentId, verification_status: tables.deployment.verificationStatus })
+      .from(tables.resubmission)
+      .innerJoin(tables.deployment, eq(tables.deployment.id, tables.resubmission.deploymentId))
+      .where(eq(tables.resubmission.previousDeploymentId, id))
+      .orderBy(asc(tables.resubmission.deploymentId)),
+  ])
 
   const [evidence, reviews, revisions, corrections] = await Promise.all([
     db
@@ -464,6 +503,8 @@ export async function findReviewRecord(id: number): Promise<ReviewRecord | null>
   return {
     ...publicRecord,
     possible_duplicates,
+    resubmission_of: resubmissionOf.rows[0] ?? null,
+    resubmitted_as: resubmittedAs,
     evidence,
     reviews,
     revisions,

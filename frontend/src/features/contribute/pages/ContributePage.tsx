@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 
-import { postContribution } from '../../../lib/api/contributions'
+import { getOwnContribution, postContribution } from '../../../lib/api/contributions'
 import { formatEnumLabel } from '../../../lib/format'
 import { getContributionReferenceData } from '../../../lib/api/reference-data'
 import StateMessage from '../../../shared/components/StateMessage'
 import MapIcon from '../../map/components/MapIcon'
 import MyContributions from '../components/MyContributions'
 import { useMyContributions } from '../my-contributions'
+import type { TrackedContribution } from '../my-contributions'
 import {
   COUNTRIES,
   DEFAULT_CONTRIBUTION_REFERENCE_DATA,
@@ -17,6 +18,7 @@ import {
   type ContributionReferenceData,
   type ContributionVerificationStatus,
   type ContributionSubmitter,
+  type OwnContribution,
 } from '../types'
 import { hasContributionErrors, validateContribution } from '../validation'
 import '../contribute.css'
@@ -54,9 +56,48 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   return <p className="form-error" id={id} role="alert">{message}</p>
 }
 
+/** A rejected submission being sent again: the form starts from it, and the new one is linked to it (FR-60) */
+interface Resubmission {
+  id: number
+  key: string
+  reason: string | null
+  values: ContributionFormValues
+}
+
+/** The form values a resubmission starts from: everything that was sent, except the contact details */
+function formValuesFrom(contribution: OwnContribution): ContributionFormValues {
+  return {
+    siteName: contribution.siteName,
+    countryCode: contribution.countryCode,
+    latitude: contribution.latitude === null ? '' : String(contribution.latitude),
+    longitude: contribution.longitude === null ? '' : String(contribution.longitude),
+    region: contribution.region ?? '',
+    commodity: contribution.commodity ?? '',
+    machineType: contribution.machineType,
+    manufacturer: contribution.machineManufacturer,
+    machineModel: contribution.machineModel ?? '',
+    machineModelVariant: contribution.machineModelVariant ?? '',
+    quantity: String(contribution.quantity),
+    environment: contribution.environment ?? '',
+    deploymentStatus: contribution.deploymentStatus ?? '',
+    automationLevel: contribution.automationLevel,
+    installationType: contribution.installationType,
+    technologySupplier: contribution.technologySupplier,
+    technologyProduct: contribution.technologyProduct ?? '',
+    commissioningDate: contribution.commissioningDate ?? '',
+    evidenceUrls: contribution.evidenceUrls.length > 0 ? [...contribution.evidenceUrls] : [''],
+    email: '',
+    organisation: '',
+    disclosureAccepted: false,
+  }
+}
+
 interface NewContributionProps extends ContributePageProps {
   /** Shows the My contributions tab, from the confirmation */
   onShowMine: () => void
+  resubmission: Resubmission | null
+  /** Back to a blank form */
+  onClearResubmission: () => void
 }
 
 /** The submission form, its loading and failure states, and the confirmation */
@@ -66,15 +107,18 @@ function NewContribution({
   referenceDataLoading = false,
   loadReferenceData = getContributionReferenceData,
   onShowMine,
+  resubmission,
+  onClearResubmission,
 }: NewContributionProps) {
-  const { add } = useMyContributions()
+  const { add, markResubmitted } = useMyContributions()
   const [tracked, setTracked] = useState(false)
-  const [values, setValues] = useState<ContributionFormValues>({ ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
+  const [values, setValues] = useState<ContributionFormValues>(() => resubmission?.values ?? { ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
   const [errors, setErrors] = useState<ContributionErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [submitMessage, setSubmitMessage] = useState('')
-  const [showMoreDetails, setShowMoreDetails] = useState(false)
+  // A resubmission shows every detail it carries, so nothing sent before is hidden
+  const [showMoreDetails, setShowMoreDetails] = useState(Boolean(resubmission))
   const [loadedReferenceData, setLoadedReferenceData] = useState<ContributionReferenceData | undefined>(providedReferenceData)
   const [loadingReferenceData, setLoadingReferenceData] = useState(!providedReferenceData && !referenceDataLoading)
   const [referenceDataError, setReferenceDataError] = useState(false)
@@ -194,7 +238,8 @@ function NewContribution({
     setSubmitState('submitting')
     setSubmitMessage('')
     try {
-      const result = await submitContribution(values)
+      const result = await submitContribution(values, resubmission ? { resubmissionOf: { id: resubmission.id, key: resubmission.key } } : undefined)
+      if (resubmission && typeof result?.id === 'number') markResubmitted(resubmission.id, result.id)
       // This browser keeps the submission and its key, so the contributor can follow it without an account (FR-59)
       const followed = typeof result?.id === 'number' && typeof result.key === 'string'
       if (followed) {
@@ -223,6 +268,11 @@ function NewContribution({
   }
 
   const resetForm = () => {
+    // A resubmission ends here; the parent starts a fresh, blank form
+    if (resubmission) {
+      onClearResubmission()
+      return
+    }
     setValues({ ...EMPTY_CONTRIBUTION_FORM, evidenceUrls: [''] })
     setErrors({})
     setTouched(new Set())
@@ -269,6 +319,16 @@ function NewContribution({
 
   return (
     <>
+      {resubmission && (
+        <aside className="contribution-notice contribution-notice--resubmit" aria-labelledby="resubmission-heading">
+          <h2 id="resubmission-heading">Resubmitting #{resubmission.id}</h2>
+          <p>
+            It was rejected{resubmission.reason ? <>: <q>{resubmission.reason}</q></> : '.'} The form starts from what you sent.
+            Correct the details, then submit them as a new contribution; it stays linked to #{resubmission.id}, so the reviewer sees the earlier decision.
+          </p>
+          <button className="text-button text-button--flush" type="button" onClick={onClearResubmission}>Start from a blank form instead</button>
+        </aside>
+      )}
       <aside className="contribution-notice" aria-labelledby="contribution-notice-heading">
         <h2 id="contribution-notice-heading">Before you submit</h2>
         <p>Only submit information you are authorised to disclose. This register covers equipment with an automation technology fitted; standalone machines without one are outside this submission scope. A submission can be approved only once it has at least one source link and, for a site not yet on the map, its coordinates. Add them now if you can; otherwise the reviewer will ask for them under My contributions. Contributions are checked before they become part of the public market map.</p>
@@ -443,7 +503,15 @@ function initialTab(): Tab {
 
 function ContributePage(props: ContributePageProps) {
   const [tab, setTab] = useState<Tab>(initialTab)
+  const [resubmission, setResubmission] = useState<Resubmission | null>(null)
   const { items } = useMyContributions()
+
+  async function startResubmission(item: TrackedContribution) {
+    const contribution = await getOwnContribution(item.id, item.key)
+    setResubmission({ id: item.id, key: item.key, reason: item.last?.decision?.note ?? null, values: formValuesFrom(contribution) })
+    setTab('new')
+    window.scrollTo({ top: 0 })
+  }
 
   function select(next: Tab, focus = false) {
     setTab(next)
@@ -489,8 +557,15 @@ function ContributePage(props: ContributePageProps) {
       </div>
       <div className="contribute-panel" id={`contribute-panel-${tab}`} role="tabpanel" aria-labelledby={`contribute-tab-${tab}`}>
         {tab === 'new'
-          ? <NewContribution {...props} onShowMine={() => select('mine')} />
-          : <MyContributions onStartNew={() => select('new')} />}
+          ? <NewContribution
+              // A resubmission and a blank form are separate forms, each starting from its own values
+              key={resubmission ? `resubmit-${resubmission.id}` : 'blank'}
+              {...props}
+              onShowMine={() => select('mine')}
+              resubmission={resubmission}
+              onClearResubmission={() => setResubmission(null)}
+            />
+          : <MyContributions onStartNew={() => select('new')} onResubmit={startResubmission} />}
       </div>
     </section>
   )
