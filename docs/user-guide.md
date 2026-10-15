@@ -13,10 +13,10 @@ as the footer says. Reviewers have their own guide: [`admin-guide.md`](admin-gui
 
 ## Map
 
-The map shows one marker per mine site, coloured by the most advanced
-deployment status at that site (operational, commissioning, announced, or
-decommissioned only) and sized by machines in service. The legend at the
-bottom left explains both.
+The map shows one marker per mine site, coloured by status and sized by
+machines in service. The legend at the bottom left explains both: sites are
+**Operational**, and **Decommissioned only** appears when you include
+decommissioned deployments.
 
 - **Filter** with the panel on the left: technology supplier, machine type,
   country and automation level. **More filters** opens the rest, and
