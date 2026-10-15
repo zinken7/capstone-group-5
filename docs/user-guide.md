@@ -91,7 +91,7 @@ data removes it; **Remove from this browser** removes one entry.
 | Pending review | Waiting for an administrator. You can still **Update submission** to add or fix something. |
 | Changes requested | The reviewer needs something from you. Read the note, then **Update submission**; it returns to the queue. |
 | Verified | Approved and public. **View on register** opens it. |
-| Rejected | Closed, with the reviewer's reason. It will not be reviewed again, but you can submit it again as a new contribution, prefilled from this one and linked to it, so the reviewer sees the earlier decision. |
+| Rejected | Closed, with the reviewer's reason. It will not be reviewed again, but **Resubmit** opens the form prefilled from this one, and the new submission stays linked to it, so the reviewer sees the earlier decision. |
 
 To see your submissions on another device, use the private tracking link
 offered when you submit. Anyone with that link can see and update the
