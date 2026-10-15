@@ -209,7 +209,6 @@ describe('PATCH /api/contributions/:id', () => {
   })
 
   it.each([
-    ['pending review', null],
     ['verified', 'approved'],
     ['rejected', 'rejected'],
   ])('refuses a submission that is %s, changing nothing', async (_label, decision) => {
@@ -219,9 +218,45 @@ describe('PATCH /api/contributions/:id', () => {
 
     const response = await update(mine.id, mine.key, { quantity: 18 })
     expect(response.status).toBe(409)
-    expect(response.body.error).toBe('only a submission with changes requested can be updated')
+    expect(response.body.error).toBe('only a submission waiting for review or with changes requested can be updated')
     expect(await query('SELECT quantity, verification_status::text FROM deployment WHERE id = $1', [mine.id])).toEqual(before)
     expect(await query("SELECT id FROM revision WHERE deployment_id = $1 AND action = 'update'", [mine.id])).toEqual([])
+  })
+
+  it('lets the contributor add a source while the submission waits for review, and keeps it waiting', async () => {
+    const mine = await submit()
+
+    const response = await update(mine.id, mine.key, { evidence_urls: ['https://example.com/annual-report'], change_note: 'Found the annual report' })
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual({ id: mine.id, verification_status: 'pending_review' })
+    const [revision] = await query<{ previous_values: unknown }>("SELECT previous_values FROM revision WHERE deployment_id = $1 AND action = 'update'", [mine.id])
+    expect(revision?.previous_values).toEqual({ evidence_urls: ['https://example.com/jimblebar'], verification_status: 'pending_review' })
+
+    const queue = await request(app).get('/api/admin/reviews').set('Cookie', cookie)
+    expect(queue.body.items.find((item: { id: number }) => item.id === mine.id)).toEqual(expect.objectContaining({
+      updated_while_pending: true,
+      after_changes_requested: false,
+    }))
+  })
+
+  it('refuses a decision on a version the administrator no longer has open', async () => {
+    const mine = await submit()
+    const opened = await request(app).get(`/api/admin/deployments/${mine.id}`).set('Cookie', cookie)
+    const seen = opened.body.updated_at as string
+
+    expect((await update(mine.id, mine.key, { quantity: 18 })).status).toBe(200)
+
+    const stale = await request(app).post(`/api/admin/deployments/${mine.id}/reviews`).set('Cookie', cookie).set('X-Requested-With', 'fetch')
+      .send({ decision: 'approved', version: seen })
+    expect(stale.status).toBe(409)
+    expect(stale.body).toEqual({ error: 'the record changed since you opened it', updated_at: expect.any(String) })
+    expect(stale.body.updated_at).not.toBe(seen)
+    const [row] = await query<{ verification_status: string }>('SELECT verification_status::text FROM deployment WHERE id = $1', [mine.id])
+    expect(row?.verification_status).toBe('pending_review')
+
+    const current = await request(app).post(`/api/admin/deployments/${mine.id}/reviews`).set('Cookie', cookie).set('X-Requested-With', 'fetch')
+      .send({ decision: 'approved', version: stale.body.updated_at })
+    expect(current.status).toBe(201)
   })
 
   it('answers a wrong key as not found and changes nothing', async () => {

@@ -289,7 +289,18 @@ function RecordView({ record, notice, onChanged }: { record: ReviewRecord; notic
             <DecisionForm
               // A new form once the record changes what it lacks, so the starting decision and note follow it
               key={approvalBlockers.map((blocker) => blocker.label).join('|')}
-              submit={(decision, note) => submitDecision(record.id, decision, note)}
+              submit={async (decision, note) => {
+                try {
+                  await submitDecision(record.id, decision, note, record.updatedAt)
+                } catch (cause) {
+                  // The contributor changed the record while it was open: show the latest version instead of deciding on the old one
+                  if (cause instanceof ApiError && cause.status === 409 && cause.message === 'the record changed since you opened it') {
+                    onChanged('The contributor changed this record while you had it open. Check the latest version below, then record your decision again.')
+                    throw new Error('This record changed while you had it open.', { cause })
+                  }
+                  throw cause
+                }
+              }}
               onDecided={() => onChanged('Decision recorded.')}
               noteShownToContributor
               approvalBlockers={approvalBlockers}

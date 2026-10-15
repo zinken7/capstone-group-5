@@ -120,7 +120,7 @@ router.patch('/contributions/:id', async (req, res, next) => {
         res.status(404).json(NOT_FOUND)
         return
       case 'not_open':
-        res.status(409).json({ error: 'only a submission with changes requested can be updated', verification_status: outcome.verificationStatus })
+        res.status(409).json({ error: 'only a submission waiting for review or with changes requested can be updated', verification_status: outcome.verificationStatus })
         return
       case 'unchanged':
         res.status(400).json({ error: 'update does not change the submission' })

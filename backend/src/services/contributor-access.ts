@@ -116,15 +116,19 @@ export type OwnUpdateOutcome =
   | { kind: 'updated'; id: number; verificationStatus: string }
 
 /**
- * A contributor answers a request for changes (FR-46, FR-59): the change is
- * applied to their own record, the previous values go into an update
- * revision attributed to them (FR-47), and the record returns to pending review.
+ * A contributor changes their own record while it waits for review, or
+ * answers a request for changes (FR-46, FR-59): the change is applied, the
+ * previous values go into an update revision attributed to them (FR-47),
+ * and the record is (again) pending review.
  */
 export async function updateOwnContribution(id: number, key: string, input: CorrectionInput): Promise<OwnUpdateOutcome> {
   return withTransaction(async (tx) => {
     const current = await lockDeployment(tx, id)
     if (!current || !keyMatches(key, await findKeyHash(tx, id))) return { kind: 'not_found' }
-    if (current.verificationStatus !== 'changes_requested') return { kind: 'not_open', verificationStatus: current.verificationStatus }
+    // Open while it waits for review, so a source can be added before anyone looks (decisions check the version), and when changes are requested
+    if (current.verificationStatus !== 'changes_requested' && current.verificationStatus !== 'pending_review') {
+      return { kind: 'not_open', verificationStatus: current.verificationStatus }
+    }
 
     // A site is shared by every deployment at it, so a contributor may only supply a location it lacks
     const coordinates = input.coordinates ?? null

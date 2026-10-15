@@ -26,6 +26,8 @@ export interface ReviewQueueItem {
   changedFields: string[]
   /** The contributor's update answers a request for changes */
   afterChangesRequested: boolean
+  /** The contributor changed the record while it waited */
+  updatedWhilePending: boolean
   /** The rejected record this submission replaces */
   resubmissionOf: number | null
   contributorEmail: string | null
@@ -124,6 +126,8 @@ export interface ReviewRecord {
   commissioningYear: number | null
   validFrom: string | null
   validTo: string | null
+  /** The version a decision is made on; a later change refuses it */
+  updatedAt: string
   evidence: EvidenceItem[]
   reviews: ReviewHistoryItem[]
   revisions: RevisionHistoryItem[]
