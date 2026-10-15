@@ -7,7 +7,9 @@ import { validateCorrection } from '../lib/correction-validation.js'
 import { honeypotFilled } from '../lib/honeypot.js'
 import { parseId } from '../lib/ids.js'
 import { createContribution, ResubmissionRefusedError } from '../services/contributions.js'
+import { checkCorrectionStatuses, readOwnCorrection } from '../services/correction-access.js'
 import { checkStatuses, readOwnContribution, updateOwnContribution } from '../services/contributor-access.js'
+import { toRegisterDto } from './register.js'
 
 const router = Router()
 
@@ -63,6 +65,38 @@ router.post('/contributions/status', async (req, res, next) => {
   }
   try {
     res.status(200).json({ items: await checkStatuses(pairs) })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// A proposed correction is followed the same way as a submission (#223)
+router.post('/corrections/status', async (req, res, next) => {
+  const pairs = readStatusRequest(req.body)
+  if (!pairs) {
+    res.status(400).json({ error: `items must hold 1 to ${MAX_STATUS_ITEMS} corrections, each with its id and key` })
+    return
+  }
+  try {
+    res.status(200).json({ items: await checkCorrectionStatuses(pairs) })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/corrections/:id', async (req, res, next) => {
+  const owner = ownership(req)
+  if (!owner) {
+    res.status(404).json({ error: 'correction not found' })
+    return
+  }
+  try {
+    const correction = await readOwnCorrection(owner.id, owner.key)
+    if (!correction) {
+      res.status(404).json({ error: 'correction not found' })
+      return
+    }
+    res.status(200).json({ ...correction, record: correction.record && toRegisterDto(correction.record) })
   } catch (error) {
     next(error)
   }

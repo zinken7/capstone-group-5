@@ -14,8 +14,8 @@ export const RECORD_DECISIONS: DecisionOptions = [
 
 export const CORRECTION_DECISIONS: DecisionOptions = [
   ['approved', 'Approve', 'The change is applied and appears in public views. The record stays verified.'],
-  ['needs_changes', 'Needs changes', 'The record stays as it is. The contributor can send a new correction.'],
-  ['rejected', 'Reject', 'The record stays as it is.'],
+  ['needs_changes', 'Needs changes', 'The record stays as it is. The contributor sees your note and can propose the correction again.'],
+  ['rejected', 'Reject', 'The record stays as it is. The contributor sees your note.'],
 ]
 
 interface DecisionFormProps {

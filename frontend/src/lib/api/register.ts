@@ -63,7 +63,7 @@ export interface RegisterPage {
   offset: number
 }
 
-function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
+export function toEquipmentRecord(item: RegisterItemDto): EquipmentRecord {
   const record: EquipmentRecord = {
     id: String(item.id),
     siteName: item.site_name || 'Not recorded',

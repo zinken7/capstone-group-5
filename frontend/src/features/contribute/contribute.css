@@ -445,6 +445,105 @@
   margin-top: var(--space-3);
 }
 
+/* One application with several attempts: the current ones in full, earlier ones folded away */
+.my-contribution-group {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--color-surface);
+}
+
+.my-contribution-group__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-contribution-group__items > .my-contribution {
+  border: 0;
+  border-radius: 0;
+}
+
+.my-contribution-group__items > .my-contribution + .my-contribution,
+.my-contribution-history,
+.my-contribution-group__remove {
+  border-top: 1px solid var(--border);
+}
+
+.my-contribution-history,
+.my-contribution-group__remove {
+  padding: var(--space-2) var(--space-5);
+}
+
+.my-contribution-group__remove .my-contribution__confirm {
+  padding-block: var(--space-2);
+}
+
+.my-contribution-group__remove .text-button {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.my-contribution-history__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-1) 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.my-contribution-history__list li {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--type-sm);
+}
+
+.my-contribution-history__list p,
+.my-contribution-history__list blockquote {
+  margin: 0;
+}
+
+.my-contribution-history__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.my-contribution-history__list blockquote {
+  color: var(--text-strong);
+}
+
+/* What a proposed correction changes */
+.my-contribution__changes {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--type-sm);
+}
+
+.my-contribution__changes div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+
+.my-contribution__changes dt {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.my-contribution__changes dd {
+  margin: 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
 /* Asked for only when the site has no location yet */
 .my-contribution__location {
   display: grid;
@@ -485,6 +584,11 @@
   .my-contribution {
     grid-template-columns: 1fr;
     padding: var(--space-4);
+  }
+
+  .my-contribution-history,
+  .my-contribution-group__remove {
+    padding-inline: var(--space-4);
   }
 
   /* One column: the action follows the request, in reading order */

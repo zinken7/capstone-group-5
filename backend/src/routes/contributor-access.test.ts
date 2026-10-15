@@ -414,3 +414,62 @@ describe('resubmitting a rejected submission (FR-60)', () => {
     }))
   })
 })
+
+describe('following a proposed correction (#223)', () => {
+  const propose = (id: number, body: Record<string, unknown>) =>
+    request(app).patch(`/api/deployments/${id}`).send({ disclosure_accepted: true, ...body })
+  const decideCorrection = (id: number, decision: string, note?: string) =>
+    request(app).post(`/api/admin/corrections/${id}/reviews`).set('Cookie', cookie).set('X-Requested-With', 'fetch').send({ decision, note })
+
+  it('gives each proposal a key, stores only its hash, and reports its changes and decision to the key holder', async () => {
+    const proposed = await propose(10, { quantity: 100, change_note: 'Fleet grew' })
+    expect(proposed.status).toBe(202)
+    const correction = { id: proposed.body.correction_id as number, key: proposed.body.key as string }
+    const [stored] = await query<{ key_hash: string }>('SELECT key_hash FROM correction_key WHERE correction_id = $1', [correction.id])
+    expect(stored?.key_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(stored?.key_hash).not.toContain(correction.key)
+
+    const waiting = await request(app).post('/api/corrections/status').send({ items: [correction] })
+    expect(waiting.status).toBe(200)
+    expect(waiting.body.items).toEqual([expect.objectContaining({
+      id: correction.id,
+      deployment_id: 10,
+      status: 'pending',
+      site_name: 'Roy Hill',
+      machine_model: 'Caterpillar 793F',
+      change_note: 'Fleet grew',
+      changes: [{ field: 'quantity', before: 96, proposed: 100 }],
+      decision: null,
+    })])
+
+    expect((await decideCorrection(correction.id, 'needs_changes', 'Which source says 100?')).status).toBe(201)
+    const asked = await request(app).post('/api/corrections/status').send({ items: [correction] })
+    expect(asked.body.items[0]).toEqual(expect.objectContaining({
+      status: 'needs_changes',
+      decision: { decision: 'needs_changes', note: 'Which source says 100?', decided_at: expect.any(String) },
+    }))
+
+    // Reading one also returns the record as the register shows it, to propose again from
+    const one = await request(app).get(`/api/corrections/${correction.id}`).set('X-Contribution-Key', correction.key)
+    expect(one.status).toBe(200)
+    expect(one.body.record).toEqual(expect.objectContaining({ id: 10, site_name: 'Roy Hill', quantity: 96 }))
+    expect(JSON.stringify(one.body)).not.toContain(correction.key)
+  })
+
+  it('leaves out or refuses a correction whose key does not match', async () => {
+    const proposed = await propose(10, { quantity: 100 })
+    const id = proposed.body.correction_id as number
+
+    expect((await request(app).post('/api/corrections/status').send({ items: [{ id, key: OTHER_KEY }] })).body.items).toEqual([])
+    const read = await request(app).get(`/api/corrections/${id}`).set('X-Contribution-Key', OTHER_KEY)
+    expect(read.status).toBe(404)
+    expect(read.body).toEqual({ error: 'correction not found' })
+    expect((await request(app).get(`/api/corrections/${id}`)).status).toBe(404)
+  })
+
+  it('refuses a status request that is not 1 to 50 well-formed pairs', async () => {
+    const response = await request(app).post('/api/corrections/status').send({ items: [] })
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('items must hold 1 to 50 corrections, each with its id and key')
+  })
+})

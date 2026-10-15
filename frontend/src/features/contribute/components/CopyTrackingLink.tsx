@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { trackingLink } from '../my-contributions'
+import type { TrackedKind } from '../my-contributions'
 
 /**
  * Copies a submission's private tracking link (FR-61). When the browser will
  * not copy, the link is shown, selected, for the contributor to copy themselves.
  */
-function CopyTrackingLink({ id, contributionKey }: { id: number; contributionKey: string }) {
+function CopyTrackingLink({ id, contributionKey, kind = 'submission' }: { id: number; contributionKey: string; kind?: TrackedKind }) {
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
-  const link = trackingLink(id, contributionKey)
+  const link = trackingLink(id, contributionKey, kind)
 
   useEffect(() => {
     if (state === 'manual') inputRef.current?.select()

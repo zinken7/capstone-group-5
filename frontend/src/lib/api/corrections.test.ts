@@ -17,9 +17,10 @@ afterEach(() => {
 
 describe('correction API client', () => {
   it('reports a correction to a verified record as a proposal waiting for review', async () => {
-    fetchMock.mockResolvedValue(Response.json({ id: 10, correction_id: 4, verification_status: 'verified' }, { status: 202 }))
+    fetchMock.mockResolvedValue(Response.json({ id: 10, correction_id: 4, verification_status: 'verified', key: 'k'.repeat(43) }, { status: 202 }))
 
-    await expect(submitCorrection(10, { quantity: 3, disclosureAccepted: true })).resolves.toEqual({ id: 10, correctionId: 4, verificationStatus: 'verified' })
+    // The key lets this browser follow the proposal (#223)
+    await expect(submitCorrection(10, { quantity: 3, disclosureAccepted: true })).resolves.toEqual({ id: 10, correctionId: 4, verificationStatus: 'verified', key: 'k'.repeat(43) })
   })
 
   it('serializes the public correction contract', async () => {

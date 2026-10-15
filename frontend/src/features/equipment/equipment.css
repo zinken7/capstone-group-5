@@ -78,6 +78,10 @@
 .correction-record-summary dt { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 .correction-record-summary dd { margin: 0.2rem 0 0; color: var(--text-strong); font-size: 0.86rem; font-weight: 650; }
 .correction-record-summary dd small { display: block; margin-top: 0.2rem; color: var(--text-muted); font-size: 0.78rem; font-weight: 400; }
+/* The reviewer's request, when a correction is proposed again */
+.correction-request { margin: 0; padding: 0.75rem 1rem; border-left: 3px solid var(--color-info); border-radius: 0 0.6rem 0.6rem 0; background: var(--color-info-surface); }
+.correction-request p { margin: 0; color: var(--text-strong); font-size: 0.9rem; }
+.correction-request .correction-request__label { margin-bottom: 0.2rem; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .correction-warning { margin: 0; padding: 0.75rem 1rem; border: 1px solid #f2c078; border-radius: 0.6rem; color: #8a3c0b; background: #fff8e6; font-size: 0.88rem; line-height: 1.45; }
 .form-help-inline { color: var(--text-muted); font-weight: 400; }
 .correction-dialog__actions { flex: none; justify-content: flex-end; padding: 1rem var(--dialog-pad); border-top: 1px solid var(--border); }

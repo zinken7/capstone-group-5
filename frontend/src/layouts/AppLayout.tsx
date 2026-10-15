@@ -1,4 +1,4 @@
-import { useMyContributions } from '../features/contribute/my-contributions'
+import { needsChanges as waitsOnContributor, useMyContributions } from '../features/contribute/my-contributions'
 import type { PropsWithChildren } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
@@ -22,7 +22,7 @@ function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
   const inAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/')
   // Submissions from this browser waiting on the contributor (FR-59)
-  const needsChanges = useMyContributions().items.filter((item) => !item.missing && item.last?.verificationStatus === 'changes_requested').length
+  const needsChanges = useMyContributions().items.filter(waitsOnContributor).length
 
   useEffect(() => {
     // Only routes explicitly ending in `/` own nested paths. Public pages and

@@ -423,8 +423,12 @@ A record in any other status (`pending_review`, `changes_requested`, `unverified
 ### Response — `202 Accepted`
 
 ```json
-{ "id": 10, "correction_id": 4, "verification_status": "verified" }
+{ "id": 10, "correction_id": 4, "verification_status": "verified", "key": "…43 characters" }
 ```
+
+`key` is the proposal's private key (#223): returned once, stored only as a
+SHA-256 hash, and kept by the proposer's browser to follow the correction; see
+[Following a proposed correction](#following-a-proposed-correction).
 
 Invalid corrections return `400`, a filled `website` field returns `400 {"error":"invalid correction"}` with no `fields` and stores nothing, a no-op returns `400 {"error":"correction does not change the record"}`, and an unknown id returns `404`. The deployment row is locked for the transaction, so concurrent corrections queue up.
 
@@ -496,6 +500,32 @@ administrator's correction (#156).
 | `400` | `{"error": "invalid update", "fields": {...}}`, `{"error": "update does not change the submission"}`, or `{"error": "invalid update"}` when the hidden `website` field is filled |
 | `404` | `{"error": "contribution not found"}` |
 | `409` | `{"error": "only a submission waiting for review or with changes requested can be updated", "verification_status": "…"}` |
+
+## Following a proposed correction
+
+A proposed correction to a verified record is followed like a submission, with
+the key `PATCH /api/deployments/{id}` returned for it (#223). A wrong or missing
+key reads as not found, and corrections proposed before keys existed are never
+reachable here.
+
+### `POST /api/corrections/status`
+
+Request: `{"items": [{"id": 4, "key": "…"}, …]}`, 1 to 50 pairs of correction id
+and key. `200 {"items": [...]}`: one item for each pair whose key matches,
+ordered by id, with `id`, `deployment_id`, `status` (`pending`, `approved`,
+`rejected` or `needs_changes`), `submitted_at`, `site_id`, `site_name`,
+`machine_manufacturer`, `machine_model`, `machine_type`, `change_note`,
+`evidence_urls`, `changes` (each `{"field", "before", "proposed"}`) and
+`decision`: the latest decision on the correction, `{"decision", "note",
+"decided_at"}`, or `null`. Anything else returns `400 {"error":"items must hold 1
+to 50 corrections, each with its id and key"}`.
+
+### `GET /api/corrections/{id}`
+
+With the key in `X-Contribution-Key`: `200` with the status item above and
+`record`, the corrected record as `GET /api/register` shows it (or `null` when
+it is no longer verified), so a correction asked to change can be proposed
+again from it. Otherwise `404 {"error":"correction not found"}`.
 
 ## Administrator sign-in
 

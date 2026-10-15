@@ -95,6 +95,7 @@ export function buildWhere(filters: DeploymentFilters): SQL | undefined {
       OR ${tables.deployment.technologyProductId} = ANY(ARRAY(SELECT ${tables.technologyProduct.id} FROM ${tables.technologyProduct} WHERE ${tables.technologyProduct.productName} ILIKE ${pattern}))
     )`)
   }
+  if (filters.deploymentId !== undefined) conditions.push(eq(tables.deployment.id, filters.deploymentId))
   if (filters.siteId !== undefined) conditions.push(eq(tables.site.id, filters.siteId))
   if (filters.country !== undefined) conditions.push(eq(tables.site.countryCode, filters.country))
   if (filters.region !== undefined) conditions.push(eq(tables.region.name, filters.region))
