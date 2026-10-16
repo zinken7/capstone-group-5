@@ -9,7 +9,7 @@
 | **Format** | Online (MS Teams) |
 | **Duration** | Approximately 15 minutes |
 | **Facilitator** | Fudong Qin (UWA) |
-| **Group attendees** | Zerun Zhang (24389925), Zunhao Zhang (24758673), Tyrone Tran (24814799) |
+| **Group attendees** | Zerun Zhang (24389925), Zunhao Zhang (24758673), Tyrone Tran (24814799); Hans Lionar (24661999), delayed in transit, joined as the meeting closed and apologised by MS Teams chat, which the facilitator accepted |
 | **Purpose** | Product demonstration on staging, remaining work and handover |
 | **Reference code** | FM6 |
 
@@ -34,7 +34,7 @@ Tyrone Tran demonstrated the staging site:
 
 ## 3. Client data and remaining work
 
-- The client sent a new data file on Friday 9 October and said he may not expect it to be loaded into the product. Zunhao Zhang has updated the team's seed data to follow its structure.
+- The client sent a new data file on Thursday 8 October and said he may not expect it to be loaded into the product. Zunhao Zhang has updated the team's seed data to follow its structure.
 - The team considers that the product now meets the client's requirements. What remains is beyond the MVP: the AI-assisted evidence check and, possibly, report export.
 - The team noted that requirements changed from week to week as they were clarified with the client, which slowed progress, and that the MVP now meets all agreed requirements.
 
